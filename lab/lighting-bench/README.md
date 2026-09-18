@@ -1,6 +1,7 @@
 # lighting-bench
 
 ## Trying
+
 The direction question from the candidate design: can a room built from
 boxes, cylinders and spheres look "soft realistic" with nothing but a
 directional sun through a window hole, a warm point light, ambient fill,
@@ -12,7 +13,9 @@ well-lit object). Take a screenshot of the best setting and note the values
 here.
 
 ## Result
+
 _(fill in after tuning)_
 
 ## Keep / Drop
+
 _(fill in)_

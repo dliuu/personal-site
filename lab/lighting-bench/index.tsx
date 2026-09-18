@@ -68,7 +68,11 @@ function Furniture({ wood }: { wood: string }) {
       {/* legs */}
       {[-1, 1].map((sx) =>
         [-1, 1].map((sz) => (
-          <mesh key={`${sx}${sz}`} castShadow position={[sx * 1.02, 0.36, sz * 0.38]}>
+          <mesh
+            key={`${sx}${sz}`}
+            castShadow
+            position={[sx * 1.02, 0.36, sz * 0.38]}
+          >
             <boxGeometry args={[0.06, 0.72, 0.06]} />
             {m}
           </mesh>
@@ -132,7 +136,11 @@ export default function LightingBench() {
     <Stage
       shadows
       background={palette.wall}
-      fog={fog.enabled ? { color: palette.wall, near: fog.near, far: fog.far } : undefined}
+      fog={
+        fog.enabled
+          ? { color: palette.wall, near: fog.near, far: fog.far }
+          : undefined
+      }
       cameraPosition={[3.5, 2.2, 4.5]}
     >
       <ambientLight intensity={fill.ambient} />
@@ -160,8 +168,17 @@ export default function LightingBench() {
       />
       <Walls wall={palette.wall} floor={palette.floor} />
       <Furniture wood={palette.wood} />
-      <ContactShadows position={[0, 0.001, 0]} opacity={0.5} blur={2.5} scale={12} far={2} />
-      <OrbitControls target={[0.2, 0.9, -2.4]} maxPolarAngle={Math.PI / 2 - 0.02} />
+      <ContactShadows
+        position={[0, 0.001, 0]}
+        opacity={0.5}
+        blur={2.5}
+        scale={12}
+        far={2}
+      />
+      <OrbitControls
+        target={[0.2, 0.9, -2.4]}
+        maxPolarAngle={Math.PI / 2 - 0.02}
+      />
     </Stage>
   );
 }

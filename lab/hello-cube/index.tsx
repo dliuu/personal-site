@@ -17,7 +17,11 @@ function SpinningCube({ roughness }: { roughness: number }) {
   return (
     <mesh ref={ref} castShadow position={[0, 0.8, 0]}>
       <boxGeometry args={[1.2, 1.2, 1.2]} />
-      <meshStandardMaterial color="#e8e0d0" roughness={roughness} metalness={0} />
+      <meshStandardMaterial
+        color="#e8e0d0"
+        roughness={roughness}
+        metalness={0}
+      />
     </mesh>
   );
 }

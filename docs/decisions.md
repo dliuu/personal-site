@@ -9,9 +9,7 @@ their README; this file records what changed the project's direction.
 - Any experiment route: under 1 MB gzipped first load.
 - No single static asset over 1 MB.
 - Check by reading `next build` output until it matters enough to automate.
-- 2026-09-18 measured: `next build` (Next.js 16.3.5, Turbopack) prints only the
-  route tree, no First Load JS/size column; not printed by next build 16,
-  measure via browser devtools.
+- 2026-09-18 measured: `next build` on Next 16 prints no size table; measure first-load JS in browser devtools (Network, JS, gzipped) when it matters.
 
 ## Log
 
@@ -19,3 +17,4 @@ their README; this file records what changed the project's direction.
 - 2026-09-18: Home page is a placeholder until a direction is chosen. Ideas go in /lab.
 - 2026-09-18: The studio-room design (local spec) is demoted to a candidate; lighting-bench decides whether it proceeds.
 - 2026-09-18: Vercel deployment protection is on; preview URLs need a logged-in browser. Curl checks see 302 to SSO.
+- 2026-09-18: Implementation deviates from docs/skeleton.md §4/§5.2/§6.1 on purpose: registry metadata (`lab/registry.ts`) and dynamic loaders (`lab/loaders.tsx`) are split because `ssr:false` must live in a client module; `useScrollProgress` returns `{ step }` for use inside `useFrame`; `lint` is `eslint .` because Next 16 removed `next lint`.

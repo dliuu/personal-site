@@ -3,7 +3,9 @@ import { pickInitialTier } from "./quality";
 
 describe("pickInitialTier", () => {
   it("is high on a desktop with plenty of cores and memory", () => {
-    expect(pickInitialTier({ touch: false, cores: 8, memory: 16 })).toBe("high");
+    expect(pickInitialTier({ touch: false, cores: 8, memory: 16 })).toBe(
+      "high",
+    );
   });
   it("is low on touch-primary devices", () => {
     expect(pickInitialTier({ touch: true, cores: 8, memory: 8 })).toBe("low");
@@ -16,6 +18,8 @@ describe("pickInitialTier", () => {
   });
   it("ignores missing signals", () => {
     expect(pickInitialTier({ touch: false })).toBe("high");
-    expect(pickInitialTier({ touch: false, cores: undefined, memory: 2 })).toBe("low");
+    expect(pickInitialTier({ touch: false, cores: undefined, memory: 2 })).toBe(
+      "low",
+    );
   });
 });

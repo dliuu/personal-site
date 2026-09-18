@@ -34,15 +34,15 @@ Success looks like this, verified by running it:
 
 Pinned to the decisions already made, minus anything direction-specific.
 
-| Layer | Choice | Why |
-|---|---|---|
-| Framework | Next.js (App Router, TypeScript) | Vercel-native, code-splitting via `next/dynamic`, MDX later without a rewrite |
-| 3D | `three`, `@react-three/fiber`, `@react-three/drei` | Declarative scenes; drei covers cameras, shadows, environment, text, HTML anchors |
-| Live tuning | `leva` | Sliders for lights, colours, camera keyframes while previewing. Removed from production builds |
-| State | `zustand` | One small store shared by scene and DOM overlays |
-| Tests | `vitest` | Pure logic only (curves, progress mapping, tier selection) |
-| Lint/format | ESLint (next config) + Prettier | Keep diffs about the idea, not formatting |
-| Hosting | Vercel | Preview URL per push |
+| Layer       | Choice                                             | Why                                                                                            |
+| ----------- | -------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Framework   | Next.js (App Router, TypeScript)                   | Vercel-native, code-splitting via `next/dynamic`, MDX later without a rewrite                  |
+| 3D          | `three`, `@react-three/fiber`, `@react-three/drei` | Declarative scenes; drei covers cameras, shadows, environment, text, HTML anchors              |
+| Live tuning | `leva`                                             | Sliders for lights, colours, camera keyframes while previewing. Removed from production builds |
+| State       | `zustand`                                          | One small store shared by scene and DOM overlays                                               |
+| Tests       | `vitest`                                           | Pure logic only (curves, progress mapping, tier selection)                                     |
+| Lint/format | ESLint (next config) + Prettier                    | Keep diffs about the idea, not formatting                                                      |
+| Hosting     | Vercel                                             | Preview URL per push                                                                           |
 
 Styling: CSS Modules or plain global CSS. No Tailwind; the references we
 liked most are hand-styled and the overlays are few.
@@ -136,8 +136,8 @@ to get subtly wrong and hard to see:
 export type Experiment = {
   slug: string;
   title: string;
-  description: string;      // one line, shown on /lab
-  added: string;            // ISO date
+  description: string; // one line, shown on /lab
+  added: string; // ISO date
   load: () => Promise<{ default: React.ComponentType }>;
 };
 ```
@@ -162,10 +162,10 @@ Filling in the last two is how an idea gets decided.
 Shipped with the skeleton so there is something to look at on day one, and
 so each shared piece has a consumer that proves it works.
 
-| Slug | Trying | Proves |
-|---|---|---|
-| `hello-cube` | A lit cube with leva sliders for light colour, intensity, roughness | `Stage`, leva, tier DPR |
-| `scroll-path` | Four boxes in a row; camera follows a Catmull-Rom path through four keyframes on scroll; an `Overlay` shows the active index | `ScrollTrack`, `cameraPath`, `progressToSection`, `Overlay`, reduced motion |
+| Slug             | Trying                                                                                                                          | Proves                                                                                    |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `hello-cube`     | A lit cube with leva sliders for light colour, intensity, roughness                                                             | `Stage`, leva, tier DPR                                                                   |
+| `scroll-path`    | Four boxes in a row; camera follows a Catmull-Rom path through four keyframes on scroll; an `Overlay` shows the active index    | `ScrollTrack`, `cameraPath`, `progressToSection`, `Overlay`, reduced motion               |
 | `lighting-bench` | An empty room from primitives (floor, two walls, window hole) with one directional light, contact shadows, and fog, all on leva | Whether primitive geometry plus lighting can look "soft realistic" before we commit to it |
 
 `lighting-bench` is the first real question from the current candidate
@@ -184,14 +184,14 @@ of it is built.
 
 ## 7. Scripts
 
-| Script | Does |
-|---|---|
-| `dev` | `next dev` |
-| `build` | `next build` |
-| `typecheck` | `tsc --noEmit` |
-| `lint` | `next lint` |
-| `test` | `vitest run` |
-| `check` | typecheck, lint, test, in that order |
+| Script      | Does                                 |
+| ----------- | ------------------------------------ |
+| `dev`       | `next dev`                           |
+| `build`     | `next build`                         |
+| `typecheck` | `tsc --noEmit`                       |
+| `lint`      | `next lint`                          |
+| `test`      | `vitest run`                         |
+| `check`     | typecheck, lint, test, in that order |
 
 ## 8. Performance guardrails from day one
 
