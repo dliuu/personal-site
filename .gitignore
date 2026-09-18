@@ -2,3 +2,4 @@
 /superpowers/
 .vercel
 .env*
+.superpowers/
