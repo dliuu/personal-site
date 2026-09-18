@@ -12,6 +12,12 @@ export const experiments: Experiment[] = [
     description: "A lit cube with sliders for light colour, intensity, and roughness.",
     added: "2026-09-18",
   },
+  {
+    slug: "scroll-path",
+    title: "Scroll path",
+    description: "Camera follows a curve through four keyframes as the page scrolls; DOM overlay tracks the active stop.",
+    added: "2026-09-18",
+  },
 ];
 
 export function findExperiment(slug: string): Experiment | undefined {

@@ -5,4 +5,5 @@ import type { ComponentType } from "react";
 
 export const loaders: Record<string, ComponentType> = {
   "hello-cube": dynamic(() => import("./hello-cube"), { ssr: false }),
+  "scroll-path": dynamic(() => import("./scroll-path"), { ssr: false }),
 };
