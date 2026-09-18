@@ -25,27 +25,28 @@ function ProjectObject({ slug, slot }: { slug: string; slot: number }) {
   };
 
   return (
-    <group position={[x, y + (hovered ? 0.04 : 0), z]}>
-      {/* generic object: a small box with a lid, v1 */}
-      <mesh castShadow onPointerOver={over} onPointerOut={out} onClick={click}>
-        <boxGeometry args={[0.22, 0.12, 0.16]} />
-        <meshStandardMaterial
-          color={PALETTE.paper}
-          roughness={0.7}
-          emissive={PALETTE.accent}
-          emissiveIntensity={hovered ? 0.35 : 0}
-        />
+    <group position={[x, y, z]}>
+      {/* static hit box: carries the events, never moves, not rendered */}
+      <mesh onPointerOver={over} onPointerOut={out} onClick={click}>
+        <boxGeometry args={[0.28, 0.2, 0.22]} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
-      <mesh
-        castShadow
-        position={[0, 0.075, 0]}
-        onPointerOver={over}
-        onPointerOut={out}
-        onClick={click}
-      >
-        <boxGeometry args={[0.24, 0.03, 0.18]} />
-        <meshStandardMaterial color={PALETTE.accent} roughness={0.7} />
-      </mesh>
+      {/* visible object: lifts on hover, ignores the raycaster */}
+      <group position={[0, hovered ? 0.04 : 0, 0]}>
+        <mesh castShadow raycast={() => null}>
+          <boxGeometry args={[0.22, 0.12, 0.16]} />
+          <meshStandardMaterial
+            color={PALETTE.paper}
+            roughness={0.7}
+            emissive={PALETTE.accent}
+            emissiveIntensity={hovered ? 0.35 : 0}
+          />
+        </mesh>
+        <mesh castShadow position={[0, 0.075, 0]} raycast={() => null}>
+          <boxGeometry args={[0.24, 0.03, 0.18]} />
+          <meshStandardMaterial color={PALETTE.accent} roughness={0.7} />
+        </mesh>
+      </group>
     </group>
   );
 }

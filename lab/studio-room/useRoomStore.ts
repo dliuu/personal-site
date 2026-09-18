@@ -22,7 +22,7 @@ const initial = {
 export const useRoomStore = create<RoomState>((set) => ({
   ...initial,
   setHovered: (hoveredProject) => set({ hoveredProject }),
-  setOpen: (openProject) => set({ openProject }),
+  setOpen: (openProject) => set({ openProject, hoveredProject: null }),
   setLampOn: (lampOn) => set({ lampOn }),
   setIntroDone: (introDone) => set({ introDone }),
   reset: () => set(initial),

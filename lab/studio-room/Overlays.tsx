@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import type { MouseEvent } from "react";
 import { Overlay } from "@/components/Overlay";
 import { useLabStore } from "@/store/useLabStore";
 import { links, posts, profile, projects } from "./content";
@@ -9,6 +10,10 @@ import { useRoomStore } from "./useRoomStore";
 const h = { margin: "0 0 6px", fontSize: 22 } as const;
 const p = { margin: 0, color: "var(--muted)", lineHeight: 1.5 } as const;
 const list = { listStyle: "none", padding: 0, margin: "12px 0 0" } as const;
+
+const noJump = (e: MouseEvent<HTMLAnchorElement>) => {
+  if (e.currentTarget.getAttribute("href") === "#") e.preventDefault();
+};
 
 function Intro({ visible }: { visible: boolean }) {
   return (
@@ -69,7 +74,7 @@ function Writing({ visible }: { visible: boolean }) {
             key={po.slug}
             style={{ padding: "8px 0", borderTop: "1px solid #333" }}
           >
-            <a href="#" style={{ fontWeight: 600 }}>
+            <a href="#" onClick={noJump} style={{ fontWeight: 600 }}>
               {po.title}
             </a>
             <div style={{ ...p, fontSize: 13 }}>
@@ -89,7 +94,9 @@ function Contact({ visible }: { visible: boolean }) {
       <ul style={list}>
         {links.map((l) => (
           <li key={l.label} style={{ padding: "6px 0" }}>
-            <a href={l.href}>{l.label}</a>
+            <a href={l.href} onClick={noJump}>
+              {l.label}
+            </a>
           </li>
         ))}
       </ul>
@@ -120,7 +127,10 @@ function ProjectPanel() {
             onClick={() => setOpen(null)}
             aria-label="Close"
             style={{
-              all: "unset",
+              background: "none",
+              border: 0,
+              padding: 0,
+              font: "inherit",
               cursor: "pointer",
               float: "right",
               color: "var(--muted)",
@@ -131,7 +141,9 @@ function ProjectPanel() {
           <h2 style={h}>{project.title}</h2>
           <p style={p}>{project.blurb}</p>
           <p style={{ marginTop: 12 }}>
-            <a href={project.url}>Open project →</a>
+            <a href={project.url} onClick={noJump}>
+              Open project →
+            </a>
           </p>
         </>
       ) : null}
