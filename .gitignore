@@ -1,2 +1,4 @@
 # superpowers working files (specs, plans)
 /superpowers/
+.vercel
+.env*
