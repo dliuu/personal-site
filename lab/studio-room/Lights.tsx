@@ -12,7 +12,7 @@ export function Lights() {
 
   return (
     <>
-      <hemisphereLight args={[PALETTE.wall, PALETTE.floor, 0.35]} />
+      <hemisphereLight args={[PALETTE.wall, PALETTE.floor, 0.6]} />
       <directionalLight
         castShadow
         color="#ffd9a8"

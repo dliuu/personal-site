@@ -1,6 +1,7 @@
 "use client";
 
 import { Instance, Instances } from "@react-three/drei";
+import { DoubleSide } from "three";
 import { PALETTE } from "./palette";
 import { useRoomStore } from "./useRoomStore";
 
@@ -113,7 +114,7 @@ function Lamp() {
           roughness={0.7}
           emissive={PALETTE.accent}
           emissiveIntensity={lampOn ? 0.6 : 0}
-          side={2}
+          side={DoubleSide}
         />
       </mesh>
     </group>
@@ -230,7 +231,7 @@ export function Furniture() {
       <Shelf />
       <Notes />
       <Plant position={[-3.3, 0.11, -3.3]} scale={1.6} />
-      <Plant position={[1.35, 0.88, -2.85]} scale={0.55} />
+      <Plant position={[1.25, 0.826, -2.85]} scale={0.55} />
       <SideTable />
     </group>
   );

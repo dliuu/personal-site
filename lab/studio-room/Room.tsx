@@ -31,45 +31,49 @@ export function Room() {
         rotation={[-Math.PI / 2, 0, 0]}
       >
         <planeGeometry args={[3.2, 2.2]} />
-        <meshStandardMaterial color="#b8563f" roughness={1} />
+        <meshStandardMaterial color="#b8563f" roughness={0.95} />
       </mesh>
       {/* left wall */}
-      <mesh receiveShadow position={[lx, H / 2, 0]}>
+      <mesh castShadow receiveShadow position={[lx, H / 2, 0]}>
         <boxGeometry args={[T, H, D]} />
         {wall}
       </mesh>
       {/* back wall around the window */}
-      <mesh receiveShadow position={[-halfW + leftW / 2, H / 2, bz]}>
+      <mesh castShadow receiveShadow position={[-halfW + leftW / 2, H / 2, bz]}>
         <boxGeometry args={[leftW, H, T]} />
         {wall}
       </mesh>
-      <mesh receiveShadow position={[halfW - rightW / 2, H / 2, bz]}>
+      <mesh castShadow receiveShadow position={[halfW - rightW / 2, H / 2, bz]}>
         <boxGeometry args={[rightW, H, T]} />
         {wall}
       </mesh>
-      <mesh receiveShadow position={[WIN.x, belowH / 2, bz]}>
+      <mesh castShadow receiveShadow position={[WIN.x, belowH / 2, bz]}>
         <boxGeometry args={[WIN.w, belowH, T]} />
         {wall}
       </mesh>
-      <mesh receiveShadow position={[WIN.x, H - aboveH / 2, bz]}>
+      <mesh castShadow receiveShadow position={[WIN.x, H - aboveH / 2, bz]}>
         <boxGeometry args={[WIN.w, aboveH, T]} />
         {wall}
       </mesh>
       {/* window frame: two thin verticals, one horizontal */}
       {[-WIN.w / 2, WIN.w / 2].map((dx) => (
-        <mesh key={dx} castShadow position={[WIN.x + dx, WIN.y, bz + 0.02]}>
+        <mesh
+          key={dx}
+          castShadow
+          position={[WIN.x + dx, WIN.y, bz + T / 2 + 0.02]}
+        >
           <boxGeometry args={[0.06, WIN.h + 0.06, 0.08]} />
-          <meshStandardMaterial color={PALETTE.paper} roughness={0.6} />
+          <meshStandardMaterial color={PALETTE.paper} roughness={0.7} />
         </mesh>
       ))}
-      <mesh castShadow position={[WIN.x, WIN.y, bz + 0.02]}>
+      <mesh castShadow position={[WIN.x, WIN.y, bz + T / 2 + 0.02]}>
         <boxGeometry args={[WIN.w, 0.05, 0.08]} />
-        <meshStandardMaterial color={PALETTE.paper} roughness={0.6} />
+        <meshStandardMaterial color={PALETTE.paper} roughness={0.7} />
       </mesh>
       {/* sill */}
       <mesh castShadow receiveShadow position={[WIN.x, belowH, bz + 0.12]}>
         <boxGeometry args={[WIN.w + 0.2, 0.06, 0.3]} />
-        <meshStandardMaterial color={PALETTE.paper} roughness={0.6} />
+        <meshStandardMaterial color={PALETTE.paper} roughness={0.7} />
       </mesh>
     </group>
   );

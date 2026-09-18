@@ -31,7 +31,7 @@ export function CameraRig() {
   const pointer = useRef({ x: 0, y: 0 });
   const parallax = useRef(new Vector3());
   const parallaxGoal = useRef(new Vector3());
-  const introStart = useRef<number | null>(null);
+  const introElapsed = useRef(0);
 
   // Pointer parallax: track normalised pointer on the window; ignore while a panel is open.
   useEffect(() => {
@@ -55,7 +55,7 @@ export function CameraRig() {
     [invalidate],
   );
 
-  useFrame(({ camera, clock }) => {
+  useFrame(({ camera }, delta) => {
     const { reducedMotion } = useLabStore.getState();
     const room = useRoomStore.getState();
 
@@ -63,17 +63,14 @@ export function CameraRig() {
     const s = step();
     sampleAt(curves, s.smoothed, pathPos.current, target.current);
 
-    // 2. Intro pull-in (skipped under reduced motion)
+    // 2. Intro pull-in (skipped under reduced motion, or if already scrolled on load)
     let introDone = room.introDone;
     if (!introDone) {
-      if (reducedMotion) {
+      if (reducedMotion || (introElapsed.current === 0 && s.raw > 0.02)) {
         introDone = true;
       } else {
-        if (introStart.current === null) introStart.current = clock.elapsedTime;
-        const { t, done } = introBlend(
-          clock.elapsedTime - introStart.current,
-          INTRO_DURATION,
-        );
+        introElapsed.current += Math.min(delta, 1 / 30);
+        const { t, done } = introBlend(introElapsed.current, INTRO_DURATION);
         pathPos.current.lerpVectors(introFrom.current, pathPos.current, t);
         introDone = done;
       }

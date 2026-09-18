@@ -49,7 +49,10 @@ function Work({ visible }: { visible: boolean }) {
               onBlur={() => setHovered(null)}
               onClick={() => setOpen(pr.slug)}
               style={{
-                all: "unset",
+                background: "none",
+                border: 0,
+                padding: 0,
+                font: "inherit",
                 cursor: "pointer",
                 color: hovered === pr.slug ? "var(--accent)" : "var(--fg)",
                 fontWeight: 600,
