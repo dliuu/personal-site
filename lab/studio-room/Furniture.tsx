@@ -122,24 +122,27 @@ function Lamp() {
 
 function Shelf() {
   return (
-    <group position={[-3.85, 1.85, -1.2]}>
+    <group position={[-0.6, 1.85, -3.79]}>
       <mesh castShadow receiveShadow>
-        <boxGeometry args={[0.28, 0.04, 2.6]} />
+        <boxGeometry args={[1.6, 0.04, 0.28]} />
         <meshStandardMaterial color={PALETTE.wood} roughness={0.75} />
       </mesh>
       {/* books, instanced, standing along the shelf */}
       <Instances range={12} castShadow>
-        <boxGeometry args={[0.16, 0.26, 0.05]} />
+        <boxGeometry args={[0.05, 0.26, 0.16]} />
         <meshStandardMaterial roughness={0.85} />
-        {Array.from({ length: 12 }, (_, i) => (
-          <Instance
-            key={i}
-            color={BOOK_COLORS[i % BOOK_COLORS.length]}
-            position={[0.02, 0.15 + (i % 3) * 0.015, -0.35 + i * 0.065]}
-            scale={[1, 0.85 + (i % 4) * 0.08, 1]}
-            rotation={[0, i % 5 === 0 ? 0.12 : 0, 0]}
-          />
-        ))}
+        {Array.from({ length: 12 }, (_, i) => {
+          const s = 0.85 + (i % 4) * 0.08;
+          return (
+            <Instance
+              key={i}
+              color={BOOK_COLORS[i % BOOK_COLORS.length]}
+              position={[-0.75 + i * 0.065, 0.02 + 0.13 * s, 0.02]}
+              scale={[1, s, 1]}
+              rotation={[0, 0, i % 5 === 0 ? 0.12 : 0]}
+            />
+          );
+        })}
       </Instances>
     </group>
   );
@@ -147,10 +150,10 @@ function Shelf() {
 
 function Notes() {
   const notes: [number, number, string][] = [
-    [-0.4, 2.45, PALETTE.paper],
-    [-0.1, 2.3, "#ffe08a"],
-    [0.2, 2.5, PALETTE.paper],
-    [0.45, 2.28, "#ffd1c4"],
+    [-3.2, 2.45, PALETTE.paper],
+    [-2.95, 2.3, "#ffe08a"],
+    [-2.7, 2.5, PALETTE.paper],
+    [-2.45, 2.28, "#ffd1c4"],
   ];
   return (
     <group>
