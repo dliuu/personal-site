@@ -23,7 +23,10 @@ const isProd = process.env.NODE_ENV === "production";
 function detectWebGL(): boolean {
   try {
     const c = document.createElement("canvas");
-    return Boolean(c.getContext("webgl2") ?? c.getContext("webgl"));
+    const ctx = c.getContext("webgl2") ?? c.getContext("webgl");
+    const supported = Boolean(ctx);
+    ctx?.getExtension("WEBGL_lose_context")?.loseContext();
+    return supported;
   } catch {
     return false;
   }
@@ -62,7 +65,7 @@ export function Stage({
 
   return (
     <>
-      <Leva hidden={isProd} collapsed />
+      <Leva hidden={isProd} />
       <Canvas
         shadows={shadows && high}
         dpr={high ? [1, 2] : 1}
@@ -71,7 +74,9 @@ export function Stage({
         style={{ position: "fixed", inset: 0 }}
       >
         {background ? <color attach="background" args={[background]} /> : null}
-        {fog ? <fog attach="fog" args={[fog.color, fog.near, fog.far]} /> : null}
+        {fog ? (
+          <fog attach="fog" args={[fog.color, fog.near, fog.far]} />
+        ) : null}
         <Suspense fallback={null}>{children}</Suspense>
         {isProd ? null : <Stats />}
       </Canvas>

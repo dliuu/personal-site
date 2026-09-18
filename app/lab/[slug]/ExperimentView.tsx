@@ -12,7 +12,7 @@ export function ExperimentView({ slug }: { slug: string }) {
         href="/lab"
         style={{
           position: "fixed",
-          top: 12,
+          bottom: 12,
           left: 12,
           zIndex: 20,
           padding: "6px 10px",

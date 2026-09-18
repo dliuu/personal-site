@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Vector3 } from "three";
 import { Stage } from "@/components/Stage";
@@ -26,6 +26,7 @@ function CameraRig() {
   const pos = useRef(new Vector3());
   const tgt = useRef(new Vector3());
   useInvalidateOnScroll();
+  useEffect(() => () => useLabStore.getState().setActiveSection(0), []);
 
   useFrame(({ camera, invalidate }) => {
     const s = step();
@@ -69,14 +70,28 @@ export default function ScrollPath() {
   return (
     <>
       <ScrollTrack pages={keyframes.length} />
-      <Stage shadows frameloop="demand" background="#141418" cameraPosition={[-6, 2.2, 4.5]}>
+      <Stage
+        shadows
+        frameloop="demand"
+        background="#141418"
+        cameraPosition={[-6, 2.2, 4.5]}
+      >
         <ambientLight intensity={0.35} />
-        <directionalLight castShadow intensity={2.5} position={[3, 8, 4]} shadow-mapSize={[1024, 1024]} />
+        <directionalLight
+          castShadow
+          intensity={2.5}
+          position={[3, 8, 4]}
+          shadow-mapSize={[1024, 1024]}
+        />
         <Boxes />
         <CameraRig />
       </Stage>
       {NOTES.map((text, i) => (
-        <Overlay key={i} visible={activeSection === i} side={i % 2 === 0 ? "left" : "right"}>
+        <Overlay
+          key={i}
+          visible={activeSection === i}
+          side={i % 2 === 0 ? "left" : "right"}
+        >
           <strong style={{ color: COLORS[i] }}>{i + 1} / 4</strong>
           <p style={{ margin: "8px 0 0", lineHeight: 1.5 }}>{text}</p>
         </Overlay>
