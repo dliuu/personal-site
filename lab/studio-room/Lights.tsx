@@ -1,24 +1,17 @@
 "use client";
 
-import {
-  ContactShadows,
-  Environment,
-  Lightformer,
-  PerformanceMonitor,
-} from "@react-three/drei";
+import { ContactShadows, Environment, Lightformer } from "@react-three/drei";
 import { useLabStore } from "@/store/useLabStore";
 import { PALETTE } from "./palette";
 import { useRoomStore } from "./useRoomStore";
 
 export function Lights() {
   const tier = useLabStore((s) => s.tier);
-  const setTier = useLabStore((s) => s.setTier);
   const lampOn = useRoomStore((s) => s.lampOn);
   const high = tier === "high";
 
   return (
     <>
-      <PerformanceMonitor onDecline={() => setTier("low")} />
       <hemisphereLight args={[PALETTE.wall, PALETTE.floor, 0.35]} />
       <directionalLight
         castShadow

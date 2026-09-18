@@ -37,7 +37,7 @@ function Desk() {
       {/* monitor */}
       <mesh castShadow position={[0.1, 1.1, -0.28]}>
         <boxGeometry args={[1.05, 0.62, 0.04]} />
-        <meshStandardMaterial color={PALETTE.dark} roughness={0.4} />
+        <meshStandardMaterial color={PALETTE.dark} roughness={0.7} />
       </mesh>
       <mesh position={[0.1, 1.1, -0.255]}>
         <planeGeometry args={[0.98, 0.55]} />
@@ -50,7 +50,7 @@ function Desk() {
       </mesh>
       <mesh castShadow position={[0.1, 0.8, -0.28]}>
         <boxGeometry args={[0.22, 0.1, 0.18]} />
-        <meshStandardMaterial color="#2a2a2e" roughness={0.5} />
+        <meshStandardMaterial color="#2a2a2e" roughness={0.7} />
       </mesh>
       {/* keyboard */}
       <mesh castShadow position={[0.1, 0.78, 0.12]}>
@@ -60,7 +60,7 @@ function Desk() {
       {/* mug */}
       <mesh castShadow position={[1.0, 0.83, 0.25]}>
         <cylinderGeometry args={[0.06, 0.05, 0.12, 16]} />
-        <meshStandardMaterial color={PALETTE.accent} roughness={0.6} />
+        <meshStandardMaterial color={PALETTE.accent} roughness={0.7} />
       </mesh>
     </group>
   );
@@ -100,11 +100,11 @@ function Lamp() {
     <group position={[-0.75, 0.77, -2.85]}>
       <mesh castShadow>
         <cylinderGeometry args={[0.09, 0.11, 0.03, 20]} />
-        <meshStandardMaterial color={PALETTE.metal} roughness={0.5} />
+        <meshStandardMaterial color={PALETTE.metal} roughness={0.7} />
       </mesh>
       <mesh castShadow position={[0, 0.25, 0]}>
         <cylinderGeometry args={[0.015, 0.015, 0.5, 8]} />
-        <meshStandardMaterial color={PALETTE.metal} roughness={0.5} />
+        <meshStandardMaterial color={PALETTE.metal} roughness={0.7} />
       </mesh>
       <mesh castShadow position={[0.08, 0.52, 0]} rotation={[0, 0, -0.5]}>
         <coneGeometry args={[0.14, 0.18, 20, 1, true]} />
@@ -135,7 +135,7 @@ function Shelf() {
           <Instance
             key={i}
             color={BOOK_COLORS[i % BOOK_COLORS.length]}
-            position={[0.02, 0.15 + (i % 3) * 0.015, 0.2 + i * 0.065]}
+            position={[0.02, 0.15 + (i % 3) * 0.015, -0.35 + i * 0.065]}
             scale={[1, 0.85 + (i % 4) * 0.08, 1]}
             rotation={[0, i % 5 === 0 ? 0.12 : 0, 0]}
           />
@@ -161,7 +161,7 @@ function Notes() {
           rotation={[0, Math.PI / 2, (i % 2 ? 1 : -1) * 0.05]}
         >
           <planeGeometry args={[0.18, 0.18]} />
-          <meshStandardMaterial color={c} roughness={1} />
+          <meshStandardMaterial color={c} roughness={0.95} />
         </mesh>
       ))}
     </group>
@@ -212,7 +212,7 @@ function SideTable() {
       {/* a small stack of letters */}
       <mesh castShadow position={[0.05, 0.585, 0.02]} rotation={[0, 0.2, 0]}>
         <boxGeometry args={[0.28, 0.03, 0.2]} />
-        <meshStandardMaterial color={PALETTE.paper} roughness={1} />
+        <meshStandardMaterial color={PALETTE.paper} roughness={0.95} />
       </mesh>
     </group>
   );

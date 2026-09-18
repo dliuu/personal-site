@@ -10,6 +10,9 @@ objects with DOM panels, demand-mode rendering, tiered lighting.
 Adaptations for the lab: placeholder content in `content.ts`, no MDX, no pre-rendered fallback
 image, one generic project object shape.
 
+Live tier downgrade (PerformanceMonitor) is omitted: under demand-mode rendering its fps sampling
+is meaningless. Initial tier still applies.
+
 ## Result
 
 _(fill in after viewing)_
