@@ -5,6 +5,7 @@ import { Stage } from "@/components/Stage";
 import { ScrollTrack } from "@/components/ScrollTrack";
 import { PALETTE } from "./palette";
 import { INTRO_START, PAGES } from "./sections";
+import { CameraRig } from "./CameraRig";
 import { Furniture } from "./Furniture";
 import { Lights } from "./Lights";
 import { Room } from "./Room";
@@ -27,6 +28,7 @@ export default function StudioRoom() {
         <Lights />
         <Room />
         <Furniture />
+        <CameraRig />
       </Stage>
     </>
   );
