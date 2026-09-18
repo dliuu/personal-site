@@ -5,6 +5,8 @@ import { Stage } from "@/components/Stage";
 import { ScrollTrack } from "@/components/ScrollTrack";
 import { PALETTE } from "./palette";
 import { INTRO_START, PAGES } from "./sections";
+import { Furniture } from "./Furniture";
+import { Lights } from "./Lights";
 import { Room } from "./Room";
 import { useRoomStore } from "./useRoomStore";
 
@@ -22,9 +24,9 @@ export default function StudioRoom() {
         fog={{ color: PALETTE.wall, near: 7, far: 18 }}
         cameraPosition={INTRO_START}
       >
-        <ambientLight intensity={0.4} />
-        <directionalLight castShadow intensity={3} position={[3, 4, -6]} />
+        <Lights />
         <Room />
+        <Furniture />
       </Stage>
     </>
   );
