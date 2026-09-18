@@ -1,0 +1,60 @@
+:root {
+  --bg: #0e0e10;
+  --fg: #ececec;
+  --muted: #9a9a9f;
+  --panel: rgba(20, 20, 24, 0.72);
+  --accent: #ffb454;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--accent);
+}
+
+.page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 48px 16px;
+}
+
+.page h1 {
+  font-size: 2rem;
+  margin: 0 0 8px;
+}
+
+.page p {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.page ul {
+  list-style: none;
+  padding: 0;
+}
+
+.page li {
+  padding: 12px 0;
+  border-top: 1px solid #222;
+}
+
+.page li small {
+  display: block;
+  color: var(--muted);
+}
