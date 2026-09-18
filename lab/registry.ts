@@ -18,6 +18,12 @@ export const experiments: Experiment[] = [
     description: "Camera follows a curve through four keyframes as the page scrolls; DOM overlay tracks the active stop.",
     added: "2026-09-18",
   },
+  {
+    slug: "lighting-bench",
+    title: "Lighting bench",
+    description: "An empty primitive room with a window, sun, lamp, contact shadows and fog, all on sliders. Does primitive plus lighting look soft-realistic?",
+    added: "2026-09-18",
+  },
 ];
 
 export function findExperiment(slug: string): Experiment | undefined {
