@@ -5,10 +5,12 @@ import { Stage } from "@/components/Stage";
 import { ScrollTrack } from "@/components/ScrollTrack";
 import { PALETTE } from "./palette";
 import { INTRO_START, PAGES } from "./sections";
-import { CameraRig } from "./CameraRig";
+import { Room } from "./Room";
 import { Furniture } from "./Furniture";
 import { Lights } from "./Lights";
-import { Room } from "./Room";
+import { ProjectObjects } from "./ProjectObject";
+import { CameraRig } from "./CameraRig";
+import { Overlays } from "./Overlays";
 import { useRoomStore } from "./useRoomStore";
 
 export default function StudioRoom() {
@@ -28,8 +30,10 @@ export default function StudioRoom() {
         <Lights />
         <Room />
         <Furniture />
+        <ProjectObjects />
         <CameraRig />
       </Stage>
+      <Overlays />
     </>
   );
 }

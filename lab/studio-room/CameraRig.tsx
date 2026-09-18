@@ -47,6 +47,14 @@ export function CameraRig() {
 
   useEffect(() => () => useLabStore.getState().setActiveSection(0), []);
 
+  useEffect(
+    () =>
+      useRoomStore.subscribe((state, prev) => {
+        if (state.openProject !== prev.openProject) invalidate();
+      }),
+    [invalidate],
+  );
+
   useFrame(({ camera, clock }) => {
     const { reducedMotion } = useLabStore.getState();
     const room = useRoomStore.getState();

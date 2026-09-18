@@ -13,6 +13,10 @@ image, one generic project object shape.
 Live tier downgrade (PerformanceMonitor) is omitted: under demand-mode rendering its fps sampling
 is meaningless. Initial tier still applies.
 
+What to judge: (1) does the intro pull-in feel like a signature moment; (2) do the four stops
+frame the room well; (3) does hover/click on the desk objects feel responsive; (4) does the
+room look warm enough to keep. Tune camera keyframes in `sections.ts`, palette in `palette.ts`.
+
 ## Result
 
 _(fill in after viewing)_
