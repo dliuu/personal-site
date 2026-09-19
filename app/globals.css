@@ -65,6 +65,7 @@ body:has(.chapters) {
   --ink: #1f1b16;
   --accent: #b3421b;
   background: var(--paper);
+  color: var(--ink);
 }
 @media (prefers-reduced-motion: no-preference) {
   html:has(.chapters) {
@@ -72,9 +73,6 @@ body:has(.chapters) {
   }
 }
 .chapters {
-  --paper: #f3efe6;
-  --ink: #1f1b16;
-  --accent: #b3421b;
   position: relative;
   z-index: 1;
   color: var(--ink);

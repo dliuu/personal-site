@@ -8,7 +8,7 @@ import {
   wrapEffect,
 } from "@react-three/postprocessing";
 import { Effect } from "postprocessing";
-import { Color, Uniform } from "three";
+import { Color, SRGBColorSpace, Uniform } from "three";
 import { useLabStore } from "@/store/useLabStore";
 import { INK, PAPER } from "./palette";
 
@@ -21,7 +21,7 @@ void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor)
   float l = clamp(dot(inputColor.rgb, vec3(0.2126, 0.7152, 0.0722)), 0.0, 1.0);
   vec2 p = mat2(0.7071, -0.7071, 0.7071, 0.7071) * (uv * resolution / pitch);
   float d = length(fract(p) - 0.5);
-  float r = 0.62 * sqrt(1.0 - l);
+  float r = 0.55 * sqrt(1.0 - l);
   float k = 1.0 - smoothstep(r - 0.06, r + 0.06, d);
   outputColor = vec4(mix(paper, ink, k), inputColor.a);
 }
@@ -44,6 +44,7 @@ class HalftoneImpl extends Effect {
         ["pitch", new Uniform(pitch)],
       ]),
     });
+    this.inputColorSpace = SRGBColorSpace;
   }
 }
 

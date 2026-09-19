@@ -104,7 +104,7 @@ export function HeroObjects() {
   const weights = useRef<number[]>(chapters.map(() => 0));
   const primed = useRef(false);
   const width = useThree((s) => s.size.width);
-  const narrow = width < 720;
+  const narrow = width <= 720;
 
   useFrame(({ camera }, delta) => {
     const { continuous } = useChaptersStore.getState();
