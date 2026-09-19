@@ -27,6 +27,13 @@ export const experiments: Experiment[] = [
       "An empty primitive room with a window, sun, lamp, contact shadows and fog, all on sliders. Does primitive plus lighting look soft-realistic?",
     added: "2026-09-18",
   },
+  {
+    slug: "chapters",
+    title: "Chapters",
+    description:
+      "Editorial scroll: DOM chapters over one fixed canvas, one hero object per chapter crossfading by scroll, halftone post pass as the theme.",
+    added: "2026-09-19",
+  },
 ];
 
 export function findExperiment(slug: string): Experiment | undefined {
