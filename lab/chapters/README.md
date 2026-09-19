@@ -13,6 +13,10 @@ What to judge: (1) does the first frame look like a poster; (2) do the objects c
 legibly as you scroll; (3) does the halftone read as a deliberate print look at both tiers;
 (4) is the type/palette carrying the theme as much as the shader.
 
+Rendering is always-on because the objects idle-spin (spec §2.2); r3f pauses the loop on
+hidden tabs. The halftone is a custom luminance-to-dot effect (the stock DotScreen clamps
+paper to white). Measure the experiment chunk size in devtools and record it here.
+
 ## Result
 
 _(fill in after viewing)_

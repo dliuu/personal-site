@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useRef } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import { CatmullRomCurve3, Group, Vector3 } from "three";
 import { heroWeight } from "@/lib/sectionProgress";
 import { lerp } from "@/lib/progress";
@@ -13,15 +13,17 @@ import { useChaptersStore } from "./useChaptersStore";
 const CAMERA_Z = 6;
 const DOLLY = 0.4;
 
-function InkMaterial() {
-  return <meshStandardMaterial color={INK} roughness={0.55} metalness={0.1} />;
+function HeroMaterial() {
+  return (
+    <meshStandardMaterial color="#7a6f63" roughness={0.55} metalness={0.1} />
+  );
 }
 
 function Knot() {
   return (
     <mesh>
       <torusKnotGeometry args={[1, 0.3, 200, 32]} />
-      <InkMaterial />
+      <HeroMaterial />
     </mesh>
   );
 }
@@ -42,7 +44,7 @@ function Cluster() {
       {CLUSTER.map((p, i) => (
         <mesh key={i} position={p} scale={i === 0 ? 0.9 : 0.55}>
           <icosahedronGeometry args={[1, 0]} />
-          <InkMaterial />
+          <HeroMaterial />
         </mesh>
       ))}
     </group>
@@ -59,7 +61,7 @@ function Slabs() {
           rotation={[0, (i - 2) * 0.18, 0]}
         >
           <boxGeometry args={[2.2, 0.18, 1.4]} />
-          <InkMaterial />
+          <HeroMaterial />
         </mesh>
       ))}
     </group>
@@ -85,7 +87,7 @@ function Ribbon() {
   return (
     <mesh>
       <tubeGeometry args={[curve, 220, 0.14, 16, true]} />
-      <InkMaterial />
+      <HeroMaterial />
     </mesh>
   );
 }
@@ -100,10 +102,18 @@ const HERO: Record<HeroKind, () => React.JSX.Element> = {
 export function HeroObjects() {
   const groups = useRef<(Group | null)[]>([]);
   const weights = useRef<number[]>(chapters.map(() => 0));
+  const primed = useRef(false);
+  const width = useThree((s) => s.size.width);
+  const narrow = width < 720;
 
   useFrame(({ camera }, delta) => {
     const { continuous } = useChaptersStore.getState();
     const { reducedMotion } = useLabStore.getState();
+    if (!primed.current) {
+      primed.current = true;
+      for (let i = 0; i < chapters.length; i++)
+        weights.current[i] = heroWeight(i, continuous);
+    }
     for (let i = 0; i < chapters.length; i++) {
       const g = groups.current[i];
       if (!g) continue;
@@ -125,21 +135,27 @@ export function HeroObjects() {
       <hemisphereLight args={[PAPER, INK, 0.6]} />
       <directionalLight color="#fff1dc" intensity={2.5} position={[3, 4, 5]} />
       <directionalLight color={PAPER} intensity={0.8} position={[-4, -2, -3]} />
-      {chapters.map((c, i) => {
-        const Hero = HERO[c.hero];
-        return (
-          <group
-            key={c.id}
-            ref={(el) => {
-              groups.current[i] = el;
-            }}
-            visible={false}
-            scale={0.0001}
-          >
-            <Hero />
-          </group>
-        );
-      })}
+      <group
+        position={narrow ? [0, 1.5, 0] : [1.6, 0, 0]}
+        scale={narrow ? 0.65 : 1}
+      >
+        {chapters.map((c, i) => {
+          const Hero = HERO[c.hero];
+          return (
+            <group
+              key={c.id}
+              ref={(el) => {
+                groups.current[i] = el;
+              }}
+              position={[0, 0, -(i % 2) * 0.6]}
+              visible={false}
+              scale={0.0001}
+            >
+              <Hero />
+            </group>
+          );
+        })}
+      </group>
     </>
   );
 }

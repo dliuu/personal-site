@@ -60,6 +60,17 @@ a {
 }
 
 /* ---- chapters experiment ---- */
+body:has(.chapters) {
+  --paper: #f3efe6;
+  --ink: #1f1b16;
+  --accent: #b3421b;
+  background: var(--paper);
+}
+@media (prefers-reduced-motion: no-preference) {
+  html:has(.chapters) {
+    scroll-behavior: smooth;
+  }
+}
 .chapters {
   --paper: #f3efe6;
   --ink: #1f1b16;
@@ -74,11 +85,6 @@ a {
     transparent 0.7px
   );
   background-size: 6px 6px;
-  pointer-events: none;
-}
-.chapters a,
-.chapters nav {
-  pointer-events: auto;
 }
 .chapters-nav {
   position: sticky;
@@ -112,7 +118,12 @@ a {
 }
 .chapters-col {
   grid-column: 2;
-  pointer-events: auto;
+}
+@media (max-width: 720px) {
+  .chapters-section {
+    align-items: end;
+    padding-bottom: 14vh;
+  }
 }
 .chapters-title {
   font-family: var(--font-display), Georgia, serif;
@@ -157,6 +168,7 @@ a {
   color: var(--ink);
   font-family: var(--font-display), Georgia, serif;
   font-size: 26px;
+  font-weight: 300;
   text-decoration: none;
 }
 .chapters-list a:hover {
