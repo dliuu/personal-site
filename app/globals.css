@@ -181,3 +181,8 @@ body:has(.chapters) {
 .chapters-links li {
   grid-template-columns: 1fr;
 }
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition-duration: 0.01ms !important;
+  }
+}

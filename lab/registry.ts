@@ -33,6 +33,11 @@ export const experiments: Experiment[] = [
     description:
       "Editorial scroll: DOM chapters over one fixed canvas, one hero object per chapter crossfading by scroll, halftone post pass as the theme.",
     added: "2026-09-19",
+    slug: "studio-room",
+    title: "Studio room",
+    description:
+      "The approved design as an experiment: a primitive studio room, four scroll stops, intro pull-in, parallax, clickable project objects, DOM overlays.",
+    added: "2026-09-18",
   },
 ];
 
