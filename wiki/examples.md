@@ -62,6 +62,7 @@ budget for the visitor.
 - Type: corporate product-launch microsite, 12 full-viewport sections
 
 ### What it is
+
 A long-scroll narrative page. Sticky anchor nav across sections (Sidekick,
 Agentic, Online, Retail, Marketing, Checkout, Operations, Shop App, B2B,
 Finance, Shipping, Developer). Each section: bold hero statement + 3D scene,
@@ -70,6 +71,7 @@ then expandable feature cards with "Read help doc" / "Play video" links, then a
 chats and is structured exactly like the others.
 
 ### Stack and architecture (verified from source)
+
 - **Remix/Hydrogen on Shopify Oxygen**, Tailwind, React. ~1.4 MB HTML because
   the loader data (all copy, all asset URLs) is inlined.
 - **One sticky WebGL canvas behind the whole page.** A lazily imported
@@ -96,7 +98,7 @@ chats and is structured exactly like the others.
 - **Post-processing:** EffectComposer with bloom (`noBloom` flag) and a custom
   sketch/hatching pass (`sketchColor`, `hatAlpha` uniforms) that draws the
   Renaissance-drawing look over the 3D. A DOM layer `davinci-lines fixed
-  inset-0` adds line-drawing decoration on top.
+inset-0` adds line-drawing decoration on top.
 - **Quality tiers, measured not guessed:** `detect-gpu` benchmarks the GPU.
   Tier 0 or mobile (unless `forceWebGL`) → `FallbackImageScene` (static
   images, same DOM). Tier 1/2/3 → low/medium/high. Resolution is capped by a
@@ -110,6 +112,7 @@ chats and is structured exactly like the others.
   rootMargin.
 
 ### Theme (verified from CSS)
+
 - **Type:** NeueMontreal (sans, body/UI), HWCigars (display), ImperialScript
   (script accent for the "Renaissance" flourish). Self-hosted woff2.
 - **Colour:** parchment cream `#f7f7ee`, ink olive `#292919`, mid stones
@@ -120,6 +123,7 @@ chats and is structured exactly like the others.
   Everything serves the one idea.
 
 ### What's good
+
 - 3D is a chapter opener, not the whole page: each section is 3D moment →
   dense feature list → next. The rhythm carries 150+ updates without fatigue.
 - One canvas, many data-driven scenes, crossfaded by scroll progress. No
@@ -131,6 +135,7 @@ chats and is structured exactly like the others.
   and a decorative layer at once.
 
 ### What we can learn
+
 - Sticky canvas + DOM articles scrolling over it is the cheapest way to get
   "3D behind real content". We already have the pieces (Stage, ScrollTrack,
   Overlay); the missing move is to make the canvas sticky and let normal
@@ -144,6 +149,7 @@ chats and is structured exactly like the others.
 - `data-nav-theme` per section to flip chrome colour as you scroll.
 
 ### Avoid
+
 - 30 models and 40 Rive files is a studio's worth of assets. Aim for 3–6
   scenes built from code geometry plus one or two baked textures.
 - The 1.4 MB HTML from inlining every asset URL.

@@ -101,16 +101,16 @@ environment map, plus intro, parallax, hover lift and four camera stops all at
 once. That is the expensive path to a look no reference site uses. Boxes under
 a real sun look like boxes. Against the practices above:
 
-| Practice | Where we stand |
-|---|---|
-| One hard idea | "A room" is a setting, not an idea. Nothing in it is the memorable thing. |
-| Bake lighting | Everything is real-time. Shadows on 30+ meshes every frame the loop runs. |
-| Style hides resolution | No stylisation. Soft-realism asks the geometry to be good, and it is boxes. |
-| Charm from texture/illustration | Zero textures. Flat colours only. |
-| Signature moment | The intro pull-in exists, but there is no image worth pulling in to. |
-| Render only when needed | Done (demand loop). This part is right. |
-| Quality tiers, reduced motion | Done. Also right. |
-| Small vocabulary | Too many small effects, none of them the hook. |
+| Practice                        | Where we stand                                                              |
+| ------------------------------- | --------------------------------------------------------------------------- |
+| One hard idea                   | "A room" is a setting, not an idea. Nothing in it is the memorable thing.   |
+| Bake lighting                   | Everything is real-time. Shadows on 30+ meshes every frame the loop runs.   |
+| Style hides resolution          | No stylisation. Soft-realism asks the geometry to be good, and it is boxes. |
+| Charm from texture/illustration | Zero textures. Flat colours only.                                           |
+| Signature moment                | The intro pull-in exists, but there is no image worth pulling in to.        |
+| Render only when needed         | Done (demand loop). This part is right.                                     |
+| Quality tiers, reduced motion   | Done. Also right.                                                           |
+| Small vocabulary                | Too many small effects, none of them the hook.                              |
 
 The plumbing (demand rendering, tiers, DOM overlays, scroll-to-camera) is sound
 and reusable. The picture is the problem.
