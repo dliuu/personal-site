@@ -58,57 +58,95 @@ budget for the visitor.
 ## 1. Shopify Editions Winter '26 ("The Renaissance Edition")
 
 - URL: https://www.shopify.com/editions/winter2026#agentic
-- Added: 2026-09-18
-- Type: corporate product-launch microsite, ~12 full-viewport sections
+- Added: 2026-09-18; deep-dived 2026-09-19 from the shipped bundles
+- Type: corporate product-launch microsite, 12 full-viewport sections
 
 ### What it is
-
 A long-scroll narrative page. Sticky anchor nav across sections (Sidekick,
-Agentic, Online, Retail, Marketing, Shipping, Finance, Checkout, Shop App,
-Developer, B2B, ...). Each section: bold hero statement + 3D scene, then
-expandable feature cards with "Read help doc" / "Play video" links, then a
+Agentic, Online, Retail, Marketing, Checkout, Operations, Shop App, B2B,
+Finance, Shipping, Developer). Each section: bold hero statement + 3D scene,
+then expandable feature cards with "Read help doc" / "Play video" links, then a
 "Back to navigation" link. The "Agentic" section is about selling inside AI
-chats (ChatGPT, Copilot, Perplexity) and is structured exactly like the others.
+chats and is structured exactly like the others.
 
-### Stack (from shipped HTML)
+### Stack and architecture (verified from source)
+- **Remix/Hydrogen on Shopify Oxygen**, Tailwind, React. ~1.4 MB HTML because
+  the loader data (all copy, all asset URLs) is inlined.
+- **One sticky WebGL canvas behind the whole page.** A lazily imported
+  `Background` chunk (1.0 MB, react-three-fiber + three + postprocessing)
+  renders into a `sticky top-0 h-screen -mb-[100lvh]` wrapper. The DOM
+  articles scroll over it; the first article starts at `mt-[50vh]` so the hero
+  scene owns the top half of the first viewport. Canvas: `frameloop="always"`,
+  `antialias:false`, `alpha:false`, `powerPreference:"high-performance"`.
+- **One lazy chunk per section scene** (14: HeroScene, SidekickScene,
+  AgenticScene, ... FallbackImageScene). The chunks are tiny (AgenticScene is
+  1.2 KB): a config naming the glb nodes to animate ("particles",
+  "butterflies", "light-1", "light-2", "effects"). Rendering logic is shared in
+  `Background`; scenes are data.
+- **Scene state machine driven by scroll.** Each scene carries `isActive`,
+  `progress` (0..1 through its section) and `transitionProgress` into the
+  next; an overlay position is blended `current + (1 - current) * next` so
+  scenes crossfade rather than cut. `earlyCrossfade: 0.2` from the third
+  section on.
+- **Assets per section:** `EW26_<Section>_<date>_compressed-optimized.glb`
+  (hero), `<Section>_fg_smaller` (props), `<Section>_bg_diffuse` (baked
+  background), plus e.g. `Sidekick_bg_stars`. Meshopt/Draco-style
+  "compressed-optimized" naming; ~30 glbs total. Baked backgrounds, lit
+  foregrounds.
+- **Post-processing:** EffectComposer with bloom (`noBloom` flag) and a custom
+  sketch/hatching pass (`sketchColor`, `hatAlpha` uniforms) that draws the
+  Renaissance-drawing look over the 3D. A DOM layer `davinci-lines fixed
+  inset-0` adds line-drawing decoration on top.
+- **Quality tiers, measured not guessed:** `detect-gpu` benchmarks the GPU.
+  Tier 0 or mobile (unless `forceWebGL`) → `FallbackImageScene` (static
+  images, same DOM). Tier 1/2/3 → low/medium/high. Resolution is capped by a
+  max long edge, not a fixed DPR: `min(devicePixelRatio, 2, 1280/w, 1280/h)`
+  for low, 1920 for medium, 3840 for high. A frame-time monitor targets
+  33 ms on low and 16.7 ms otherwise and calls `onQualityDowngrade`.
+- **Lenis** smooth scroll (`smoothWheel`, `lerp 0.1`). **Rive** (~40 `.riv`)
+  for 2D feature animations inside cards. **IntersectionObserver** everywhere:
+  `data-in-viewport` per section, `data-nav-theme` light/dark flips the
+  sticky nav colour as sections pass, lazy video/rive mounting with a 5%
+  rootMargin.
 
-- **Three.js + WebGL** for ~30 `.glb` models. Naming reveals the pipeline:
-  `EW26_<Section>_<date>_compressed-optimized.glb`, plus per-section
-  `<Section>_bg_diffuse` and `<Section>_fg_smaller` pairs. So: one hero
-  model, one foreground props model, one baked-diffuse background per section.
-- **Rive** (`.riv`, ~20 files) for 2D vector animations inside feature cards.
-- **Spline** references (embedded 3D scenes for some cards).
-- **Lenis** smooth scroll (`data-lenis-prevent` on the nav drawer).
-- **Motion** (Framer Motion) for DOM transitions.
-- Tailwind utility classes throughout.
-- Runtime flags in the config blob: `forceWebGL`, `useFallbackImages`,
-  `quality`, `noBloom`. They ship a quality tier system and a static-image
-  fallback for devices that can't run WebGL.
+### Theme (verified from CSS)
+- **Type:** NeueMontreal (sans, body/UI), HWCigars (display), ImperialScript
+  (script accent for the "Renaissance" flourish). Self-hosted woff2.
+- **Colour:** parchment cream `#f7f7ee`, ink olive `#292919`, mid stones
+  `#dcdcd0` `#909083` `#5c5c4e`, plus a neutral g1–g7 grey scale
+  (`#fff` → `#000`). One accent blue `#57afdf`, one purple `#8051ff`.
+- **Motif:** Renaissance drawing. Hatching shader over 3D, da Vinci line
+  layer, script type, sculptural objects on plinths, warm paper ground.
+  Everything serves the one idea.
 
 ### What's good
-
-- Renaissance metaphor: serif display type for the hero wordmark (rendered as
-  SVG paths), neutral off-white grounds, 3D props styled like sculptural
-  objects on a plinth.
-- Rhythm: big statement -> 3D moment -> dense feature list -> repeat. The 3D
-  is a chapter opener, not the whole page.
-- Baked lighting (`bg_diffuse` models) keeps runtime cost low; the fg props
-  are the only things that need real-time shading.
+- 3D is a chapter opener, not the whole page: each section is 3D moment →
+  dense feature list → next. The rhythm carries 150+ updates without fatigue.
+- One canvas, many data-driven scenes, crossfaded by scroll progress. No
+  per-section canvas cost, no hard cuts.
+- Baked backgrounds keep the runtime cost in the foreground props only.
+- The quality system is honest: GPU benchmark, resolution cap by long edge,
+  frame-time downgrade, image fallback with identical DOM.
+- The theme is a single committed motif expressed in type, colour, a shader
+  and a decorative layer at once.
 
 ### What we can learn
-
-- Chapter structure: 3D scene as the opener for each section, text below it.
-- Per-section model split (hero / props / baked background) as an asset
-  convention.
-- Quality tiers + image fallback baked in from day one.
-- Sticky section nav with "back to top of nav" affordance.
-- Lenis + scroll-driven scene transitions.
+- Sticky canvas + DOM articles scrolling over it is the cheapest way to get
+  "3D behind real content". We already have the pieces (Stage, ScrollTrack,
+  Overlay); the missing move is to make the canvas sticky and let normal
+  page sections scroll past it.
+- Per-section scene configs as data, with `progress` and
+  `transitionProgress`, and a crossfade between neighbours.
+- Cap resolution by long edge per tier instead of fixed DPR; measure frame
+  time; keep a static-image scene that reuses the same DOM.
+- A theme is one motif in four places: type, palette, a post shader, a
+  decorative DOM layer.
+- `data-nav-theme` per section to flip chrome colour as you scroll.
 
 ### Avoid
-
-- 30 models and 20 Rive files is a studio's worth of assets. A personal site
-  should hit the same _feeling_ with 3-6 scenes.
-- Tailwind soup and a 1.4 MB HTML document.
+- 30 models and 40 Rive files is a studio's worth of assets. Aim for 3–6
+  scenes built from code geometry plus one or two baked textures.
+- The 1.4 MB HTML from inlining every asset URL.
 
 ---
 
