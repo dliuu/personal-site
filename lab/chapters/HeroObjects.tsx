@@ -8,7 +8,7 @@ import { lerp } from "@/lib/progress";
 import { useLabStore } from "@/store/useLabStore";
 import { chapters, type HeroKind } from "./chapters";
 import { INK, PAPER } from "./palette";
-import { useChaptersStore } from "./useChaptersStore";
+import { useSectionsStore } from "@/store/useSectionsStore";
 
 const CAMERA_Z = 6;
 const DOLLY = 0.4;
@@ -107,7 +107,7 @@ export function HeroObjects() {
   const narrow = width <= 720;
 
   useFrame(({ camera }, delta) => {
-    const { continuous } = useChaptersStore.getState();
+    const { continuous } = useSectionsStore.getState();
     const { reducedMotion } = useLabStore.getState();
     if (!primed.current) {
       primed.current = true;

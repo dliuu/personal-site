@@ -4,8 +4,8 @@ import { useCallback, useRef } from "react";
 import { chapters } from "./chapters";
 import { links, posts, profile, projects } from "./content";
 import { body, display } from "./fonts";
-import { useChaptersStore } from "./useChaptersStore";
-import { useSectionProgress } from "./useSectionProgress";
+import { useSectionsStore } from "@/store/useSectionsStore";
+import { useSectionProgress } from "@/hooks/useSectionProgress";
 
 const noJump = (e: React.MouseEvent<HTMLAnchorElement>) => {
   if (e.currentTarget.getAttribute("href") === "#") e.preventDefault();
@@ -82,7 +82,7 @@ export function Sections() {
     [],
   );
   useSectionProgress(getEls);
-  const active = useChaptersStore((s) => s.active);
+  const active = useSectionsStore((s) => s.active);
 
   return (
     <div className={`chapters ${display.variable} ${body.variable}`}>
