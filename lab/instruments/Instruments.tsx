@@ -1,6 +1,13 @@
 "use client";
 
-import { useMemo, type RefObject } from "react";
+import {
+  createContext,
+  useContext,
+  useMemo,
+  useRef,
+  type RefObject,
+} from "react";
+import { useFrame } from "@react-three/fiber";
 import {
   BoxGeometry,
   BufferGeometry,
@@ -12,7 +19,14 @@ import {
   SphereGeometry,
   TorusGeometry,
 } from "three";
+import type { LineBasicMaterial } from "three";
 import { BRONZE, INK } from "./palette";
+
+export type EdgedMode = {
+  mode: "solid" | "lines";
+  lineMaterial?: LineBasicMaterial;
+};
+export const EdgedModeContext = createContext<EdgedMode>({ mode: "solid" });
 
 /** Line segments for a torus outline: two circles at r±t in the XY plane (matches TorusGeometry's plane); partial arcs are closed at both ends. */
 export function torusOutline(
@@ -66,18 +80,35 @@ export function Edged({
   threshold?: number;
   edges?: BufferGeometry;
 }) {
+  const ctx = useContext(EdgedModeContext);
   const edges = useMemo(
     () => edgesOverride ?? new EdgesGeometry(geometry, threshold),
     [edgesOverride, geometry, threshold],
   );
   return (
     <group position={position} rotation={rotation}>
-      <mesh geometry={geometry} name="solid">
-        <meshStandardMaterial color={BRONZE} roughness={0.6} metalness={0.15} />
-      </mesh>
-      <lineSegments geometry={edges} name="edge">
-        <lineBasicMaterial color={INK} transparent opacity={1} />
-      </lineSegments>
+      {ctx.mode === "solid" ? (
+        <mesh geometry={geometry} name="solid">
+          <meshStandardMaterial
+            color={BRONZE}
+            roughness={0.6}
+            metalness={0.15}
+            polygonOffset
+            polygonOffsetFactor={1}
+            polygonOffsetUnits={1}
+          />
+        </mesh>
+      ) : ctx.lineMaterial ? (
+        <lineSegments
+          geometry={edges}
+          material={ctx.lineMaterial}
+          name="edge"
+        />
+      ) : (
+        <lineSegments geometry={edges} name="edge">
+          <lineBasicMaterial color={INK} transparent />
+        </lineSegments>
+      )}
     </group>
   );
 }
@@ -85,22 +116,27 @@ export function Edged({
 const ring = (r: number, t: number) => new TorusGeometry(r, t, 10, 96);
 const rod = (l: number, r: number) => new CylinderGeometry(r, r, l, 12);
 const TICKS_24 = Array.from({ length: 24 }, (_, i) => (i / 24) * Math.PI * 2);
+const QUADRANT_TICKS = Array.from(
+  { length: 10 },
+  (_, i) => (i / 9) * (Math.PI / 2),
+);
 
 export function Armillary({ mech }: { mech: RefObject<Group | null> }) {
-  const g = useMemo(
-    () => ({
+  const g = useMemo(() => {
+    const tick = new BoxGeometry(0.04, 0.12, 0.04);
+    return {
       outer: ring(1.5, 0.05),
       mid: ring(1.2, 0.045),
       inner: ring(0.9, 0.04),
       axis: rod(3.6, 0.03),
       globe: new SphereGeometry(0.22, 16, 12),
-      tick: new BoxGeometry(0.04, 0.12, 0.04),
+      tick,
+      tickEdges: new EdgesGeometry(tick),
       outerLine: torusOutline(1.5, 0.05),
       midLine: torusOutline(1.2, 0.045),
       innerLine: torusOutline(0.9, 0.04),
-    }),
-    [],
-  );
+    };
+  }, []);
   return (
     <group>
       <group ref={mech}>
@@ -113,6 +149,7 @@ export function Armillary({ mech }: { mech: RefObject<Group | null> }) {
           <Edged
             key={a}
             geometry={g.tick}
+            edges={g.tickEdges}
             position={[Math.cos(a) * 1.5, 0, Math.sin(a) * 1.5]}
             rotation={[0, -a, 0]}
           />
@@ -176,7 +213,9 @@ function gearGeometry(r: number, teeth: number, thickness: number) {
   const tooth = new BoxGeometry(0.22, thickness, 0.14);
   return {
     body,
+    bodyEdges: new EdgesGeometry(body, 20),
     tooth,
+    toothEdges: new EdgesGeometry(tooth),
     angles: Array.from({ length: teeth }, (_, i) => (i / teeth) * Math.PI * 2),
   };
 }
@@ -193,7 +232,7 @@ function Gear({
   teeth: number;
   thickness: number;
   position: [number, number, number];
-  mech?: RefObject<Group | null>;
+  mech: RefObject<Group | null>;
   phase: number;
 }) {
   const g = useMemo(
@@ -203,11 +242,12 @@ function Gear({
   return (
     <group position={position} rotation={[Math.PI / 2, 0, 0]}>
       <group ref={mech} rotation={[0, phase, 0]}>
-        <Edged geometry={g.body} />
+        <Edged geometry={g.body} edges={g.bodyEdges} />
         {g.angles.map((a) => (
           <Edged
             key={a}
             geometry={g.tooth}
+            edges={g.toothEdges}
             position={[Math.cos(a) * (r + 0.08), 0, Math.sin(a) * (r + 0.08)]}
             rotation={[0, -a, 0]}
           />
@@ -218,6 +258,15 @@ function Gear({
 }
 
 export function Gears({ mech }: { mech: RefObject<Group | null> }) {
+  const g2 = useRef<Group>(null);
+  const g3 = useRef<Group>(null);
+  useFrame(() => {
+    const drive = mech.current;
+    if (!drive) return;
+    const theta = drive.rotation.y;
+    if (g2.current) g2.current.rotation.y = -theta * (14 / 9) + 0.35;
+    if (g3.current) g3.current.rotation.y = -theta * (14 / 11) + 0.15;
+  });
   return (
     <group>
       <Gear
@@ -233,13 +282,15 @@ export function Gears({ mech }: { mech: RefObject<Group | null> }) {
         teeth={9}
         thickness={0.18}
         position={[0.72, 0.62, 0]}
+        mech={g2}
         phase={0.35}
       />
       <Gear
         r={0.7}
         teeth={11}
         thickness={0.18}
-        position={[0.7, -0.95, 0]}
+        position={[0.55, -1.05, 0]}
+        mech={g3}
         phase={0.15}
       />
     </group>
@@ -247,18 +298,18 @@ export function Gears({ mech }: { mech: RefObject<Group | null> }) {
 }
 
 export function Quadrant({ mech }: { mech: RefObject<Group | null> }) {
-  const g = useMemo(
-    () => ({
+  const g = useMemo(() => {
+    const tick = new BoxGeometry(0.03, 0.14, 0.03);
+    return {
       arc: new RingGeometry(1.35, 1.6, 48, 1, 0, Math.PI / 2),
       side: new BoxGeometry(1.6, 0.06, 0.06),
       sight: rod(1.7, 0.035),
-      tick: new BoxGeometry(0.03, 0.14, 0.03),
+      tick,
+      tickEdges: new EdgesGeometry(tick),
       bob: new SphereGeometry(0.07, 12, 10),
       thread: rod(1.5, 0.008),
-    }),
-    [],
-  );
-  const ticks = Array.from({ length: 10 }, (_, i) => (i / 9) * (Math.PI / 2));
+    };
+  }, []);
   return (
     <group position={[-0.6, -0.6, 0]}>
       <Edged geometry={g.arc} threshold={1} />
@@ -273,12 +324,13 @@ export function Quadrant({ mech }: { mech: RefObject<Group | null> }) {
         position={[0.85, 0.85, 0.08]}
         rotation={[0, 0, Math.PI / 4]}
       />
-      {ticks.map((a) => (
+      {QUADRANT_TICKS.map((a) => (
         <Edged
           key={a}
           geometry={g.tick}
+          edges={g.tickEdges}
           position={[Math.cos(a) * 1.47, Math.sin(a) * 1.47, 0.04]}
-          rotation={[0, 0, a]}
+          rotation={[0, 0, a - Math.PI / 2]}
         />
       ))}
       <group ref={mech}>

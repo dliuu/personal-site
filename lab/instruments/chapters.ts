@@ -6,6 +6,7 @@ export type Chapter = {
   instrument: InstrumentKind;
   note: string; // margin annotation
   spin: number;
+  mech: "spinY" | "spinZ" | "swing";
 };
 
 export const chapters: Chapter[] = [
@@ -16,6 +17,7 @@ export const chapters: Chapter[] = [
     instrument: "armillary",
     note: "the heavens, in three rings",
     spin: 0.12,
+    mech: "spinY",
   },
   {
     id: "work",
@@ -24,6 +26,7 @@ export const chapters: Chapter[] = [
     instrument: "astrolabe",
     note: "a rete for finding things",
     spin: 0.08,
+    mech: "spinZ",
   },
   {
     id: "writing",
@@ -32,6 +35,7 @@ export const chapters: Chapter[] = [
     instrument: "gears",
     note: "one turn moves the next",
     spin: 0.1,
+    mech: "spinY",
   },
   {
     id: "contact",
@@ -40,5 +44,6 @@ export const chapters: Chapter[] = [
     instrument: "quadrant",
     note: "sight, then read the arc",
     spin: 0.06,
+    mech: "swing",
   },
 ];
