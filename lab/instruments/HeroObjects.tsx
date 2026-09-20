@@ -14,7 +14,7 @@ import { Armillary, Astrolabe, Gears, Quadrant } from "./Instruments";
 
 const CAMERA_Z = 6;
 const DOLLY = 0.4;
-const INTRO_LERP = 0.05;
+const INTRO_LERP = 0.07;
 const LERP = 0.12;
 
 const KIND: Record<
