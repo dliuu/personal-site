@@ -264,7 +264,7 @@ export function Gears({ mech }: { mech: RefObject<Group | null> }) {
     const drive = mech.current;
     if (!drive) return;
     const theta = drive.rotation.y;
-    if (g2.current) g2.current.rotation.y = -theta * (14 / 9) + 0.35;
+    if (g2.current) g2.current.rotation.y = -theta * (14 / 9) + 0.1;
     if (g3.current) g3.current.rotation.y = -theta * (14 / 11) + 0.15;
   });
   return (
@@ -283,7 +283,7 @@ export function Gears({ mech }: { mech: RefObject<Group | null> }) {
         thickness={0.18}
         position={[0.72, 0.62, 0]}
         mech={g2}
-        phase={0.35}
+        phase={0.1}
       />
       <Gear
         r={0.7}
