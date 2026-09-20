@@ -8,4 +8,5 @@ export const loaders: Record<string, ComponentType> = {
   "scroll-path": dynamic(() => import("./scroll-path"), { ssr: false }),
   "lighting-bench": dynamic(() => import("./lighting-bench"), { ssr: false }),
   chapters: dynamic(() => import("./chapters"), { ssr: false }),
+  instruments: dynamic(() => import("./instruments"), { ssr: false }),
 };

@@ -34,6 +34,13 @@ export const experiments: Experiment[] = [
       "Editorial scroll: DOM chapters over one fixed canvas, one hero object per chapter crossfading by scroll, halftone post pass as the theme.",
     added: "2026-09-19",
   },
+  {
+    slug: "instruments",
+    title: "Instruments",
+    description:
+      "Renaissance variant of chapters: instrument heroes that draw themselves in, an engraving post effect, and a codex-page DOM.",
+    added: "2026-09-20",
+  },
 ];
 
 export function findExperiment(slug: string): Experiment | undefined {
