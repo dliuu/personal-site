@@ -20,7 +20,8 @@ uniform float pitch;
 float lineSet(float coord, float width) {
   float s = fract(coord);
   float aa = fwidth(coord);
-  return 1.0 - smoothstep(width - aa, width + aa, s);
+  float cov = 1.0 - smoothstep(width - aa, width + aa, s);
+  return cov * min(1.0, width / max(aa, 1e-5));
 }
 
 void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor) {
