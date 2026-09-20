@@ -14,6 +14,12 @@ What to judge, against `chapters`: (1) does the first chapter drawing itself fee
 signature moment; (2) do the instruments read as instruments at engraving resolution;
 (3) does turning the mechanism with scroll feel connected; (4) which page feels more like one idea.
 
+Deviations from the spec:
+
+- Contour opacity settles at 0.5 (spec said 0.15) so ink hairlines survive the engraving pass.
+- Intro draw-in uses a frame-rate-independent lerp (0.05 at 60 Hz reference).
+- Instruments render twice, as a solid root and a line root, scaled about the instrument origin.
+
 ## Result
 
 _(fill in after viewing)_

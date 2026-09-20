@@ -18,10 +18,10 @@ uniform vec3 paper;
 uniform float pitch;
 
 float lineSet(float coord, float width) {
-  float s = fract(coord);
-  float aa = fwidth(coord);
-  float cov = 1.0 - smoothstep(width - aa, width + aa, s);
-  return cov * min(1.0, width / max(aa, 1e-5));
+  float hw = 0.5 * width;
+  float x = abs(fract(coord + 0.5) - 0.5);
+  float aa = max(length(vec2(dFdx(coord), dFdy(coord))), 1e-5);
+  return (clamp(x + 0.5 * aa, -hw, hw) - clamp(x - 0.5 * aa, -hw, hw)) / aa;
 }
 
 void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor) {
@@ -31,7 +31,7 @@ void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor)
   float a = lineSet(p.x + p.y, 0.75 * smoothstep(0.0, 1.0, dark));
   float b = lineSet(p.x - p.y, 0.7 * smoothstep(0.35, 1.0, dark));
   float c = lineSet(p.y * 1.5, 0.6 * smoothstep(0.7, 1.0, dark));
-  float k = max(a, max(b, c)) * step(0.001, dark);
+  float k = max(a, max(b, c));
   outputColor = vec4(mix(paper, ink, k), inputColor.a);
 }
 `;
