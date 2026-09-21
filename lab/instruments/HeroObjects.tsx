@@ -1,6 +1,6 @@
 "use client";
 
-import { createRef, useMemo, useRef, type RefObject } from "react";
+import { createRef, useEffect, useMemo, useRef, type RefObject } from "react";
 import type { JSX } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Group, LineBasicMaterial } from "three";
@@ -11,7 +11,9 @@ import { frameLerp, lineOpacity, lineScale, solidScale } from "@/lib/drawIn";
 import { useLabStore } from "@/store/useLabStore";
 import { useSectionsStore } from "@/store/useSectionsStore";
 import { chapters, type InstrumentKind } from "./chapters";
+import { Hotspots } from "./Hotspots";
 import { INK, PARCHMENT } from "./palette";
+import { useExploreStore } from "./useExploreStore";
 import {
   Armillary,
   Balance,
@@ -77,8 +79,14 @@ export function HeroObjects() {
   const weights = useRef<number[]>(chapters.map(() => 0));
   const primed = useRef(false);
   const introDone = useRef(false);
+  const yaw = useRef<number[]>(chapters.map(() => 0));
+  const dragging = useRef(false);
+  const lastX = useRef(0);
   const size = useThree((s) => s.size);
   const vp = useThree((s) => s.viewport);
+  const gl = useThree((s) => s.gl);
+  const active = useSectionsStore((s) => s.active);
+  const tall = useSectionsStore((s) => s.tall);
   const place = heroPlacement({
     width: size.width,
     height: size.height,
@@ -86,6 +94,35 @@ export function HeroObjects() {
     vpHeight: vp.height,
   });
   const narrow = size.width <= 720;
+
+  // Drag the canvas left/right to turn the chapter in view; it eases back.
+  useEffect(() => {
+    const el = gl.domElement;
+    const down = (e: PointerEvent) => {
+      if (e.button !== 0) return;
+      dragging.current = true;
+      lastX.current = e.clientX;
+    };
+    const move = (e: PointerEvent) => {
+      if (!dragging.current) return;
+      const i = useSectionsStore.getState().active;
+      yaw.current[i] += (e.clientX - lastX.current) * 0.006;
+      lastX.current = e.clientX;
+    };
+    const up = () => {
+      dragging.current = false;
+    };
+    el.addEventListener("pointerdown", down);
+    window.addEventListener("pointermove", move, { passive: true });
+    window.addEventListener("pointerup", up);
+    return () => {
+      el.removeEventListener("pointerdown", down);
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+    };
+  }, [gl]);
+
+  useEffect(() => () => useExploreStore.getState().setOpen(null), []);
 
   // eslint-disable-next-line react-hooks/immutability -- r3f pattern: mutate ref object3Ds in useFrame
   useFrame(({ camera, clock }, delta) => {
@@ -155,9 +192,11 @@ export function HeroObjects() {
             m.rotation.y = base + idle;
         }
       }
-      root.rotation.y = reducedMotion
-        ? 0
-        : 0.15 * Math.sin(clock.elapsedTime * 0.2);
+      if (!dragging.current)
+        yaw.current[i] = lerp(yaw.current[i], 0, frameLerp(0.03, delta));
+      root.rotation.y =
+        (reducedMotion ? 0 : 0.15 * Math.sin(clock.elapsedTime * 0.2)) +
+        yaw.current[i];
     }
 
     camera.position.z = CAMERA_Z - DOLLY * (continuous / chapters.length);
@@ -205,6 +244,11 @@ export function HeroObjects() {
                   <Instrument mech={mechs[i].lines} />
                 </group>
               </EdgedModeContext.Provider>
+              <Hotspots
+                chapterId={c.id}
+                kind={c.instrument}
+                visible={i === active && !(narrow && tall)}
+              />
             </group>
           );
         })}

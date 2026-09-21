@@ -203,6 +203,7 @@ body:has(.instruments) {
 .instruments {
   position: relative;
   z-index: 1;
+  pointer-events: none;
   color: var(--ink);
   transition: color 600ms ease;
   font-family: var(--font-fell), Georgia, serif;
@@ -409,6 +410,52 @@ body:has(.instruments) {
     padding-top: 42vh;
     padding-bottom: 14vh;
   }
+}
+
+.instruments-nav,
+.instruments-col,
+.instruments-note {
+  pointer-events: auto;
+}
+.instruments-hotspot-wrap {
+  position: relative;
+  pointer-events: auto;
+}
+.instruments-hotspot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1.5px solid var(--gold);
+  background: color-mix(in srgb, var(--paper, #efe4cc) 85%, transparent);
+  color: var(--ink);
+  font:
+    12px var(--font-fell, Georgia),
+    Georgia,
+    serif;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 200ms ease;
+}
+.instruments-hotspot:hover,
+.instruments-hotspot.is-open {
+  transform: scale(1.2);
+  background: var(--gold);
+  color: var(--paper, #efe4cc);
+}
+.instruments-hotspot-card {
+  position: absolute;
+  left: 30px;
+  top: -6px;
+  width: 220px;
+  padding: 10px 12px;
+  background: color-mix(in srgb, var(--paper, #efe4cc) 92%, transparent);
+  border: 1px dotted var(--gold);
+  color: var(--ink);
+  font:
+    14px/1.4 var(--font-fell, Georgia),
+    Georgia,
+    serif;
+  box-shadow: 0 6px 20px rgba(43, 33, 24, 0.12);
 }
 
 /* dev overlays */
