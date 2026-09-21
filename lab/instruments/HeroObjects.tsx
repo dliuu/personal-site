@@ -4,6 +4,7 @@ import { createRef, useMemo, useRef, type RefObject } from "react";
 import type { JSX } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Group, LineBasicMaterial } from "three";
+import { heroPlacement } from "@/lib/heroRegion";
 import { heroWeight } from "@/lib/sectionProgress";
 import { lerp } from "@/lib/progress";
 import { frameLerp, lineOpacity, lineScale, solidScale } from "@/lib/drawIn";
@@ -61,8 +62,14 @@ export function HeroObjects() {
   const weights = useRef<number[]>(chapters.map(() => 0));
   const primed = useRef(false);
   const introDone = useRef(false);
-  const width = useThree((s) => s.size.width);
-  const narrow = width <= 720;
+  const size = useThree((s) => s.size);
+  const vp = useThree((s) => s.viewport);
+  const place = heroPlacement({
+    width: size.width,
+    height: size.height,
+    vpWidth: vp.width,
+    vpHeight: vp.height,
+  });
 
   // eslint-disable-next-line react-hooks/immutability -- r3f pattern: mutate ref object3Ds in useFrame
   useFrame(({ camera, clock }, delta) => {
@@ -144,10 +151,7 @@ export function HeroObjects() {
         intensity={0.8}
         position={[-4, -2, -3]}
       />
-      <group
-        position={narrow ? [0, 1.5, 0] : [1.6, 0, 0]}
-        scale={narrow ? 0.6 : 0.95}
-      >
+      <group position={[place.x, place.y, 0]} scale={place.scale}>
         {chapters.map((c, i) => {
           const Instrument = KIND[c.instrument];
           return (

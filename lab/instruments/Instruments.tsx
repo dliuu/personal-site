@@ -264,10 +264,10 @@ export function Bridge({ mech }: { mech: RefObject<Group | null> }) {
   const g = useMemo(
     () => ({
       block: new BoxGeometry(0.3, 0.26, 0.5),
-      pier: new BoxGeometry(0.5, 2.0, 0.6),
-      deck: new BoxGeometry(3.6, 0.12, 0.6),
+      pier: new BoxGeometry(0.34, 2.0, 0.6),
+      deck: new BoxGeometry(3.6, 0.08, 0.6),
       post: rod(2.4, 0.03),
-      rail: rod(3.8, 0.025),
+      rail: rod(3.8, 0.02),
     }),
     [],
   );
@@ -296,7 +296,7 @@ export function Bridge({ mech }: { mech: RefObject<Group | null> }) {
           rotation={[0, 0, VOUSSOIRS[KEYSTONE].rotation]}
         />
       </group>
-      <Edged geometry={g.deck} position={[0, 2.06, 0]} />
+      <Edged geometry={g.deck} position={[0, 2.04, 0]} />
       {[-1.9, -0.65, 0.65, 1.9].map((x) => (
         <Edged key={x} geometry={g.post} position={[x, 1.2, 0.45]} />
       ))}
