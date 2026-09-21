@@ -113,9 +113,11 @@ export function HeroObjects() {
           case "spinZ":
             m.rotation.z = base + idle;
             break;
-          case "tilt":
-            m.rotation.z = Math.sin(base) * 0.22;
+          case "tilt": {
+            const u = Math.min(1, Math.max(0, t));
+            m.rotation.z = 0.22 * Math.sin(Math.PI * 2 * u) * (1 - u);
             break;
+          }
           case "drop": {
             const p = Math.min(1, Math.max(0, t / 0.5));
             m.position.y = 0.5 * (1 - p);

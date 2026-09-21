@@ -170,7 +170,6 @@ export function Balance({ mech }: { mech: RefObject<Group | null> }) {
       beam: new BoxGeometry(2.6, 0.06, 0.08),
       chain: rod(0.7, 0.012),
       pan: new CylinderGeometry(0.42, 0.38, 0.05, 40),
-      panLine: torusOutline(0.42, 0.0),
     }),
     [],
   );
@@ -184,11 +183,7 @@ export function Balance({ mech }: { mech: RefObject<Group | null> }) {
         {[-1.2, 1.2].map((x) => (
           <group key={x} position={[x, 0, 0]}>
             <Edged geometry={g.chain} position={[0, -0.35, 0]} />
-            <Edged
-              geometry={g.pan}
-              edges={g.panLine}
-              position={[0, -0.72, 0]}
-            />
+            <Edged geometry={g.pan} position={[0, -0.72, 0]} />
           </group>
         ))}
       </group>
@@ -229,36 +224,34 @@ export function Globe({ mech }: { mech: RefObject<Group | null> }) {
     <group position={[0, -0.3, 0]}>
       <Edged geometry={g.base} position={[0, -1.35, 0]} />
       <Edged geometry={g.stand} position={[0, -0.85, 0]} />
-      <Edged
-        geometry={g.meridian}
-        edges={g.meridianLine}
-        rotation={[0, 0, 0.41]}
-      />
-      <group ref={mech} rotation={[0, 0, 0.41]}>
-        <Edged geometry={g.sphere} edges={g.sphereLine} />
-        <Edged
-          geometry={g.equator}
-          edges={g.equatorLine}
-          rotation={[Math.PI / 2, 0, 0]}
-        />
-        {PIN_POINTS.map((p, i) => {
-          // Orient the pin along the radial direction: three composes an XYZ
-          // Euler as Rx*Ry*Rz, so with ry = 0 local +y lands on
-          // (-sin rz, cos rx * cos rz, sin rx * cos rz). Solving that for p
-          // gives rz = -asin(x) and rx = atan2(z, y).
-          const [x, y, z] = p;
-          const rotZ = -Math.asin(x);
-          const rotX = Math.atan2(z, y);
-          return (
-            <Edged
-              key={i}
-              geometry={g.pin}
-              edges={pinEdges}
-              position={[x * 1.1, y * 1.1, z * 1.1]}
-              rotation={[rotX, 0, rotZ]}
-            />
-          );
-        })}
+      <Edged geometry={g.meridian} edges={g.meridianLine} />
+      <group rotation={[0, 0, 0.41]}>
+        <group ref={mech}>
+          <Edged geometry={g.sphere} edges={g.sphereLine} />
+          <Edged
+            geometry={g.equator}
+            edges={g.equatorLine}
+            rotation={[Math.PI / 2, 0, 0]}
+          />
+          {PIN_POINTS.map((p, i) => {
+            // Orient the pin along the radial direction: three composes an XYZ
+            // Euler as Rx*Ry*Rz, so with ry = 0 local +y lands on
+            // (-sin rz, cos rx * cos rz, sin rx * cos rz). Solving that for p
+            // gives rz = -asin(x) and rx = atan2(z, y).
+            const [x, y, z] = p;
+            const rotZ = -Math.asin(x);
+            const rotX = Math.atan2(z, y);
+            return (
+              <Edged
+                key={i}
+                geometry={g.pin}
+                edges={pinEdges}
+                position={[x * 1.1, y * 1.1, z * 1.1]}
+                rotation={[rotX, 0, rotZ]}
+              />
+            );
+          })}
+        </group>
       </group>
     </group>
   );
@@ -271,10 +264,10 @@ export function Bridge({ mech }: { mech: RefObject<Group | null> }) {
   const g = useMemo(
     () => ({
       block: new BoxGeometry(0.3, 0.26, 0.5),
-      pier: new BoxGeometry(0.5, 1.0, 0.6),
+      pier: new BoxGeometry(0.5, 2.0, 0.6),
       deck: new BoxGeometry(3.6, 0.12, 0.6),
       post: rod(2.4, 0.03),
-      rail: rod(3.4, 0.025),
+      rail: rod(3.8, 0.025),
     }),
     [],
   );
@@ -282,7 +275,7 @@ export function Bridge({ mech }: { mech: RefObject<Group | null> }) {
   return (
     <group position={[0, -1.0, 0]}>
       {[-1.55, 1.55].map((x) => (
-        <Edged key={x} geometry={g.pier} position={[x, 0.5, 0]} />
+        <Edged key={x} geometry={g.pier} position={[x, 1.0, 0]} />
       ))}
       {VOUSSOIRS.map((v, i) =>
         i === KEYSTONE ? null : (
@@ -303,7 +296,7 @@ export function Bridge({ mech }: { mech: RefObject<Group | null> }) {
           rotation={[0, 0, VOUSSOIRS[KEYSTONE].rotation]}
         />
       </group>
-      <Edged geometry={g.deck} position={[0, 1.56, 0]} />
+      <Edged geometry={g.deck} position={[0, 2.06, 0]} />
       {[-1.9, -0.65, 0.65, 1.9].map((x) => (
         <Edged key={x} geometry={g.post} position={[x, 1.2, 0.45]} />
       ))}
