@@ -105,7 +105,7 @@ export function HeroObjects() {
     vpHeight: vp.height,
   });
   // Scale at which the hero fills the viewport height when a plate expands it.
-  const full = (0.44 * vp.height) / 1.75;
+  const full = (0.38 * vp.height) / 1.75;
   const narrow = size.width <= 720;
 
   // Drag the canvas left/right to turn the chapter in view; it eases back.
@@ -158,7 +158,10 @@ export function HeroObjects() {
     // Heroes follow chapters, not sections: a plate holds its chapter centred.
     const heroCont =
       sec.kind === "plate" ? sec.chapter + 0.5 : sec.chapter + progress;
-    const fadeTarget = narrow && tall ? 1 - smooth(0.28, 0.55, depth) : 1;
+    const fadeTarget =
+      narrow && tall && sec.kind !== "plate"
+        ? 1 - smooth(0.28, 0.55, depth)
+        : 1;
     fadeCur.current = reducedMotion
       ? fadeTarget
       : lerp(fadeCur.current, fadeTarget, frameLerp(LERP, delta));
@@ -182,8 +185,8 @@ export function HeroObjects() {
     const parent = parentRef.current;
     if (parent) {
       parent.position.set(
-        lerp(place.x, 0, expand),
-        lerp(place.y, 0, expand),
+        lerp(place.x, narrow ? 0 : 0.9, expand),
+        lerp(place.y, narrow ? 0.9 : 0.2, expand),
         0,
       );
       parent.scale.setScalar(lerp(place.scale, full, expand));

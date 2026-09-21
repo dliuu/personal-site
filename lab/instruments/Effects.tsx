@@ -13,7 +13,7 @@ import { frameLerp } from "@/lib/drawIn";
 import { lerp } from "@/lib/progress";
 import { useLabStore } from "@/store/useLabStore";
 import { useSectionsStore } from "@/store/useSectionsStore";
-import { chapters } from "./chapters";
+import { chapters, sections } from "./chapters";
 import { INK, PARCHMENT } from "./palette";
 import { plateState } from "./plateState";
 
@@ -87,7 +87,7 @@ export function Effects() {
   useFrame((_, delta) => {
     const { active } = useSectionsStore.getState();
     const { reducedMotion } = useLabStore.getState();
-    const tgt = targets[active] ?? targets[0];
+    const tgt = targets[sections[active]?.chapter ?? 0];
     const k = reducedMotion ? 1 : frameLerp(0.08, delta);
     cur.ink.lerp(tgt.ink, k);
     cur.paper.lerp(tgt.paper, k);

@@ -129,8 +129,8 @@ export function Codex() {
   );
   useSectionProgress(getEls);
   const active = useSectionsStore((s) => s.active);
-  const pal = chapters[active]?.palette ?? chapters[0].palette;
   const activeChapter = sections[active]?.chapter ?? 0;
+  const pal = chapters[activeChapter].palette;
 
   return (
     <div
