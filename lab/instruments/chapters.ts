@@ -10,6 +10,7 @@ export type Chapter = {
   note: string;
   spin: number;
   palette: { paper: string; ink: string; accent: string };
+  plate?: { beats: { caption: string; sub?: string }[] };
 };
 
 export const chapters: Chapter[] = [
@@ -42,6 +43,24 @@ export const chapters: Chapter[] = [
     note: "forty-eight pins, one per tongue",
     spin: 0.08,
     palette: { paper: "#e9e7e0", ink: "#1c2b4b", accent: "#b8432e" },
+    plate: {
+      beats: [
+        {
+          caption: "AI Translation launched across 48 language-locales.",
+          sub: "Forty-eight pins",
+        },
+        {
+          caption:
+            "Offline and online benchmarks: Llama 3.1 and Llama 4 against Gemini, Claude and GPT.",
+          sub: "Manhattan",
+        },
+        { caption: "AI inference throttles down 84%.", sub: "The gauge" },
+        {
+          caption: "$4.31M in annualized translation OPEX savings.",
+          sub: "Savings",
+        },
+      ],
+    },
   },
   {
     id: "wcp",
@@ -64,3 +83,17 @@ export const chapters: Chapter[] = [
     palette: { paper: "#efe4cc", ink: "#2b2118", accent: "#c49a3c" },
   },
 ];
+
+export type Section = {
+  id: string;
+  chapter: number;
+  kind: "chapter" | "plate";
+};
+export const sections: Section[] = chapters.flatMap((c, i) =>
+  c.plate
+    ? [
+        { id: c.id, chapter: i, kind: "chapter" as const },
+        { id: `${c.id}-plate`, chapter: i, kind: "plate" as const },
+      ]
+    : [{ id: c.id, chapter: i, kind: "chapter" as const }],
+);
