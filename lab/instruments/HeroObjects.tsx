@@ -37,6 +37,21 @@ const KIND: Record<
   quadrant: Quadrant,
 };
 
+// Per-instrument half-width (world units at scale 1), used to shrink wide
+// instruments to fit inside HERO_RADIUS; compact ones keep scale 1.
+const FIT: Record<InstrumentKind, number> = {
+  armillary: 1.75 / 1.9,
+  balance: 1.75 / 1.5,
+  globe: 1.75 / 1.5,
+  bridge: 1.75 / 2.1,
+  quadrant: 1.75 / 1.45,
+};
+
+function smooth(a: number, b: number, x: number): number {
+  const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
+  return t * t * (3 - 2 * t);
+}
+
 type Refs = { root: Group | null; solid: Group | null; lines: Group | null };
 
 export function HeroObjects() {
@@ -70,11 +85,13 @@ export function HeroObjects() {
     vpWidth: vp.width,
     vpHeight: vp.height,
   });
+  const narrow = size.width <= 720;
 
   // eslint-disable-next-line react-hooks/immutability -- r3f pattern: mutate ref object3Ds in useFrame
   useFrame(({ camera, clock }, delta) => {
-    const { continuous } = useSectionsStore.getState();
+    const { continuous, active, depth } = useSectionsStore.getState();
     const { reducedMotion } = useLabStore.getState();
+    const fade = narrow ? 1 - smooth(0.55, 0.95, depth) : 1;
 
     if (!primed.current) {
       primed.current = true;
@@ -107,6 +124,10 @@ export function HeroObjects() {
       lines.scale.setScalar(Math.max(lineScale(w), 0.0001));
       // eslint-disable-next-line react-hooks/immutability -- r3f pattern: mutate the memoized line material in useFrame
       lineMaterials[i].opacity = lineOpacity(w);
+      if (i === active) {
+        solid.visible = ss > 0.001 && fade > 0.5;
+        lineMaterials[i].opacity = lineOpacity(w) * Math.max(0.18, fade);
+      }
 
       const t = continuous - i;
       const base = t * Math.PI * 0.8;
@@ -161,6 +182,7 @@ export function HeroObjects() {
                 refs.current[i].root = el;
               }}
               position={[0, 0, -(i % 2) * 0.6]}
+              scale={Math.min(1, FIT[c.instrument])}
               visible={false}
             >
               <EdgedModeContext.Provider value={{ mode: "solid" }}>

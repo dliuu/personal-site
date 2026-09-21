@@ -10,8 +10,9 @@ export type Rect = { top: number; height: number };
 export function sectionProgress(
   rects: Rect[],
   viewportHeight: number,
-): { active: number; progress: number; continuous: number } {
-  if (rects.length === 0) return { active: 0, progress: 0, continuous: 0 };
+): { active: number; progress: number; continuous: number; depth: number } {
+  if (rects.length === 0)
+    return { active: 0, progress: 0, continuous: 0, depth: 0 };
   const centre = viewportHeight / 2;
   let active = 0;
   for (let i = 0; i < rects.length; i++) {
@@ -32,7 +33,8 @@ export function sectionProgress(
       progress = 0.5;
     }
   }
-  return { active, progress, continuous: active + progress };
+  const depth = r.height > 0 ? (centre - r.top) / viewportHeight : 0;
+  return { active, progress, continuous: active + progress, depth };
 }
 
 export function heroWeight(index: number, continuous: number): number {

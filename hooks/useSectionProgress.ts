@@ -18,7 +18,8 @@ export function useSectionProgress(getEls: () => HTMLElement[]): void {
       const cur = useSectionsStore.getState();
       if (
         next.active !== cur.active ||
-        Math.abs(next.continuous - cur.continuous) > 1e-4
+        Math.abs(next.continuous - cur.continuous) > 1e-4 ||
+        Math.abs(next.depth - cur.depth) > 1e-4
       ) {
         cur.set(next);
       }
@@ -35,7 +36,7 @@ export function useSectionProgress(getEls: () => HTMLElement[]): void {
       if (raf) cancelAnimationFrame(raf);
       useSectionsStore
         .getState()
-        .set({ active: 0, progress: 0, continuous: 0 });
+        .set({ active: 0, progress: 0, continuous: 0, depth: 0 });
     };
   }, [getEls]);
 }

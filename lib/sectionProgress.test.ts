@@ -15,6 +15,7 @@ describe("sectionProgress", () => {
       active: 0,
       progress: 0.5,
       continuous: 0.5,
+      depth: 0.5,
     });
   });
   it("moves to section 1 when the centre crosses its top", () => {
@@ -30,15 +31,32 @@ describe("sectionProgress", () => {
   });
   it("handles an offset first section (centre above it)", () => {
     const s = sectionProgress([{ top: 800, height: 1000 }], vh);
-    expect(s).toEqual({ active: 0, progress: 0, continuous: 0 });
+    expect(s).toEqual({ active: 0, progress: 0, continuous: 0, depth: -0.3 });
   });
   it("returns zeros for no sections and guards zero height", () => {
     expect(sectionProgress([], vh)).toEqual({
       active: 0,
       progress: 0,
       continuous: 0,
+      depth: 0,
     });
     expect(sectionProgress([{ top: 0, height: 0 }], vh).progress).toBe(0);
+  });
+});
+
+describe("sectionProgress depth", () => {
+  const vh = 1000;
+  it("measures viewport-heights into the active section", () => {
+    expect(sectionProgress([{ top: 0, height: 3000 }], vh).depth).toBeCloseTo(
+      0.5,
+      6,
+    );
+    expect(
+      sectionProgress([{ top: -1000, height: 3000 }], vh).depth,
+    ).toBeCloseTo(1.5, 6);
+  });
+  it("is 0 with no sections", () => {
+    expect(sectionProgress([], vh).depth).toBe(0);
   });
 });
 
