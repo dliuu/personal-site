@@ -97,10 +97,18 @@ export function Codex() {
   );
   useSectionProgress(getEls);
   const active = useSectionsStore((s) => s.active);
+  const pal = chapters[active]?.palette ?? chapters[0].palette;
 
   return (
     <div
       className={`instruments ${fell.variable} ${script.variable} ${ui.variable}`}
+      style={
+        {
+          "--paper": pal.paper,
+          "--ink": pal.ink,
+          "--gold": pal.accent,
+        } as React.CSSProperties
+      }
     >
       <ConstructionLines />
       <nav className="instruments-nav" aria-label="Chapters">

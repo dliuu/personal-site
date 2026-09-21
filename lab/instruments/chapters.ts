@@ -9,6 +9,7 @@ export type Chapter = {
   mech: MechKind;
   note: string;
   spin: number;
+  palette: { paper: string; ink: string; accent: string };
 };
 
 export const chapters: Chapter[] = [
@@ -20,6 +21,7 @@ export const chapters: Chapter[] = [
     mech: "spinY",
     note: "the heavens, in three rings",
     spin: 0.12,
+    palette: { paper: "#efe4cc", ink: "#2b2118", accent: "#c49a3c" },
   },
   {
     id: "eisen",
@@ -29,6 +31,7 @@ export const chapters: Chapter[] = [
     mech: "tilt",
     note: "weigh, then settle",
     spin: 0,
+    palette: { paper: "#e7e3db", ink: "#1f2a36", accent: "#c49a3c" },
   },
   {
     id: "meta",
@@ -38,6 +41,7 @@ export const chapters: Chapter[] = [
     mech: "spinY",
     note: "forty-eight pins, one per tongue",
     spin: 0.08,
+    palette: { paper: "#e9e7e0", ink: "#1c2b4b", accent: "#b8432e" },
   },
   {
     id: "wcp",
@@ -47,6 +51,7 @@ export const chapters: Chapter[] = [
     mech: "drop",
     note: "the keystone last",
     spin: 0,
+    palette: { paper: "#efe0cc", ink: "#3d2418", accent: "#c49a3c" },
   },
   {
     id: "contact",
@@ -56,5 +61,6 @@ export const chapters: Chapter[] = [
     mech: "swing",
     note: "sight, then read the arc",
     spin: 0.06,
+    palette: { paper: "#efe4cc", ink: "#2b2118", accent: "#c49a3c" },
   },
 ];

@@ -203,6 +203,8 @@ body:has(.instruments) {
 .instruments {
   position: relative;
   z-index: 1;
+  color: var(--ink);
+  transition: color 600ms ease;
   font-family: var(--font-fell), Georgia, serif;
   /* laid-paper texture */
   background-image:
@@ -235,7 +237,8 @@ body:has(.instruments) {
   gap: 28px;
   padding: 14px 24px;
   border-bottom: 1px dotted var(--gold);
-  background: color-mix(in srgb, var(--parchment) 88%, transparent);
+  background: color-mix(in srgb, var(--paper) 88%, transparent);
+  transition: background-color 600ms ease;
   backdrop-filter: blur(6px);
   font-family: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
   font-size: 12px;
@@ -248,6 +251,7 @@ body:has(.instruments) {
   text-decoration: none;
   padding-bottom: 2px;
   border-bottom: 2px solid transparent;
+  transition: border-color 600ms ease;
 }
 .instruments-nav a.is-active {
   border-bottom-color: var(--gold);

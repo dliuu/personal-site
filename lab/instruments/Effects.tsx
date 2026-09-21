@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo } from "react";
-import { useThree } from "@react-three/fiber";
+import { useMemo, useRef } from "react";
+import { useFrame, useThree } from "@react-three/fiber";
 import {
   EffectComposer,
   Vignette,
@@ -9,7 +9,10 @@ import {
 } from "@react-three/postprocessing";
 import { Effect } from "postprocessing";
 import { Color, SRGBColorSpace, Uniform } from "three";
+import { frameLerp } from "@/lib/drawIn";
 import { useLabStore } from "@/store/useLabStore";
+import { useSectionsStore } from "@/store/useSectionsStore";
+import { chapters } from "./chapters";
 import { INK, PARCHMENT } from "./palette";
 
 const fragment = /* glsl */ `
@@ -62,11 +65,36 @@ const Engraving = wrapEffect(EngravingImpl);
 export function Effects() {
   const tier = useLabStore((s) => s.tier);
   const dpr = useThree((s) => s.viewport.dpr);
+  const scene = useThree((s) => s.scene);
   const high = tier === "high";
   const pitch = useMemo(() => (high ? 7 : 9) * dpr, [high, dpr]);
+  const effectRef = useRef<EngravingImpl | null>(null);
+  const cur = useMemo(
+    () => ({ ink: new Color(INK), paper: new Color(PARCHMENT) }),
+    [],
+  );
+  const target = useMemo(() => ({ ink: new Color(), paper: new Color() }), []);
+
+  useFrame((_, delta) => {
+    const { active } = useSectionsStore.getState();
+    const { reducedMotion } = useLabStore.getState();
+    const pal = chapters[active]?.palette ?? chapters[0].palette;
+    target.ink.set(pal.ink);
+    target.paper.set(pal.paper);
+    const k = reducedMotion ? 1 : frameLerp(0.08, delta);
+    cur.ink.lerp(target.ink, k);
+    cur.paper.lerp(target.paper, k);
+    const e = effectRef.current;
+    if (e) {
+      (e.uniforms.get("ink")!.value as Color).copy(cur.ink);
+      (e.uniforms.get("paper")!.value as Color).copy(cur.paper);
+    }
+    if (scene.background instanceof Color) scene.background.copy(cur.paper);
+  });
+
   return (
     <EffectComposer multisampling={0}>
-      <Engraving ink={INK} paper={PARCHMENT} pitch={pitch} />
+      <Engraving ref={effectRef} ink={INK} paper={PARCHMENT} pitch={pitch} />
       {high ? <Vignette eskil={false} offset={0.2} darkness={0.3} /> : <></>}
     </EffectComposer>
   );
