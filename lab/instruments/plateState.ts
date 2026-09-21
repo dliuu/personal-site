@@ -17,7 +17,11 @@ export const plateState = {
   t: 0,
   /** Smoothed hero expansion, 0..1. */
   expand: 0,
-  /** World point the camera looks at in beat 1; written by the instrument. */
+  /**
+   * World point the camera looks at in beat 1; written by the instrument.
+   * Written by the solid Globe's useFrame, which runs before HeroObjects' —
+   * one frame behind the parent transform; CAM_LERP smooths it. Do not reorder.
+   */
   focus: new Vector3(),
   hasFocus: false,
 };

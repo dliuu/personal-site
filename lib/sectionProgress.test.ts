@@ -117,6 +117,16 @@ describe("sectionProgress plate sections", () => {
   it("reports chapter kind by default", () => {
     expect(sectionProgress(rects(0), vh).kind).toBe("chapter");
   });
+  it("falls back to plain progress when the plate is no taller than the viewport", () => {
+    const short = (scrollY: number) => [
+      { top: 0 - scrollY, height: 1000 },
+      { top: 1000 - scrollY, height: 1000, kind: "plate" as const },
+    ];
+    const s = sectionProgress(short(1250), vh);
+    expect(s.active).toBe(1);
+    expect(s.kind).toBe("plate");
+    expect(s.progress).toBeCloseTo(0.75, 6);
+  });
 });
 
 describe("heroWeight", () => {

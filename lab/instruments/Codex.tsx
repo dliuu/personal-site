@@ -109,6 +109,7 @@ function PlateCaptions({
         <div
           key={i}
           className={`instruments-caption${i === beat ? " is-active" : ""}`}
+          aria-hidden={i !== beat}
         >
           <span className="instruments-caption-num">
             {["i", "ii", "iii", "iv"][i]}

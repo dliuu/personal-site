@@ -6,6 +6,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { DirectionalLight, Group, LineBasicMaterial, Vector3 } from "three";
 import type { PerspectiveCamera } from "three";
 import { heroPlacement } from "@/lib/heroRegion";
+import { heroContinuous } from "@/lib/heroContinuous";
 import { heroWeight } from "@/lib/sectionProgress";
 import { lerp } from "@/lib/progress";
 import { beatAt, expandAmount, smooth } from "@/lib/beats";
@@ -86,6 +87,7 @@ export function HeroObjects() {
   const primed = useRef(false);
   const introDone = useRef(false);
   const yaw = useRef<number[]>(chapters.map(() => 0));
+  const settleOff = useRef<number[]>(chapters.map(() => 0));
   const fadeCur = useRef(1);
   const expandCur = useRef(0);
   const dragging = useRef(false);
@@ -126,7 +128,7 @@ export function HeroObjects() {
     };
     const move = (e: PointerEvent) => {
       if (!dragging.current) return;
-      const i = useSectionsStore.getState().active;
+      const i = sections[useSectionsStore.getState().active]?.chapter ?? 0;
       yaw.current[i] += (e.clientX - lastX.current) * 0.006;
       lastX.current = e.clientX;
     };
@@ -162,9 +164,9 @@ export function HeroObjects() {
     const { reducedMotion } = useLabStore.getState();
     const sec = sections[active] ?? sections[0];
     const chapter = chapters[sec.chapter];
-    // Heroes follow chapters, not sections: a plate holds its chapter centred.
-    const heroCont =
-      sec.kind === "plate" ? sec.chapter + 0.5 : sec.chapter + progress;
+    // Heroes follow chapters, not sections: a plate holds its chapter centred
+    // and hands off to the next hero as it shrinks back.
+    const heroCont = heroContinuous(sections, active, progress);
     const fadeTarget =
       narrow && tall && sec.kind !== "plate"
         ? 1 - smooth(0.28, 0.55, depth)
@@ -236,16 +238,17 @@ export function HeroObjects() {
       const t = heroCont - i;
       const base = t * Math.PI * 0.8;
       const idle = reducedMotion ? 0 : clock.elapsedTime * chapters[i].spin;
-      // Beat 1 pushes in on a detail, so the mechanism settles facing front.
+      // Beat 1 pushes in on a detail, so the mechanism eases to face front:
+      // an offset that cancels the spin, so the turn never snaps back.
       const settle =
         plateState.instrument === chapters[i].instrument &&
         plateState.beat === 1;
+      const goal = settle ? -(base + idle) : 0;
+      settleOff.current[i] = reducedMotion
+        ? goal
+        : lerp(settleOff.current[i], goal, frameLerp(CAM_LERP, delta));
       for (const m of [mechs[i].solid.current, mechs[i].lines.current]) {
         if (!m) continue;
-        if (settle) {
-          m.rotation.y = lerp(m.rotation.y, 0, frameLerp(CAM_LERP, delta));
-          continue;
-        }
         switch (chapters[i].mech) {
           case "swing":
             m.rotation.z = Math.sin(base) * 0.35;
@@ -264,7 +267,7 @@ export function HeroObjects() {
             break;
           }
           default:
-            m.rotation.y = base + idle;
+            m.rotation.y = base + idle + settleOff.current[i];
         }
       }
       if (!dragging.current)

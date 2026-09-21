@@ -8,6 +8,10 @@ describe("beatAt", () => {
     expect(beatAt(0.25, 4).index).toBe(1);
     expect(beatAt(1, 4)).toEqual({ index: 3, t: 1 });
   });
+  it("clamps progress outside 0..1", () => {
+    expect(beatAt(-0.2, 4)).toEqual({ index: 0, t: 0 });
+    expect(beatAt(1.5, 4)).toEqual({ index: 3, t: 1 });
+  });
 });
 describe("stagger", () => {
   it("runs items in order and finishes at 1", () => {
@@ -30,6 +34,11 @@ describe("expandAmount", () => {
     expect(expandAmount(0)).toBe(0);
     expect(expandAmount(0.5)).toBe(1);
     expect(expandAmount(1)).toBe(0);
+  });
+  it("is fully open across the hold and ramps at the ends", () => {
+    expect(expandAmount(0.12)).toBe(1);
+    expect(expandAmount(0.88)).toBe(1);
+    expect(expandAmount(0.06)).toBeCloseTo(0.5, 2);
   });
 });
 describe("smooth", () => {

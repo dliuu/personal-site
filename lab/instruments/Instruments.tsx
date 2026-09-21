@@ -283,12 +283,15 @@ export function Globe({ mech }: { mech: RefObject<Group | null> }) {
   useFrame(() => {
     const active = plateState.instrument === "globe";
 
-    // Beat 0: the pins fall in, staggered, from well above the surface.
+    // Beat 0: the pins fall in, staggered, from well above the surface. The
+    // drop is faded in by `expand`, so pins stay seated outside the plate and
+    // rise as it opens instead of popping to 2.2r.
     const dropping = active && plateState.beat === 0;
     for (let i = 0; i < PIN_DIRS.length; i++) {
-      const r = dropping
+      const dropR = dropping
         ? lerp(2.2, PIN_R, stagger(plateState.t, i, PIN_DIRS.length, 0.6))
         : PIN_R;
+      const r = lerp(PIN_R, dropR, plateState.expand);
       pinRefs[i].current?.position.copy(PIN_DIRS[i]).multiplyScalar(r);
     }
 
@@ -317,7 +320,10 @@ export function Globe({ mech }: { mech: RefObject<Group | null> }) {
         ? Math.round(24 - 20 * smooth(0, 1, plateState.t))
         : 4;
     tickRefs.forEach((ref, i) => {
-      if (ref.current) ref.current.visible = i < count;
+      if (!ref.current) return;
+      ref.current.visible = i < count;
+      // Scale with the plate so the gauge shrinks away instead of vanishing.
+      ref.current.scale.setScalar(plateState.expand);
     });
 
     // Beat 3: three satellites come up on their tilted rings.
@@ -325,6 +331,7 @@ export function Globe({ mech }: { mech: RefObject<Group | null> }) {
     satRefs.forEach((ref, k) => {
       if (!ref.current) return;
       ref.current.visible = sats;
+      ref.current.scale.setScalar(plateState.expand);
       ref.current.rotation.y = plateState.t * Math.PI * 2 * (1 + k * 0.3) + k;
     });
   });
