@@ -11,7 +11,7 @@ import { frameLerp, lineOpacity, lineScale, solidScale } from "@/lib/drawIn";
 import { useLabStore } from "@/store/useLabStore";
 import { useSectionsStore } from "@/store/useSectionsStore";
 import { chapters, type InstrumentKind } from "./chapters";
-import { Hotspots } from "./Hotspots";
+import { Hotspots, useHotspotDismiss } from "./Hotspots";
 import { INK, PARCHMENT } from "./palette";
 import { useExploreStore } from "./useExploreStore";
 import {
@@ -80,6 +80,7 @@ export function HeroObjects() {
   const primed = useRef(false);
   const introDone = useRef(false);
   const yaw = useRef<number[]>(chapters.map(() => 0));
+  const fadeCur = useRef(1);
   const dragging = useRef(false);
   const lastX = useRef(0);
   const size = useThree((s) => s.size);
@@ -96,6 +97,7 @@ export function HeroObjects() {
   const narrow = size.width <= 720;
 
   // Drag the canvas left/right to turn the chapter in view; it eases back.
+  /* eslint-disable react-hooks/immutability -- the canvas element is the drag surface; its listeners and touch/select behaviour are ours to set */
   useEffect(() => {
     const el = gl.domElement;
     const down = (e: PointerEvent) => {
@@ -112,23 +114,38 @@ export function HeroObjects() {
     const up = () => {
       dragging.current = false;
     };
+    el.style.touchAction = "pan-y";
+    el.style.userSelect = "none";
     el.addEventListener("pointerdown", down);
     window.addEventListener("pointermove", move, { passive: true });
     window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
+    window.addEventListener("blur", up);
     return () => {
+      el.style.touchAction = "";
+      el.style.userSelect = "";
       el.removeEventListener("pointerdown", down);
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+      window.removeEventListener("blur", up);
     };
   }, [gl]);
+  /* eslint-enable react-hooks/immutability */
+
+  useHotspotDismiss();
 
   useEffect(() => () => useExploreStore.getState().setOpen(null), []);
 
   // eslint-disable-next-line react-hooks/immutability -- r3f pattern: mutate ref object3Ds in useFrame
   useFrame(({ camera, clock }, delta) => {
-    const { continuous, active, depth, tall } = useSectionsStore.getState();
+    const { continuous, depth, tall } = useSectionsStore.getState();
     const { reducedMotion } = useLabStore.getState();
-    const fade = narrow && tall ? 1 - smooth(0.28, 0.55, depth) : 1;
+    const fadeTarget = narrow && tall ? 1 - smooth(0.28, 0.55, depth) : 1;
+    fadeCur.current = reducedMotion
+      ? fadeTarget
+      : lerp(fadeCur.current, fadeTarget, frameLerp(LERP, delta));
+    const fade = fadeCur.current;
 
     if (!primed.current) {
       primed.current = true;
@@ -156,15 +173,13 @@ export function HeroObjects() {
 
       root.visible = w > 0.001;
       const ss = solidScale(w);
-      solid.visible = ss > 0.001;
+      let op = lineOpacity(w);
+      solid.visible = ss > 0.001 && fade > 0.6;
+      op *= Math.max(0.12, fade);
       solid.scale.setScalar(Math.max(ss, 0.0001));
       lines.scale.setScalar(Math.max(lineScale(w), 0.0001));
       // eslint-disable-next-line react-hooks/immutability -- r3f pattern: mutate the memoized line material in useFrame
-      lineMaterials[i].opacity = lineOpacity(w);
-      if (i === active) {
-        solid.visible = ss > 0.001 && fade > 0.6;
-        lineMaterials[i].opacity = lineOpacity(w) * Math.max(0.12, fade);
-      }
+      lineMaterials[i].opacity = op;
 
       const t = continuous - i;
       const base = t * Math.PI * 0.8;
@@ -247,6 +262,7 @@ export function HeroObjects() {
               <Hotspots
                 chapterId={c.id}
                 kind={c.instrument}
+                palette={c.palette}
                 visible={i === active && !(narrow && tall)}
               />
             </group>

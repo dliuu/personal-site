@@ -457,6 +457,10 @@ body:has(.instruments) {
     serif;
   box-shadow: 0 6px 20px rgba(43, 33, 24, 0.12);
 }
+.instruments-hotspot-card.is-left {
+  left: auto;
+  right: 30px;
+}
 
 /* dev overlays */
 .stats-corner {
