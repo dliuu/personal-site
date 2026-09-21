@@ -73,17 +73,22 @@ export function Effects() {
     () => ({ ink: new Color(INK), paper: new Color(PARCHMENT) }),
     [],
   );
-  const target = useMemo(() => ({ ink: new Color(), paper: new Color() }), []);
+  const targets = useMemo(
+    () =>
+      chapters.map((c) => ({
+        ink: new Color(c.palette.ink),
+        paper: new Color(c.palette.paper),
+      })),
+    [],
+  );
 
   useFrame((_, delta) => {
     const { active } = useSectionsStore.getState();
     const { reducedMotion } = useLabStore.getState();
-    const pal = chapters[active]?.palette ?? chapters[0].palette;
-    target.ink.set(pal.ink);
-    target.paper.set(pal.paper);
+    const tgt = targets[active] ?? targets[0];
     const k = reducedMotion ? 1 : frameLerp(0.08, delta);
-    cur.ink.lerp(target.ink, k);
-    cur.paper.lerp(target.paper, k);
+    cur.ink.lerp(tgt.ink, k);
+    cur.paper.lerp(tgt.paper, k);
     const e = effectRef.current;
     if (e) {
       (e.uniforms.get("ink")!.value as Color).copy(cur.ink);
