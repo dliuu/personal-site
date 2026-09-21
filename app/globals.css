@@ -379,6 +379,12 @@ body:has(.instruments) {
   transition:
     opacity 400ms ease,
     transform 400ms ease;
+  /* An engraver's cartouche: invisible on bare paper, but it keeps the text
+     legible wherever the hero's hatching passes behind it. */
+  padding: 12px 16px;
+  margin: -12px -16px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--paper, #efe4cc) 86%, transparent);
 }
 .instruments-caption.is-active {
   opacity: 1;

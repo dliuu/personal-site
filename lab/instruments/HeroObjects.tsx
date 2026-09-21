@@ -4,6 +4,7 @@ import { createRef, useEffect, useMemo, useRef, type RefObject } from "react";
 import type { JSX } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { DirectionalLight, Group, LineBasicMaterial, Vector3 } from "three";
+import type { PerspectiveCamera } from "three";
 import { heroPlacement } from "@/lib/heroRegion";
 import { heroWeight } from "@/lib/sectionProgress";
 import { lerp } from "@/lib/progress";
@@ -32,7 +33,11 @@ const LERP = 0.12;
 const EXPAND_LERP = 0.1;
 const CAM_LERP = 0.08;
 // How far in front of the focus point the camera sits during a beat-1 push-in.
-const FOCUS_DISTANCE = 2.2;
+const FOCUS_DISTANCE = 3.4;
+// Fractions of the visible half-frame the focus is pushed off centre, so the
+// detail clears the sticky caption: sideways on wide, upward on narrow.
+const FOCUS_SHIFT_X = 0.55;
+const FOCUS_SHIFT_Y = 0.4;
 
 const KIND: Record<
   InstrumentKind,
@@ -93,6 +98,8 @@ export function HeroObjects() {
   const goalPos = useRef(new Vector3(0, 0, CAMERA_Z));
   const goalTgt = useRef(new Vector3(0, 0, 0));
   const tmp = useRef(new Vector3());
+  const dir = useRef(new Vector3());
+  const off = useRef(new Vector3());
   const size = useThree((s) => s.size);
   const vp = useThree((s) => s.viewport);
   const gl = useThree((s) => s.gl);
@@ -282,12 +289,32 @@ export function HeroObjects() {
       // Sit FOCUS_DISTANCE out along the line from the hero's centre through
       // the focus point, so the detail faces the camera.
       parent.getWorldPosition(tmp.current);
-      goalPos.current.subVectors(plateState.focus, tmp.current);
-      if (goalPos.current.lengthSq() < 1e-6) goalPos.current.set(0, 0, 1);
+      dir.current.subVectors(plateState.focus, tmp.current);
+      if (dir.current.lengthSq() < 1e-6) dir.current.set(0, 0, 1);
+      dir.current.normalize();
       goalPos.current
-        .normalize()
+        .copy(dir.current)
         .multiplyScalar(FOCUS_DISTANCE)
         .add(plateState.focus);
+      // Slide camera and target together, which moves the detail off centre
+      // without turning the camera: clear of the caption column on wide,
+      // above the caption on narrow. `half` is the visible half-height at the
+      // focus plane.
+      const half =
+        FOCUS_DISTANCE *
+        Math.tan(((camera as PerspectiveCamera).fov * Math.PI) / 360);
+      if (narrow) {
+        off.current.set(0, FOCUS_SHIFT_Y * half, 0);
+      } else {
+        // Camera-right is cross(forward, up) = (dir.z, 0, -dir.x); shifting
+        // left by it puts the detail in the right half of the frame.
+        off.current
+          .set(dir.current.z, 0, -dir.current.x)
+          .normalize()
+          .multiplyScalar(FOCUS_SHIFT_X * half * vp.aspect);
+      }
+      goalPos.current.sub(off.current);
+      goalTgt.current.sub(off.current);
     }
     const ck = reducedMotion ? 1 : frameLerp(CAM_LERP, delta);
     camPos.current.lerp(goalPos.current, ck);
