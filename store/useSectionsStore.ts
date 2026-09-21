@@ -1,13 +1,13 @@
 import { create } from "zustand";
 
-type ChaptersState = {
+type SectionsState = {
   active: number;
   progress: number;
   continuous: number;
   set: (v: { active: number; progress: number; continuous: number }) => void;
 };
 
-export const useChaptersStore = create<ChaptersState>((set) => ({
+export const useSectionsStore = create<SectionsState>((set) => ({
   active: 0,
   progress: 0,
   continuous: 0,

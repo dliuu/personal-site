@@ -9,4 +9,5 @@ export const loaders: Record<string, ComponentType> = {
   "lighting-bench": dynamic(() => import("./lighting-bench"), { ssr: false }),
   chapters: dynamic(() => import("./chapters"), { ssr: false }),
   "studio-room": dynamic(() => import("./studio-room"), { ssr: false }),
+  instruments: dynamic(() => import("./instruments"), { ssr: false }),
 };

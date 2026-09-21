@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { sectionProgress } from "@/lib/sectionProgress";
-import { useChaptersStore } from "./useChaptersStore";
+import { useSectionsStore } from "@/store/useSectionsStore";
 
 /** Measures the given section elements on scroll/resize and writes progress to the store. */
 export function useSectionProgress(getEls: () => HTMLElement[]): void {
@@ -15,7 +15,7 @@ export function useSectionProgress(getEls: () => HTMLElement[]): void {
         return { top: r.top, height: r.height };
       });
       const next = sectionProgress(rects, window.innerHeight);
-      const cur = useChaptersStore.getState();
+      const cur = useSectionsStore.getState();
       if (
         next.active !== cur.active ||
         Math.abs(next.continuous - cur.continuous) > 1e-4
@@ -33,7 +33,7 @@ export function useSectionProgress(getEls: () => HTMLElement[]): void {
       window.removeEventListener("scroll", schedule);
       window.removeEventListener("resize", schedule);
       if (raf) cancelAnimationFrame(raf);
-      useChaptersStore
+      useSectionsStore
         .getState()
         .set({ active: 0, progress: 0, continuous: 0 });
     };

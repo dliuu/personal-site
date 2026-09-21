@@ -41,6 +41,13 @@ export const experiments: Experiment[] = [
       "The approved design as an experiment: a primitive studio room, four scroll stops, intro pull-in, parallax, clickable project objects, DOM overlays.",
     added: "2026-09-18",
   },
+  {
+    slug: "instruments",
+    title: "Instruments",
+    description:
+      "Renaissance variant of chapters: instrument heroes that draw themselves in, an engraving post effect, and a codex-page DOM.",
+    added: "2026-09-20",
+  },
 ];
 
 export function findExperiment(slug: string): Experiment | undefined {
