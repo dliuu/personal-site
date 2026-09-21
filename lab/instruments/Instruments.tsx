@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useMemo,
-  useRef,
-  type RefObject,
-} from "react";
-import { useFrame } from "@react-three/fiber";
+import { createContext, useContext, useMemo, type RefObject } from "react";
 import {
   BoxGeometry,
   BufferGeometry,
@@ -20,6 +13,7 @@ import {
   TorusGeometry,
 } from "three";
 import type { LineBasicMaterial } from "three";
+import { archVoussoirs } from "@/lib/arch";
 import { BRONZE, INK } from "./palette";
 
 export type EdgedMode = {
@@ -167,132 +161,153 @@ export function Armillary({ mech }: { mech: RefObject<Group | null> }) {
   );
 }
 
-export function Astrolabe({ mech }: { mech: RefObject<Group | null> }) {
+export function Balance({ mech }: { mech: RefObject<Group | null> }) {
   const g = useMemo(
     () => ({
-      mater: new CylinderGeometry(1.45, 1.45, 0.08, 96),
-      limb: ring(1.45, 0.06),
-      arc: new TorusGeometry(0.9, 0.035, 8, 64, Math.PI * 0.9),
-      pointer: new BoxGeometry(2.6, 0.05, 0.08),
-      pin: rod(0.3, 0.06),
-      throne: new TorusGeometry(0.18, 0.05, 8, 32),
-      limbLine: torusOutline(1.45, 0.06),
-      arcLine: torusOutline(0.9, 0.035, Math.PI * 0.9),
-      throneLine: torusOutline(0.18, 0.05),
+      base: new CylinderGeometry(0.7, 0.8, 0.12, 48),
+      pillar: rod(2.4, 0.05),
+      finial: new SphereGeometry(0.09, 12, 10),
+      beam: new BoxGeometry(2.6, 0.06, 0.08),
+      chain: rod(0.7, 0.012),
+      pan: new CylinderGeometry(0.42, 0.38, 0.05, 40),
     }),
     [],
   );
   return (
-    <group rotation={[0.35, 0, 0]}>
-      <Edged geometry={g.mater} rotation={[Math.PI / 2, 0, 0]} />
-      <Edged geometry={g.limb} edges={g.limbLine} />
-      <Edged geometry={g.throne} edges={g.throneLine} position={[0, 1.6, 0]} />
-      <group ref={mech} position={[0, 0, 0.08]}>
-        {[0, 1, 2, 3].map((i) => (
+    <group position={[0, -1.2, 0]}>
+      <Edged geometry={g.base} />
+      <Edged geometry={g.pillar} position={[0, 1.26, 0]} />
+      <Edged geometry={g.finial} position={[0, 2.55, 0]} />
+      <group ref={mech} position={[0, 2.46, 0]}>
+        <Edged geometry={g.beam} />
+        {[-1.2, 1.2].map((x) => (
+          <group key={x} position={[x, 0, 0]}>
+            <Edged geometry={g.chain} position={[0, -0.35, 0]} />
+            <Edged geometry={g.pan} position={[0, -0.72, 0]} />
+          </group>
+        ))}
+      </group>
+    </group>
+  );
+}
+
+function fibonacciSphere(n: number): [number, number, number][] {
+  const pts: [number, number, number][] = [];
+  const golden = Math.PI * (3 - Math.sqrt(5));
+  for (let i = 0; i < n; i++) {
+    const y = 1 - (2 * (i + 0.5)) / n;
+    const r = Math.sqrt(1 - y * y);
+    const a = golden * i;
+    pts.push([Math.cos(a) * r, y, Math.sin(a) * r]);
+  }
+  return pts;
+}
+const PIN_POINTS = fibonacciSphere(48);
+
+export function Globe({ mech }: { mech: RefObject<Group | null> }) {
+  const g = useMemo(
+    () => ({
+      sphere: new SphereGeometry(1.05, 32, 20),
+      sphereLine: torusOutline(1.05, 0),
+      equator: ring(1.06, 0.015),
+      equatorLine: torusOutline(1.06, 0.015),
+      meridian: ring(1.18, 0.035),
+      meridianLine: torusOutline(1.18, 0.035),
+      pin: rod(0.16, 0.012),
+      stand: rod(0.9, 0.04),
+      base: new CylinderGeometry(0.5, 0.6, 0.1, 40),
+    }),
+    [],
+  );
+  const pinEdges = useMemo(() => new EdgesGeometry(g.pin, 20), [g.pin]);
+  return (
+    <group position={[0, -0.3, 0]}>
+      <Edged geometry={g.base} position={[0, -1.35, 0]} />
+      <Edged geometry={g.stand} position={[0, -0.85, 0]} />
+      <Edged geometry={g.meridian} edges={g.meridianLine} />
+      <group rotation={[0, 0, 0.41]}>
+        <group ref={mech}>
+          <Edged geometry={g.sphere} edges={g.sphereLine} />
+          <Edged
+            geometry={g.equator}
+            edges={g.equatorLine}
+            rotation={[Math.PI / 2, 0, 0]}
+          />
+          {PIN_POINTS.map((p, i) => {
+            // Orient the pin along the radial direction: three composes an XYZ
+            // Euler as Rx*Ry*Rz, so with ry = 0 local +y lands on
+            // (-sin rz, cos rx * cos rz, sin rx * cos rz). Solving that for p
+            // gives rz = -asin(x) and rx = atan2(z, y).
+            const [x, y, z] = p;
+            const rotZ = -Math.asin(x);
+            const rotX = Math.atan2(z, y);
+            return (
+              <Edged
+                key={i}
+                geometry={g.pin}
+                edges={pinEdges}
+                position={[x * 1.1, y * 1.1, z * 1.1]}
+                rotation={[rotX, 0, rotZ]}
+              />
+            );
+          })}
+        </group>
+      </group>
+    </group>
+  );
+}
+
+const VOUSSOIRS = archVoussoirs(13, 1.3);
+const KEYSTONE = 6;
+
+export function Bridge({ mech }: { mech: RefObject<Group | null> }) {
+  const g = useMemo(
+    () => ({
+      block: new BoxGeometry(0.3, 0.26, 0.5),
+      pier: new BoxGeometry(0.5, 2.0, 0.6),
+      deck: new BoxGeometry(3.6, 0.12, 0.6),
+      post: rod(2.4, 0.03),
+      rail: rod(3.8, 0.025),
+    }),
+    [],
+  );
+  const blockEdges = useMemo(() => new EdgesGeometry(g.block, 20), [g.block]);
+  return (
+    <group position={[0, -1.0, 0]}>
+      {[-1.55, 1.55].map((x) => (
+        <Edged key={x} geometry={g.pier} position={[x, 1.0, 0]} />
+      ))}
+      {VOUSSOIRS.map((v, i) =>
+        i === KEYSTONE ? null : (
           <Edged
             key={i}
-            geometry={g.arc}
-            edges={g.arcLine}
-            position={[Math.cos(i * 1.7) * 0.3, Math.sin(i * 1.7) * 0.3, 0]}
-            rotation={[0, 0, i * 1.9]}
+            geometry={g.block}
+            edges={blockEdges}
+            position={v.position}
+            rotation={[0, 0, v.rotation]}
           />
-        ))}
-        <Edged geometry={g.pointer} rotation={[0, 0, 0.6]} />
+        ),
+      )}
+      <group ref={mech}>
+        <Edged
+          geometry={g.block}
+          edges={blockEdges}
+          position={VOUSSOIRS[KEYSTONE].position}
+          rotation={[0, 0, VOUSSOIRS[KEYSTONE].rotation]}
+        />
       </group>
-      <Edged
-        geometry={g.pin}
-        rotation={[Math.PI / 2, 0, 0]}
-        position={[0, 0, 0.1]}
-      />
-    </group>
-  );
-}
-
-function gearGeometry(r: number, teeth: number, thickness: number) {
-  const body = new CylinderGeometry(r, r, thickness, teeth * 2);
-  const tooth = new BoxGeometry(0.22, thickness, 0.14);
-  return {
-    body,
-    bodyEdges: new EdgesGeometry(body, 20),
-    tooth,
-    toothEdges: new EdgesGeometry(tooth),
-    angles: Array.from({ length: teeth }, (_, i) => (i / teeth) * Math.PI * 2),
-  };
-}
-
-function Gear({
-  r,
-  teeth,
-  thickness,
-  position,
-  mech,
-  phase,
-}: {
-  r: number;
-  teeth: number;
-  thickness: number;
-  position: [number, number, number];
-  mech: RefObject<Group | null>;
-  phase: number;
-}) {
-  const g = useMemo(
-    () => gearGeometry(r, teeth, thickness),
-    [r, teeth, thickness],
-  );
-  return (
-    <group position={position} rotation={[Math.PI / 2, 0, 0]}>
-      <group ref={mech} rotation={[0, phase, 0]}>
-        <Edged geometry={g.body} edges={g.bodyEdges} />
-        {g.angles.map((a) => (
-          <Edged
-            key={a}
-            geometry={g.tooth}
-            edges={g.toothEdges}
-            position={[Math.cos(a) * (r + 0.08), 0, Math.sin(a) * (r + 0.08)]}
-            rotation={[0, -a, 0]}
-          />
-        ))}
-      </group>
-    </group>
-  );
-}
-
-export function Gears({ mech }: { mech: RefObject<Group | null> }) {
-  const g2 = useRef<Group>(null);
-  const g3 = useRef<Group>(null);
-  useFrame(() => {
-    const drive = mech.current;
-    if (!drive) return;
-    const theta = drive.rotation.y;
-    if (g2.current) g2.current.rotation.y = -theta * (14 / 9) + 0.1;
-    if (g3.current) g3.current.rotation.y = -theta * (14 / 11) + 0.15;
-  });
-  return (
-    <group>
-      <Gear
-        r={0.9}
-        teeth={14}
-        thickness={0.18}
-        position={[-0.9, 0.1, 0]}
-        mech={mech}
-        phase={0}
-      />
-      <Gear
-        r={0.55}
-        teeth={9}
-        thickness={0.18}
-        position={[0.72, 0.62, 0]}
-        mech={g2}
-        phase={0.1}
-      />
-      <Gear
-        r={0.7}
-        teeth={11}
-        thickness={0.18}
-        position={[0.55, -1.05, 0]}
-        mech={g3}
-        phase={0.15}
-      />
+      <Edged geometry={g.deck} position={[0, 2.06, 0]} />
+      {[-1.9, -0.65, 0.65, 1.9].map((x) => (
+        <Edged key={x} geometry={g.post} position={[x, 1.2, 0.45]} />
+      ))}
+      {[0.9, 2.1].map((y) => (
+        <Edged
+          key={y}
+          geometry={g.rail}
+          position={[0, y, 0.45]}
+          rotation={[0, 0, Math.PI / 2]}
+        />
+      ))}
     </group>
   );
 }

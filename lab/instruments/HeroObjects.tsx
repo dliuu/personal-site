@@ -13,9 +13,10 @@ import { chapters, type InstrumentKind } from "./chapters";
 import { INK, PARCHMENT } from "./palette";
 import {
   Armillary,
-  Astrolabe,
+  Balance,
+  Bridge,
   EdgedModeContext,
-  Gears,
+  Globe,
   Quadrant,
 } from "./Instruments";
 
@@ -29,8 +30,9 @@ const KIND: Record<
   (p: { mech: RefObject<Group | null> }) => JSX.Element
 > = {
   armillary: Armillary,
-  astrolabe: Astrolabe,
-  gears: Gears,
+  balance: Balance,
+  globe: Globe,
+  bridge: Bridge,
   quadrant: Quadrant,
 };
 
@@ -111,6 +113,16 @@ export function HeroObjects() {
           case "spinZ":
             m.rotation.z = base + idle;
             break;
+          case "tilt": {
+            const u = Math.min(1, Math.max(0, t));
+            m.rotation.z = 0.22 * Math.sin(Math.PI * 2 * u) * (1 - u);
+            break;
+          }
+          case "drop": {
+            const p = Math.min(1, Math.max(0, t / 0.5));
+            m.position.y = 0.5 * (1 - p);
+            break;
+          }
           default:
             m.rotation.y = base + idle;
         }

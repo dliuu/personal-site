@@ -1,12 +1,14 @@
-export type InstrumentKind = "armillary" | "astrolabe" | "gears" | "quadrant";
+export type InstrumentKind =
+  "armillary" | "balance" | "globe" | "bridge" | "quadrant";
+export type MechKind = "spinY" | "spinZ" | "swing" | "tilt" | "drop";
 export type Chapter = {
-  id: string;
+  id: "intro" | "eisen" | "meta" | "wcp" | "contact";
   numeral: string;
   title: string;
   instrument: InstrumentKind;
-  note: string; // margin annotation
+  mech: MechKind;
+  note: string;
   spin: number;
-  mech: "spinY" | "spinZ" | "swing";
 };
 
 export const chapters: Chapter[] = [
@@ -15,35 +17,44 @@ export const chapters: Chapter[] = [
     numeral: "I",
     title: "Hello",
     instrument: "armillary",
+    mech: "spinY",
     note: "the heavens, in three rings",
     spin: 0.12,
-    mech: "spinY",
   },
   {
-    id: "work",
+    id: "eisen",
     numeral: "II",
-    title: "Work",
-    instrument: "astrolabe",
-    note: "a rete for finding things",
-    spin: 0.08,
-    mech: "spinZ",
+    title: "Eisen",
+    instrument: "balance",
+    mech: "tilt",
+    note: "weigh, then settle",
+    spin: 0,
   },
   {
-    id: "writing",
+    id: "meta",
     numeral: "III",
-    title: "Writing",
-    instrument: "gears",
-    note: "one turn moves the next",
-    spin: 0.1,
+    title: "Meta",
+    instrument: "globe",
     mech: "spinY",
+    note: "forty-eight pins, one per tongue",
+    spin: 0.08,
+  },
+  {
+    id: "wcp",
+    numeral: "IV",
+    title: "Washington Capital",
+    instrument: "bridge",
+    mech: "drop",
+    note: "the keystone last",
+    spin: 0,
   },
   {
     id: "contact",
-    numeral: "IV",
+    numeral: "V",
     title: "Contact",
     instrument: "quadrant",
+    mech: "swing",
     note: "sight, then read the arc",
     spin: 0.06,
-    mech: "swing",
   },
 ];

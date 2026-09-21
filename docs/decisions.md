@@ -22,3 +22,4 @@ their README; this file records what changed the project's direction.
 - 2026-09-18: studio-room experiment added as the candidate direction. Reduced-motion transition kill-switch added to globals.css for all experiments.
 - 2026-09-20: instruments experiment added as a Renaissance variant of chapters (instrument heroes, engraving post effect, draw-in, codex DOM). Section store and hook promoted to shared code.
 - 2026-09-20: instruments: draw-in scales whole solid/line roots (per-part scaling exploded the assemblies); mech axis is per instrument; engraving AA is box-filtered.
+- 2026-09-20: instruments carries the professional profile (five chapters). Astrolabe and gear train retired; balance, globe and bridge added.

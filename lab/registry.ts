@@ -45,7 +45,7 @@ export const experiments: Experiment[] = [
     slug: "instruments",
     title: "Instruments",
     description:
-      "Renaissance variant of chapters: instrument heroes that draw themselves in, an engraving post effect, and a codex-page DOM.",
+      "The professional profile as a Renaissance codex: five chapters, an instrument of each trade drawn in by scroll, engraving post effect.",
     added: "2026-09-20",
   },
 ];

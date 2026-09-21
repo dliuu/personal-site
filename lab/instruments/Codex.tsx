@@ -3,8 +3,8 @@
 import { useCallback, useRef } from "react";
 import { useSectionProgress } from "@/hooks/useSectionProgress";
 import { useSectionsStore } from "@/store/useSectionsStore";
-import { chapters } from "./chapters";
-import { links, posts, profile, projects } from "./content";
+import { chapters, type Chapter } from "./chapters";
+import { links, profile, roles, type Role } from "./content";
 import { fell, script, ui } from "./fonts";
 
 const noJump = (e: React.MouseEvent<HTMLAnchorElement>) => {
@@ -30,68 +30,63 @@ function ConstructionLines() {
   );
 }
 
-function Body({ id }: { id: string }) {
-  switch (id) {
-    case "intro":
-      return (
-        <>
-          <h1 className="instruments-title">{profile.name}</h1>
-          <p className="instruments-lede">{profile.line}</p>
-          <p className="instruments-hint">Scroll to turn the page</p>
-        </>
-      );
-    case "work":
-      return (
-        <>
-          <h2 className="instruments-title">Work</h2>
-          <ol className="instruments-list">
-            {projects.map((p, i) => (
-              <li key={p.slug}>
-                <span className="instruments-num">
-                  {["i", "ii", "iii", "iv"][i]}.
-                </span>
-                <a href={p.url} onClick={noJump}>
-                  {p.title}
-                </a>
-                <p>{p.blurb}</p>
-              </li>
-            ))}
-          </ol>
-        </>
-      );
-    case "writing":
-      return (
-        <>
-          <h2 className="instruments-title">Writing</h2>
-          <ul className="instruments-list">
-            {posts.map((p) => (
-              <li key={p.slug}>
-                <span className="instruments-num">{p.date}</span>
-                <a href="#" onClick={noJump}>
-                  {p.title}
-                </a>
-                <p>{p.summary}</p>
-              </li>
-            ))}
-          </ul>
-        </>
-      );
-    default:
-      return (
-        <>
-          <h2 className="instruments-title">Contact</h2>
-          <ul className="instruments-list instruments-links">
-            {links.map((l) => (
-              <li key={l.label}>
-                <a href={l.href} onClick={noJump}>
-                  {l.label}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </>
-      );
+function RoleBody({ role }: { role: Role }) {
+  return (
+    <>
+      <h2 className="instruments-title">
+        {role.url ? (
+          <a href={role.url} target="_blank" rel="noreferrer">
+            {role.company}
+          </a>
+        ) : (
+          role.company
+        )}
+      </h2>
+      <p className="instruments-role">
+        {role.location ? `${role.title} · ${role.location}` : role.title}
+      </p>
+      <p className="instruments-lede">{role.summary}</p>
+      {role.bullets.length > 0 ? (
+        <ul className="instruments-bullets">
+          {role.bullets.map((b) => (
+            <li key={b}>{b}</li>
+          ))}
+        </ul>
+      ) : null}
+      {role.skills.length > 0 ? (
+        <p className="instruments-skills">{role.skills.join(" · ")}</p>
+      ) : null}
+    </>
+  );
+}
+
+function Body({ id, role }: { id: Chapter["id"]; role?: Role }) {
+  if (id === "intro") {
+    return (
+      <>
+        <h1 className="instruments-title">{profile.name}</h1>
+        <p className="instruments-lede">{profile.line}</p>
+        <p className="instruments-hint">Scroll to turn the page</p>
+      </>
+    );
   }
+  if (id === "contact") {
+    return (
+      <>
+        <h2 className="instruments-title">Contact</h2>
+        <ul className="instruments-list instruments-links">
+          {links.map((l) => (
+            <li key={l.label}>
+              <a href={l.href} onClick={noJump}>
+                {l.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </>
+    );
+  }
+  return role ? <RoleBody role={role} /> : null;
 }
 
 export function Codex() {
@@ -120,24 +115,30 @@ export function Codex() {
         ))}
       </nav>
       <main>
-        {chapters.map((c, i) => (
-          <section
-            key={c.id}
-            id={c.id}
-            className="instruments-section"
-            ref={(el) => {
-              els.current[i] = el;
-            }}
-          >
-            <div className="instruments-col">
-              <div className="instruments-chapter">Chapter {c.numeral}</div>
-              <Body id={c.id} />
-            </div>
-            <aside className="instruments-note" aria-hidden>
-              {c.note}
-            </aside>
-          </section>
-        ))}
+        {chapters.map((c, i) => {
+          const role = roles.find((r) => r.id === c.id);
+          return (
+            <section
+              key={c.id}
+              id={c.id}
+              className="instruments-section"
+              ref={(el) => {
+                els.current[i] = el;
+              }}
+            >
+              <div className="instruments-col">
+                <div className="instruments-chapter">
+                  Chapter {c.numeral}
+                  {role ? ` · ${role.dates}` : ""}
+                </div>
+                <Body id={c.id} role={role} />
+              </div>
+              <aside className="instruments-note" aria-hidden>
+                {c.note}
+              </aside>
+            </section>
+          );
+        })}
       </main>
     </div>
   );
