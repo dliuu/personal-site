@@ -79,27 +79,58 @@ async function main() {
       const ids = await page.$$eval("section[id]", (els) =>
         els.map((e) => e.id),
       );
+      const kinds = await page.$$eval("section[id]", (els) =>
+        els.map((e) => e.dataset.kind ?? "chapter"),
+      );
       if (ids.length === 0) {
         const file = path.join(dir, "00-page.png");
         await page.screenshot({ path: file });
         written.push(file);
       } else {
         for (let i = 0; i < ids.length; i++) {
-          await page.evaluate((id) => {
-            const el = document.getElementById(id);
-            if (!el) return;
-            const r = el.getBoundingClientRect();
-            const target =
-              window.scrollY + r.top + r.height / 2 - window.innerHeight / 2;
-            window.scrollTo({ top: Math.max(0, target), behavior: "instant" });
-          }, ids[i]);
-          await page.waitForTimeout(600);
-          const file = path.join(
-            dir,
-            `${String(i).padStart(2, "0")}-${ids[i]}.png`,
-          );
-          await page.screenshot({ path: file });
-          written.push(file);
+          if (kinds[i] === "plate") {
+            for (const f of [0.1, 0.4, 0.7, 0.95]) {
+              await page.evaluate(
+                ([id, frac]) => {
+                  const el = document.getElementById(id);
+                  if (!el) return;
+                  const r = el.getBoundingClientRect();
+                  const top = window.scrollY + r.top;
+                  window.scrollTo({
+                    top: top + (r.height - window.innerHeight) * frac,
+                    behavior: "instant",
+                  });
+                },
+                [ids[i], f],
+              );
+              await page.waitForTimeout(700);
+              const file = path.join(
+                dir,
+                `${String(i).padStart(2, "0")}-${ids[i]}-p${Math.round(f * 100)}.png`,
+              );
+              await page.screenshot({ path: file });
+              written.push(file);
+            }
+          } else {
+            await page.evaluate((id) => {
+              const el = document.getElementById(id);
+              if (!el) return;
+              const r = el.getBoundingClientRect();
+              const target =
+                window.scrollY + r.top + r.height / 2 - window.innerHeight / 2;
+              window.scrollTo({
+                top: Math.max(0, target),
+                behavior: "instant",
+              });
+            }, ids[i]);
+            await page.waitForTimeout(600);
+            const file = path.join(
+              dir,
+              `${String(i).padStart(2, "0")}-${ids[i]}.png`,
+            );
+            await page.screenshot({ path: file });
+            written.push(file);
+          }
         }
       }
       if (full) {

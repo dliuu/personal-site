@@ -3,16 +3,20 @@
 import { createRef, useEffect, useMemo, useRef, type RefObject } from "react";
 import type { JSX } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
-import { Group, LineBasicMaterial } from "three";
+import { DirectionalLight, Group, LineBasicMaterial, Vector3 } from "three";
+import type { PerspectiveCamera } from "three";
 import { heroPlacement } from "@/lib/heroRegion";
+import { heroContinuous } from "@/lib/heroContinuous";
 import { heroWeight } from "@/lib/sectionProgress";
 import { lerp } from "@/lib/progress";
+import { beatAt, expandAmount, smooth } from "@/lib/beats";
 import { frameLerp, lineOpacity, lineScale, solidScale } from "@/lib/drawIn";
 import { useLabStore } from "@/store/useLabStore";
 import { useSectionsStore } from "@/store/useSectionsStore";
-import { chapters, type InstrumentKind } from "./chapters";
+import { chapters, sections, type InstrumentKind } from "./chapters";
 import { Hotspots, useHotspotDismiss } from "./Hotspots";
 import { INK, PARCHMENT } from "./palette";
+import { plateState } from "./plateState";
 import { useExploreStore } from "./useExploreStore";
 import {
   Armillary,
@@ -27,6 +31,14 @@ const CAMERA_Z = 6;
 const DOLLY = 0.4;
 const INTRO_LERP = 0.05;
 const LERP = 0.12;
+const EXPAND_LERP = 0.1;
+const CAM_LERP = 0.08;
+// How far in front of the focus point the camera sits during a beat-1 push-in.
+const FOCUS_DISTANCE = 3.4;
+// Fractions of the visible half-frame the focus is pushed off centre, so the
+// detail clears the sticky caption: sideways on wide, upward on narrow.
+const FOCUS_SHIFT_X = 0.55;
+const FOCUS_SHIFT_Y = 0.4;
 
 const KIND: Record<
   InstrumentKind,
@@ -48,11 +60,6 @@ const FIT: Record<InstrumentKind, number> = {
   bridge: 1.75 / 2.1,
   quadrant: 1.75 / 1.45,
 };
-
-function smooth(a: number, b: number, x: number): number {
-  const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
-  return t * t * (3 - 2 * t);
-}
 
 type Refs = { root: Group | null; solid: Group | null; lines: Group | null };
 
@@ -80,9 +87,21 @@ export function HeroObjects() {
   const primed = useRef(false);
   const introDone = useRef(false);
   const yaw = useRef<number[]>(chapters.map(() => 0));
+  const settleOff = useRef<number[]>(chapters.map(() => 0));
   const fadeCur = useRef(1);
+  const expandCur = useRef(0);
   const dragging = useRef(false);
   const lastX = useRef(0);
+  const parentRef = useRef<Group | null>(null);
+  const keyLight = useRef<DirectionalLight | null>(null);
+  const rimLight = useRef<DirectionalLight | null>(null);
+  const camPos = useRef(new Vector3(0, 0, CAMERA_Z));
+  const camTgt = useRef(new Vector3(0, 0, 0));
+  const goalPos = useRef(new Vector3(0, 0, CAMERA_Z));
+  const goalTgt = useRef(new Vector3(0, 0, 0));
+  const tmp = useRef(new Vector3());
+  const dir = useRef(new Vector3());
+  const off = useRef(new Vector3());
   const size = useThree((s) => s.size);
   const vp = useThree((s) => s.viewport);
   const gl = useThree((s) => s.gl);
@@ -94,6 +113,8 @@ export function HeroObjects() {
     vpWidth: vp.width,
     vpHeight: vp.height,
   });
+  // Scale at which the hero fills the viewport height when a plate expands it.
+  const full = (0.38 * vp.height) / 1.75;
   const narrow = size.width <= 720;
 
   // Drag the canvas left/right to turn the chapter in view; it eases back.
@@ -107,7 +128,7 @@ export function HeroObjects() {
     };
     const move = (e: PointerEvent) => {
       if (!dragging.current) return;
-      const i = useSectionsStore.getState().active;
+      const i = sections[useSectionsStore.getState().active]?.chapter ?? 0;
       yaw.current[i] += (e.clientX - lastX.current) * 0.006;
       lastX.current = e.clientX;
     };
@@ -139,19 +160,52 @@ export function HeroObjects() {
 
   // eslint-disable-next-line react-hooks/immutability -- r3f pattern: mutate ref object3Ds in useFrame
   useFrame(({ camera, clock }, delta) => {
-    const { continuous, depth, tall } = useSectionsStore.getState();
+    const { active, progress, depth, tall } = useSectionsStore.getState();
     const { reducedMotion } = useLabStore.getState();
-    const fadeTarget = narrow && tall ? 1 - smooth(0.28, 0.55, depth) : 1;
+    const sec = sections[active] ?? sections[0];
+    const chapter = chapters[sec.chapter];
+    // Heroes follow chapters, not sections: a plate holds its chapter centred
+    // and hands off to the next hero as it shrinks back.
+    const heroCont = heroContinuous(sections, active, progress);
+    const fadeTarget =
+      narrow && tall && sec.kind !== "plate"
+        ? 1 - smooth(0.28, 0.55, depth)
+        : 1;
     fadeCur.current = reducedMotion
       ? fadeTarget
       : lerp(fadeCur.current, fadeTarget, frameLerp(LERP, delta));
     const fade = fadeCur.current;
 
+    const expandTarget = sec.kind === "plate" ? expandAmount(progress) : 0;
+    expandCur.current = reducedMotion
+      ? expandTarget
+      : lerp(expandCur.current, expandTarget, frameLerp(EXPAND_LERP, delta));
+    const expand = expandCur.current;
+
+    // Publish before anything reads it, so instruments drawing in their own
+    // useFrame (which may run before or after this one) see a coherent frame.
+    plateState.instrument = sec.kind === "plate" ? chapter.instrument : null;
+    plateState.p = sec.kind === "plate" ? progress : 0;
+    const b = beatAt(plateState.p, chapter.plate?.beats.length ?? 1);
+    plateState.beat = b.index;
+    plateState.t = b.t;
+    plateState.expand = expand;
+
+    const parent = parentRef.current;
+    if (parent) {
+      parent.position.set(
+        lerp(place.x, narrow ? 0 : 0.9, expand),
+        lerp(place.y, narrow ? 0.9 : 0.2, expand),
+        0,
+      );
+      parent.scale.setScalar(lerp(place.scale, full, expand));
+    }
+
     if (!primed.current) {
       primed.current = true;
       for (let i = 0; i < chapters.length; i++) {
         weights.current[i] =
-          i === 0 && !reducedMotion ? 0 : heroWeight(i, continuous);
+          i === 0 && !reducedMotion ? 0 : heroWeight(i, heroCont);
       }
       if (reducedMotion) introDone.current = true;
     }
@@ -160,7 +214,7 @@ export function HeroObjects() {
       const { root, solid, lines } = refs.current[i];
       if (!root || !solid || !lines) continue;
 
-      const target = heroWeight(i, continuous);
+      const target = heroWeight(i, heroCont);
       const k = i === 0 && !introDone.current ? INTRO_LERP : LERP;
       let w = reducedMotion
         ? target
@@ -181,9 +235,18 @@ export function HeroObjects() {
       // eslint-disable-next-line react-hooks/immutability -- r3f pattern: mutate the memoized line material in useFrame
       lineMaterials[i].opacity = op;
 
-      const t = continuous - i;
+      const t = heroCont - i;
       const base = t * Math.PI * 0.8;
       const idle = reducedMotion ? 0 : clock.elapsedTime * chapters[i].spin;
+      // Beat 1 pushes in on a detail, so the mechanism eases to face front:
+      // an offset that cancels the spin, so the turn never snaps back.
+      const settle =
+        plateState.instrument === chapters[i].instrument &&
+        plateState.beat === 1;
+      const goal = settle ? -(base + idle) : 0;
+      settleOff.current[i] = reducedMotion
+        ? goal
+        : lerp(settleOff.current[i], goal, frameLerp(CAM_LERP, delta));
       for (const m of [mechs[i].solid.current, mechs[i].lines.current]) {
         if (!m) continue;
         switch (chapters[i].mech) {
@@ -204,7 +267,7 @@ export function HeroObjects() {
             break;
           }
           default:
-            m.rotation.y = base + idle;
+            m.rotation.y = base + idle + settleOff.current[i];
         }
       }
       if (!dragging.current)
@@ -214,19 +277,76 @@ export function HeroObjects() {
         yaw.current[i];
     }
 
-    camera.position.z = CAMERA_Z - DOLLY * (continuous / chapters.length);
+    if (keyLight.current) keyLight.current.intensity = 2.5 + 0.7 * expand;
+    if (rimLight.current) rimLight.current.intensity = 1.2 * expand;
+
+    goalPos.current.set(0, 0, CAMERA_Z - DOLLY * (heroCont / chapters.length));
+    goalTgt.current.set(0, 0, 0);
+    if (
+      parent &&
+      plateState.instrument &&
+      plateState.beat === 1 &&
+      plateState.hasFocus
+    ) {
+      goalTgt.current.copy(plateState.focus);
+      // Sit FOCUS_DISTANCE out along the line from the hero's centre through
+      // the focus point, so the detail faces the camera.
+      parent.getWorldPosition(tmp.current);
+      dir.current.subVectors(plateState.focus, tmp.current);
+      if (dir.current.lengthSq() < 1e-6) dir.current.set(0, 0, 1);
+      dir.current.normalize();
+      goalPos.current
+        .copy(dir.current)
+        .multiplyScalar(FOCUS_DISTANCE)
+        .add(plateState.focus);
+      // Slide camera and target together, which moves the detail off centre
+      // without turning the camera: clear of the caption column on wide,
+      // above the caption on narrow. `half` is the visible half-height at the
+      // focus plane.
+      const half =
+        FOCUS_DISTANCE *
+        Math.tan(((camera as PerspectiveCamera).fov * Math.PI) / 360);
+      if (narrow) {
+        off.current.set(0, FOCUS_SHIFT_Y * half, 0);
+      } else {
+        // Camera-right is cross(forward, up) = (dir.z, 0, -dir.x); shifting
+        // left by it puts the detail in the right half of the frame.
+        off.current
+          .set(dir.current.z, 0, -dir.current.x)
+          .normalize()
+          .multiplyScalar(FOCUS_SHIFT_X * half * vp.aspect);
+      }
+      goalPos.current.sub(off.current);
+      goalTgt.current.sub(off.current);
+    }
+    const ck = reducedMotion ? 1 : frameLerp(CAM_LERP, delta);
+    camPos.current.lerp(goalPos.current, ck);
+    camTgt.current.lerp(goalTgt.current, ck);
+    camera.position.copy(camPos.current);
+    camera.lookAt(camTgt.current);
   });
 
   return (
     <>
       <hemisphereLight args={[PARCHMENT, INK, 0.6]} />
-      <directionalLight color="#fff1dc" intensity={2.5} position={[3, 4, 5]} />
+      <directionalLight
+        ref={keyLight}
+        color="#fff1dc"
+        intensity={2.5}
+        position={[3, 4, 5]}
+      />
       <directionalLight
         color={PARCHMENT}
         intensity={0.8}
         position={[-4, -2, -3]}
       />
-      <group position={[place.x, place.y, 0]} scale={place.scale}>
+      <directionalLight
+        ref={rimLight}
+        color="#fff6e6"
+        intensity={0}
+        position={[-3, 2, -4]}
+      />
+      <group ref={parentRef}>
         {chapters.map((c, i) => {
           const Instrument = KIND[c.instrument];
           return (
@@ -263,7 +383,11 @@ export function HeroObjects() {
                 chapterId={c.id}
                 kind={c.instrument}
                 palette={c.palette}
-                visible={i === active && !(narrow && tall)}
+                visible={
+                  sections[active]?.chapter === i &&
+                  sections[active]?.kind !== "plate" &&
+                  !(narrow && tall)
+                }
               />
             </group>
           );

@@ -3,7 +3,8 @@
 import { useCallback, useRef } from "react";
 import { useSectionProgress } from "@/hooks/useSectionProgress";
 import { useSectionsStore } from "@/store/useSectionsStore";
-import { chapters, type Chapter } from "./chapters";
+import { beatAt } from "@/lib/beats";
+import { chapters, sections, type Chapter } from "./chapters";
 import { links, profile, roles, type Role } from "./content";
 import { fell, script, ui } from "./fonts";
 
@@ -89,6 +90,38 @@ function Body({ id, role }: { id: Chapter["id"]; role?: Role }) {
   return role ? <RoleBody role={role} /> : null;
 }
 
+function PlateCaptions({
+  chapter,
+  sectionIndex,
+}: {
+  chapter: Chapter;
+  sectionIndex: number;
+}) {
+  const beats = chapter.plate?.beats ?? [];
+  const beat = useSectionsStore((s) =>
+    s.active === sectionIndex && s.kind === "plate"
+      ? beatAt(s.progress, beats.length).index
+      : -1,
+  );
+  return (
+    <div className="instruments-captions" aria-live="polite">
+      {beats.map((b, i) => (
+        <div
+          key={i}
+          className={`instruments-caption${i === beat ? " is-active" : ""}`}
+          aria-hidden={i !== beat}
+        >
+          <span className="instruments-caption-num">
+            {["i", "ii", "iii", "iv"][i]}
+          </span>
+          <span className="instruments-caption-sub">{b.sub}</span>
+          <p>{b.caption}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function Codex() {
   const els = useRef<(HTMLElement | null)[]>([]);
   const getEls = useCallback(
@@ -97,7 +130,8 @@ export function Codex() {
   );
   useSectionProgress(getEls);
   const active = useSectionsStore((s) => s.active);
-  const pal = chapters[active]?.palette ?? chapters[0].palette;
+  const activeChapter = sections[active]?.chapter ?? 0;
+  const pal = chapters[activeChapter].palette;
 
   return (
     <div
@@ -116,18 +150,35 @@ export function Codex() {
           <a
             key={c.id}
             href={`#${c.id}`}
-            className={i === active ? "is-active" : undefined}
+            className={i === activeChapter ? "is-active" : undefined}
           >
             <span className="instruments-numeral">{c.numeral}</span> {c.title}
           </a>
         ))}
       </nav>
       <main>
-        {chapters.map((c, i) => {
+        {sections.map((s, i) => {
+          if (s.kind === "plate") {
+            const c = chapters[s.chapter];
+            return (
+              <section
+                key={s.id}
+                id={s.id}
+                data-kind="plate"
+                className="instruments-plate"
+                ref={(el) => {
+                  els.current[i] = el;
+                }}
+              >
+                <PlateCaptions chapter={c} sectionIndex={i} />
+              </section>
+            );
+          }
+          const c = chapters[s.chapter];
           const role = roles.find((r) => r.id === c.id);
           return (
             <section
-              key={c.id}
+              key={s.id}
               id={c.id}
               className="instruments-section"
               ref={(el) => {

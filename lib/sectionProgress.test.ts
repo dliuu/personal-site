@@ -17,6 +17,7 @@ describe("sectionProgress", () => {
       continuous: 0.5,
       depth: 0.5,
       tall: false,
+      kind: "chapter",
     });
   });
   it("moves to section 1 when the centre crosses its top", () => {
@@ -38,6 +39,7 @@ describe("sectionProgress", () => {
       continuous: 0,
       depth: -0.3,
       tall: false,
+      kind: "chapter",
     });
   });
   it("returns zeros for no sections and guards zero height", () => {
@@ -47,6 +49,7 @@ describe("sectionProgress", () => {
       continuous: 0,
       depth: 0,
       tall: false,
+      kind: "chapter",
     });
     expect(sectionProgress([{ top: 0, height: 0 }], vh).progress).toBe(0);
   });
@@ -91,6 +94,38 @@ describe("sectionProgress with a tall section", () => {
   });
   it("leaves viewport-sized sections unchanged", () => {
     expect(sectionProgress([{ top: -500, height: 1000 }], vh).progress).toBe(1);
+  });
+});
+
+describe("sectionProgress plate sections", () => {
+  const vh = 1000;
+  // chapter 1000 tall at page y 0, then a 3000 plate
+  const rects = (scrollY: number) => [
+    { top: 0 - scrollY, height: 1000 },
+    { top: 1000 - scrollY, height: 3000, kind: "plate" as const },
+  ];
+  it("is 0 when the plate's top reaches the viewport top", () => {
+    const s = sectionProgress(rects(1000), vh);
+    expect(s.active).toBe(1);
+    expect(s.kind).toBe("plate");
+    expect(s.progress).toBeCloseTo(0, 6);
+  });
+  it("is linear across the pinned range", () => {
+    expect(sectionProgress(rects(2000), vh).progress).toBeCloseTo(0.5, 6);
+    expect(sectionProgress(rects(3000), vh).progress).toBeCloseTo(1, 6);
+  });
+  it("reports chapter kind by default", () => {
+    expect(sectionProgress(rects(0), vh).kind).toBe("chapter");
+  });
+  it("falls back to plain progress when the plate is no taller than the viewport", () => {
+    const short = (scrollY: number) => [
+      { top: 0 - scrollY, height: 1000 },
+      { top: 1000 - scrollY, height: 1000, kind: "plate" as const },
+    ];
+    const s = sectionProgress(short(1250), vh);
+    expect(s.active).toBe(1);
+    expect(s.kind).toBe("plate");
+    expect(s.progress).toBeCloseTo(0.75, 6);
   });
 });
 

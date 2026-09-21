@@ -12,7 +12,12 @@ export function useSectionProgress(getEls: () => HTMLElement[]): void {
       raf = 0;
       const rects = getEls().map((el) => {
         const r = el.getBoundingClientRect();
-        return { top: r.top, height: r.height };
+        return {
+          top: r.top,
+          height: r.height,
+          kind: (el.dataset.kind === "plate" ? "plate" : "chapter") as
+            "chapter" | "plate",
+        };
       });
       const next = sectionProgress(rects, window.innerHeight);
       const cur = useSectionsStore.getState();
@@ -20,7 +25,8 @@ export function useSectionProgress(getEls: () => HTMLElement[]): void {
         next.active !== cur.active ||
         Math.abs(next.continuous - cur.continuous) > 1e-4 ||
         Math.abs(next.depth - cur.depth) > 1e-4 ||
-        next.tall !== cur.tall
+        next.tall !== cur.tall ||
+        next.kind !== cur.kind
       ) {
         cur.set(next);
       }
@@ -35,9 +41,14 @@ export function useSectionProgress(getEls: () => HTMLElement[]): void {
       window.removeEventListener("scroll", schedule);
       window.removeEventListener("resize", schedule);
       if (raf) cancelAnimationFrame(raf);
-      useSectionsStore
-        .getState()
-        .set({ active: 0, progress: 0, continuous: 0, depth: 0, tall: false });
+      useSectionsStore.getState().set({
+        active: 0,
+        progress: 0,
+        continuous: 0,
+        depth: 0,
+        tall: false,
+        kind: "chapter",
+      });
     };
   }, [getEls]);
 }

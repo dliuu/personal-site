@@ -1,6 +1,10 @@
 import { clamp01 } from "./progress";
 
-export type Rect = { top: number; height: number };
+export type Rect = {
+  top: number;
+  height: number;
+  kind?: "chapter" | "plate";
+};
 
 /**
  * Sections taller than the viewport ramp 0→0.5 over the first half-viewport,
@@ -16,20 +20,34 @@ export function sectionProgress(
   continuous: number;
   depth: number;
   tall: boolean;
+  kind: "chapter" | "plate";
 } {
   if (rects.length === 0)
-    return { active: 0, progress: 0, continuous: 0, depth: 0, tall: false };
+    return {
+      active: 0,
+      progress: 0,
+      continuous: 0,
+      depth: 0,
+      tall: false,
+      kind: "chapter",
+    };
   const centre = viewportHeight / 2;
   let active = 0;
   for (let i = 0; i < rects.length; i++) {
     if (centre >= rects[i].top) active = i;
   }
   const r = rects[active];
+  const kind = r.kind ?? "chapter";
   let progress = 0;
   if (r.height > 0) {
     const d = centre - r.top;
     const vh = viewportHeight;
-    if (r.height <= vh) {
+    if (kind === "plate") {
+      progress =
+        r.height > vh
+          ? clamp01((d - vh / 2) / (r.height - vh))
+          : clamp01(d / r.height);
+    } else if (r.height <= vh) {
       progress = clamp01(d / r.height);
     } else if (d < vh / 2) {
       progress = clamp01(d / vh);
@@ -41,7 +59,14 @@ export function sectionProgress(
   }
   const depth = r.height > 0 ? (centre - r.top) / viewportHeight : 0;
   const tall = r.height > viewportHeight;
-  return { active, progress, continuous: active + progress, depth, tall };
+  return {
+    active,
+    progress,
+    continuous: active + progress,
+    depth,
+    tall,
+    kind,
+  };
 }
 
 export function heroWeight(index: number, continuous: number): number {

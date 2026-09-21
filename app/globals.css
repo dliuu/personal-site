@@ -359,6 +359,59 @@ body:has(.instruments) {
     display: none;
   }
 }
+.instruments-plate {
+  min-height: 300vh;
+  position: relative;
+}
+.instruments-captions {
+  position: sticky;
+  top: 62vh;
+  margin-left: max(16px, calc((100vw - 540px) / 3));
+  width: min(420px, 80vw);
+  height: 28vh;
+  pointer-events: none;
+}
+.instruments-caption {
+  position: absolute;
+  inset: 0 auto auto 0;
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    opacity 400ms ease,
+    transform 400ms ease;
+  /* An engraver's cartouche: invisible on bare paper, but it keeps the text
+     legible wherever the hero's hatching passes behind it. */
+  padding: 12px 16px;
+  margin: -12px -16px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--paper, #efe4cc) 86%, transparent);
+}
+.instruments-caption.is-active {
+  opacity: 1;
+  transform: none;
+}
+.instruments-caption-num {
+  display: inline-block;
+  font-style: italic;
+  color: var(--gold);
+  margin-right: 10px;
+}
+.instruments-caption-sub {
+  font-family: var(--font-script), cursive;
+  font-size: 18px;
+  opacity: 0.75;
+}
+.instruments-caption p {
+  margin: 8px 0 0;
+  font-size: clamp(18px, 2vw, 24px);
+  line-height: 1.35;
+}
+@media (max-width: 720px) {
+  .instruments-captions {
+    top: 58vh;
+    margin-left: 16px;
+  }
+}
 .instruments-title a {
   color: inherit;
   text-decoration: none;
