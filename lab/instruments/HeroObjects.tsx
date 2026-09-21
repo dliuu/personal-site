@@ -89,9 +89,9 @@ export function HeroObjects() {
 
   // eslint-disable-next-line react-hooks/immutability -- r3f pattern: mutate ref object3Ds in useFrame
   useFrame(({ camera, clock }, delta) => {
-    const { continuous, active, depth } = useSectionsStore.getState();
+    const { continuous, active, depth, tall } = useSectionsStore.getState();
     const { reducedMotion } = useLabStore.getState();
-    const fade = narrow ? 1 - smooth(0.28, 0.55, depth) : 1;
+    const fade = narrow && tall ? 1 - smooth(0.28, 0.55, depth) : 1;
 
     if (!primed.current) {
       primed.current = true;

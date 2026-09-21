@@ -16,6 +16,7 @@ describe("sectionProgress", () => {
       progress: 0.5,
       continuous: 0.5,
       depth: 0.5,
+      tall: false,
     });
   });
   it("moves to section 1 when the centre crosses its top", () => {
@@ -31,7 +32,13 @@ describe("sectionProgress", () => {
   });
   it("handles an offset first section (centre above it)", () => {
     const s = sectionProgress([{ top: 800, height: 1000 }], vh);
-    expect(s).toEqual({ active: 0, progress: 0, continuous: 0, depth: -0.3 });
+    expect(s).toEqual({
+      active: 0,
+      progress: 0,
+      continuous: 0,
+      depth: -0.3,
+      tall: false,
+    });
   });
   it("returns zeros for no sections and guards zero height", () => {
     expect(sectionProgress([], vh)).toEqual({
@@ -39,8 +46,13 @@ describe("sectionProgress", () => {
       progress: 0,
       continuous: 0,
       depth: 0,
+      tall: false,
     });
     expect(sectionProgress([{ top: 0, height: 0 }], vh).progress).toBe(0);
+  });
+  it("flags sections taller than the viewport", () => {
+    expect(sectionProgress([{ top: 0, height: 3000 }], 1000).tall).toBe(true);
+    expect(sectionProgress([{ top: 0, height: 1000 }], 1000).tall).toBe(false);
   });
 });
 
