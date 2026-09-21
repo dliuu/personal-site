@@ -24,3 +24,4 @@ their README; this file records what changed the project's direction.
 - 2026-09-20: instruments: draw-in scales whole solid/line roots (per-part scaling exploded the assemblies); mech axis is per instrument; engraving AA is box-filtered.
 - 2026-09-20: instruments carries the professional profile (five chapters). Astrolabe and gear train retired; balance, globe and bridge added.
 - 2026-09-20: Added a headless screenshot loop (Playwright + SwiftShader WebGL) so visual fixes can be made by sight; outputs in shots/ are gitignored.
+- 2026-09-20: explore: hero region reserved beside the column (lib/heroRegion.ts); per-chapter palette via canvas uniforms and inline CSS variables; hotspot notes via drei Html; drag-to-turn; .instruments is pointer-transparent again (chapters removed the same scaffolding in dc2fa70 when nothing in the canvas was interactive).

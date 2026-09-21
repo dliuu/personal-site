@@ -65,7 +65,7 @@ export function Stage({
 
   return (
     <>
-      <Leva hidden={isProd} />
+      <Leva hidden={isProd} collapsed />
       <Canvas
         shadows={shadows && high}
         dpr={high ? [1, 2] : 1}
@@ -78,7 +78,7 @@ export function Stage({
           <fog attach="fog" args={[fog.color, fog.near, fog.far]} />
         ) : null}
         <Suspense fallback={null}>{children}</Suspense>
-        {isProd ? null : <Stats />}
+        {isProd ? null : <Stats className="stats-corner" />}
       </Canvas>
     </>
   );

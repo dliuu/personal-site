@@ -203,6 +203,9 @@ body:has(.instruments) {
 .instruments {
   position: relative;
   z-index: 1;
+  pointer-events: none;
+  color: var(--ink);
+  transition: color 600ms ease;
   font-family: var(--font-fell), Georgia, serif;
   /* laid-paper texture */
   background-image:
@@ -235,7 +238,8 @@ body:has(.instruments) {
   gap: 28px;
   padding: 14px 24px;
   border-bottom: 1px dotted var(--gold);
-  background: color-mix(in srgb, var(--parchment) 88%, transparent);
+  background: color-mix(in srgb, var(--paper) 88%, transparent);
+  transition: background-color 600ms ease;
   backdrop-filter: blur(6px);
   font-family: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
   font-size: 12px;
@@ -248,6 +252,7 @@ body:has(.instruments) {
   text-decoration: none;
   padding-bottom: 2px;
   border-bottom: 2px solid transparent;
+  transition: border-color 600ms ease;
 }
 .instruments-nav a.is-active {
   border-bottom-color: var(--gold);
@@ -335,8 +340,8 @@ body:has(.instruments) {
 .instruments-note {
   grid-column: 3;
   justify-self: end;
-  align-self: end;
-  margin: 0 24px 6vh 0;
+  align-self: start;
+  margin: 14vh 24px 0 0;
   max-width: 200px;
   font-family: var(--font-script), cursive;
   font-size: 18px;
@@ -385,8 +390,9 @@ body:has(.instruments) {
 }
 .instruments-skills {
   margin-top: 16px;
-  font-family: var(--font-script), cursive;
-  font-size: 17px;
+  font-family: var(--font-fell), Georgia, serif;
+  font-style: italic;
+  font-size: 15px;
   opacity: 0.7;
 }
 .instruments-section:has(.instruments-bullets) {
@@ -404,4 +410,62 @@ body:has(.instruments) {
     padding-top: 42vh;
     padding-bottom: 14vh;
   }
+}
+
+.instruments-nav,
+.instruments-col,
+.instruments-note {
+  pointer-events: auto;
+}
+.instruments-hotspot-wrap {
+  position: relative;
+  pointer-events: auto;
+}
+.instruments-hotspot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1.5px solid var(--gold);
+  background: color-mix(in srgb, var(--paper, #efe4cc) 85%, transparent);
+  color: var(--ink);
+  font:
+    12px var(--font-fell, Georgia),
+    Georgia,
+    serif;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 200ms ease;
+}
+.instruments-hotspot:hover,
+.instruments-hotspot.is-open {
+  transform: scale(1.2);
+  background: var(--gold);
+  color: var(--paper, #efe4cc);
+}
+.instruments-hotspot-card {
+  position: absolute;
+  left: 30px;
+  top: -6px;
+  width: 220px;
+  padding: 10px 12px;
+  background: color-mix(in srgb, var(--paper, #efe4cc) 92%, transparent);
+  border: 1px dotted var(--gold);
+  color: var(--ink);
+  font:
+    14px/1.4 var(--font-fell, Georgia),
+    Georgia,
+    serif;
+  box-shadow: 0 6px 20px rgba(43, 33, 24, 0.12);
+}
+.instruments-hotspot-card.is-left {
+  left: auto;
+  right: 30px;
+}
+
+/* dev overlays */
+.stats-corner {
+  top: auto !important;
+  left: auto !important;
+  bottom: 12px !important;
+  right: 12px !important;
 }
