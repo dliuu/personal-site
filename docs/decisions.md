@@ -18,3 +18,7 @@ their README; this file records what changed the project's direction.
 - 2026-09-18: The studio-room design (local spec) is demoted to a candidate; lighting-bench decides whether it proceeds.
 - 2026-09-18: Vercel deployment protection is on; preview URLs need a logged-in browser. Curl checks see 302 to SSO.
 - 2026-09-18: Implementation deviates from docs/skeleton.md §4/§5.2/§6.1 on purpose: registry metadata (`lab/registry.ts`) and dynamic loaders (`lab/loaders.tsx`) are split because `ssr:false` must live in a client module; `useScrollProgress` returns `{ step }` for use inside `useFrame`; `lint` is `eslint .` because Next 16 removed `next lint`.
+- 2026-09-19: Direction changed from a 3D room to editorial chapters over one fixed canvas (Shopify Editions model, wiki entry 1). Theme is a halftone post pass carried into type and palette. studio-room stays in the lab (PR #2) as the rejected comparison. Added postprocessing + @react-three/postprocessing.
+- 2026-09-18: studio-room experiment added as the candidate direction. Reduced-motion transition kill-switch added to globals.css for all experiments.
+- 2026-09-20: instruments experiment added as a Renaissance variant of chapters (instrument heroes, engraving post effect, draw-in, codex DOM). Section store and hook promoted to shared code.
+- 2026-09-20: instruments: draw-in scales whole solid/line roots (per-part scaling exploded the assemblies); mech axis is per instrument; engraving AA is box-filtered.

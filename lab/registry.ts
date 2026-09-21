@@ -27,6 +27,27 @@ export const experiments: Experiment[] = [
       "An empty primitive room with a window, sun, lamp, contact shadows and fog, all on sliders. Does primitive plus lighting look soft-realistic?",
     added: "2026-09-18",
   },
+  {
+    slug: "chapters",
+    title: "Chapters",
+    description:
+      "Editorial scroll: DOM chapters over one fixed canvas, one hero object per chapter crossfading by scroll, halftone post pass as the theme.",
+    added: "2026-09-19",
+  },
+  {
+    slug: "studio-room",
+    title: "Studio room",
+    description:
+      "The approved design as an experiment: a primitive studio room, four scroll stops, intro pull-in, parallax, clickable project objects, DOM overlays.",
+    added: "2026-09-18",
+  },
+  {
+    slug: "instruments",
+    title: "Instruments",
+    description:
+      "Renaissance variant of chapters: instrument heroes that draw themselves in, an engraving post effect, and a codex-page DOM.",
+    added: "2026-09-20",
+  },
 ];
 
 export function findExperiment(slug: string): Experiment | undefined {
