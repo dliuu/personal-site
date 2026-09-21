@@ -91,7 +91,7 @@ export function HeroObjects() {
   useFrame(({ camera, clock }, delta) => {
     const { continuous, active, depth } = useSectionsStore.getState();
     const { reducedMotion } = useLabStore.getState();
-    const fade = narrow ? 1 - smooth(0.55, 0.95, depth) : 1;
+    const fade = narrow ? 1 - smooth(0.28, 0.55, depth) : 1;
 
     if (!primed.current) {
       primed.current = true;
@@ -125,8 +125,8 @@ export function HeroObjects() {
       // eslint-disable-next-line react-hooks/immutability -- r3f pattern: mutate the memoized line material in useFrame
       lineMaterials[i].opacity = lineOpacity(w);
       if (i === active) {
-        solid.visible = ss > 0.001 && fade > 0.5;
-        lineMaterials[i].opacity = lineOpacity(w) * Math.max(0.18, fade);
+        solid.visible = ss > 0.001 && fade > 0.6;
+        lineMaterials[i].opacity = lineOpacity(w) * Math.max(0.12, fade);
       }
 
       const t = continuous - i;

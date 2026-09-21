@@ -12,7 +12,7 @@ export function heroPlacement(v: {
   vpHeight: number;
 }): Placement {
   if (v.width <= NARROW_PX) {
-    const scale = Math.min(0.55, (0.36 * v.vpHeight) / HERO_RADIUS);
+    const scale = Math.min(0.5, (0.36 * v.vpHeight) / HERO_RADIUS);
     return { x: 0, y: 0.5 * v.vpHeight * 0.55, scale };
   }
   const colStart = (v.width - COLUMN_PX) / 3;

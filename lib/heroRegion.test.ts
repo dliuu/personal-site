@@ -29,7 +29,7 @@ describe("heroPlacement", () => {
     });
     expect(p.x).toBe(0);
     expect(p.y).toBeCloseTo(0.5 * 4.97 * 0.55, 6);
-    expect(p.scale).toBeCloseTo(0.55, 6);
+    expect(p.scale).toBeCloseTo(0.5, 6);
     // hero bottom (y - scale*1.75) stays in the top 42% of the viewport
     const bottomFrac = (4.97 / 2 - (p.y - p.scale * 1.75)) / 4.97;
     expect(bottomFrac).toBeLessThan(0.42);
