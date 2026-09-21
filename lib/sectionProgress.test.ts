@@ -42,6 +42,28 @@ describe("sectionProgress", () => {
   });
 });
 
+describe("sectionProgress with a tall section", () => {
+  const vh = 1000;
+  // one section 3000px tall starting at y=0 in page coords
+  const tall = (scrollY: number) => [{ top: 0 - scrollY, height: 3000 }];
+  it("ramps to 0.5 over the first half viewport", () => {
+    expect(sectionProgress(tall(0), vh).progress).toBeCloseTo(0.5, 6); // centre at 500 = vh/2
+    expect(sectionProgress(tall(-250), vh).progress).toBeCloseTo(0.25, 6); // centre 250 into the section
+  });
+  it("holds 0.5 through the middle", () => {
+    expect(sectionProgress(tall(1000), vh).progress).toBe(0.5); // centre at 1500
+    expect(sectionProgress(tall(1900), vh).progress).toBe(0.5); // centre at 2400
+  });
+  it("ramps to 1 over the last half viewport and is continuous at the joins", () => {
+    expect(sectionProgress(tall(2000), vh).progress).toBeCloseTo(0.5, 6); // centre 2500 = height - vh/2
+    expect(sectionProgress(tall(2250), vh).progress).toBeCloseTo(0.75, 6); // centre 2750
+    expect(sectionProgress(tall(2500), vh).progress).toBeCloseTo(1, 6); // centre 3000
+  });
+  it("leaves viewport-sized sections unchanged", () => {
+    expect(sectionProgress([{ top: -500, height: 1000 }], vh).progress).toBe(1);
+  });
+});
+
 describe("heroWeight", () => {
   it("peaks at the chapter centre and fades over one chapter", () => {
     expect(heroWeight(1, 1.5)).toBe(1);

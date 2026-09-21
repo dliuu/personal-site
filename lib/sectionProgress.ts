@@ -2,6 +2,11 @@ import { clamp01 } from "./progress";
 
 export type Rect = { top: number; height: number };
 
+/**
+ * Sections taller than the viewport ramp 0→0.5 over the first half-viewport,
+ * hold 0.5 through the middle, and ramp 0.5→1 over the last half-viewport,
+ * so the hero crossfade always spans one viewport at each boundary.
+ */
 export function sectionProgress(
   rects: Rect[],
   viewportHeight: number,
@@ -13,7 +18,20 @@ export function sectionProgress(
     if (centre >= rects[i].top) active = i;
   }
   const r = rects[active];
-  const progress = r.height > 0 ? clamp01((centre - r.top) / r.height) : 0;
+  let progress = 0;
+  if (r.height > 0) {
+    const d = centre - r.top;
+    const vh = viewportHeight;
+    if (r.height <= vh) {
+      progress = clamp01(d / r.height);
+    } else if (d < vh / 2) {
+      progress = clamp01(d / vh);
+    } else if (d > r.height - vh / 2) {
+      progress = clamp01(1 - (r.height - d) / vh);
+    } else {
+      progress = 0.5;
+    }
+  }
   return { active, progress, continuous: active + progress };
 }
 
