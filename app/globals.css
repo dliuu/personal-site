@@ -353,6 +353,10 @@ body:has(.instruments) {
   .instruments-note {
     display: none;
   }
+  .instruments-section:has(.instruments-bullets) {
+    align-items: start;
+    padding-top: 42vh;
+  }
 }
 .instruments-title a {
   color: inherit;
@@ -378,7 +382,7 @@ body:has(.instruments) {
   position: relative;
 }
 .instruments-bullets li::before {
-  content: "❧";
+  content: "❧" / "";
   position: absolute;
   left: 0;
   color: var(--gold);
@@ -388,4 +392,18 @@ body:has(.instruments) {
   font-family: var(--font-script), cursive;
   font-size: 17px;
   opacity: 0.7;
+}
+.instruments-section:has(.instruments-bullets) {
+  padding-block: 8vh;
+}
+.instruments-section:has(.instruments-bullets) .instruments-title {
+  font-size: clamp(40px, 6vw, 72px);
+}
+.instruments-section:has(.instruments-bullets) .instruments-lede {
+  font-size: clamp(18px, 2vw, 22px);
+}
+.instruments-bullets li {
+  padding: 8px 0 8px 22px;
+  line-height: 1.4;
+  font-size: 15.5px;
 }

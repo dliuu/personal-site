@@ -22,10 +22,10 @@ export const roles: Role[] = [
     url: "https://www.witheisen.com/",
     title: "Engineer",
     dates: "2026 – present",
-    location: "New York",
+    location: "",
     summary:
       "Building infrastructure for banks, exchanges and financing institutions.",
-    bullets: ["Details to come."],
+    bullets: [],
     skills: [],
   },
   {
@@ -38,8 +38,8 @@ export const roles: Role[] = [
     bullets: [
       "Designed the distributed infrastructure that launched AI Translation across 48 new language-locales; $4.31M in annualized translation OPEX savings.",
       "Rebuilt the localization platform's billing analysis for post-AI translation; AI inference throttles down 84% in H2 2025.",
-      "Ran six months of online experimentation across 23 production metrics with human post-editing; the results green-lit AI4T workflows in new locales.",
-      "Designed machine-translation concurrency limits per locale; largest inference spike down 32%, peak inference threshold down 73%.",
+      "Ran six months of online experimentation across 23 live production metrics with human post-editing, and presented the data to leadership to green-light AI4T workflows in new locales.",
+      "Designed machine-translation concurrency limits across new locale codebases; largest inference spike down 32%, peak inference threshold down 73%.",
       "Led offline and online benchmarks of Llama 3.1 and Llama 4 against Gemini, Claude and GPT across 48 languages.",
     ],
     skills: [

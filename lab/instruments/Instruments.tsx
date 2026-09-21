@@ -195,7 +195,7 @@ function fibonacciSphere(n: number): [number, number, number][] {
   const pts: [number, number, number][] = [];
   const golden = Math.PI * (3 - Math.sqrt(5));
   for (let i = 0; i < n; i++) {
-    const y = 1 - (i / (n - 1)) * 2;
+    const y = 1 - (2 * (i + 0.5)) / n;
     const r = Math.sqrt(1 - y * y);
     const a = golden * i;
     pts.push([Math.cos(a) * r, y, Math.sin(a) * r]);

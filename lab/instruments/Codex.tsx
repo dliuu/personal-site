@@ -43,14 +43,16 @@ function RoleBody({ role }: { role: Role }) {
         )}
       </h2>
       <p className="instruments-role">
-        {role.title} · {role.location}
+        {role.location ? `${role.title} · ${role.location}` : role.title}
       </p>
       <p className="instruments-lede">{role.summary}</p>
-      <ul className="instruments-bullets">
-        {role.bullets.map((b) => (
-          <li key={b}>{b}</li>
-        ))}
-      </ul>
+      {role.bullets.length > 0 ? (
+        <ul className="instruments-bullets">
+          {role.bullets.map((b) => (
+            <li key={b}>{b}</li>
+          ))}
+        </ul>
+      ) : null}
       {role.skills.length > 0 ? (
         <p className="instruments-skills">{role.skills.join(" · ")}</p>
       ) : null}
@@ -58,7 +60,7 @@ function RoleBody({ role }: { role: Role }) {
   );
 }
 
-function Body({ id }: { id: Chapter["id"] }) {
+function Body({ id, role }: { id: Chapter["id"]; role?: Role }) {
   if (id === "intro") {
     return (
       <>
@@ -84,7 +86,6 @@ function Body({ id }: { id: Chapter["id"] }) {
       </>
     );
   }
-  const role = roles.find((r) => r.id === id);
   return role ? <RoleBody role={role} /> : null;
 }
 
@@ -130,7 +131,7 @@ export function Codex() {
                   Chapter {c.numeral}
                   {role ? ` · ${role.dates}` : ""}
                 </div>
-                <Body id={c.id} />
+                <Body id={c.id} role={role} />
               </div>
               <aside className="instruments-note" aria-hidden>
                 {c.note}
