@@ -19,7 +19,7 @@ Deviations from the spec:
 - On phones, a section taller than the viewport fades every hero to a watermark as it is read: `depth` drives a smoothstep band 0.28–0.55, contours floor at 0.12 opacity, solids drop out below 0.6, and the fade itself is lerped so a section change does not pop.
 - Phone hero scale is capped at 0.5.
 - Hotspots are hidden on phones for sections taller than the viewport.
-- `pointer-events: none` sits on `.instruments` (the canvas layer), not the section, so the page still scrolls while markers stay clickable.
+- `pointer-events: none` sits on `.instruments` (the content wrapper over the canvas), not the section, so the page still scrolls while markers stay clickable.
 - Hotspot notes open on click or focus and close on Escape or a click outside the marker and its card.
 - The r3f store's `viewport` is computed at camera z = 6 while the camera dollies to 5.6, so heroes are up to ~7% larger than `heroPlacement` assumes.
 
