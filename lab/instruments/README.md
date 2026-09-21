@@ -2,11 +2,7 @@
 
 ## Trying
 
-A Renaissance variant of `chapters`: the same scroll-over-one-canvas model, but the heroes are
-instruments (armillary sphere, astrolabe, gear train, quadrant) built from rings and rods; a
-copperplate-engraving post effect replaces the halftone; each instrument draws itself in as
-construction lines before the hatched solid fills; the DOM is a codex page (parchment,
-iron-gall ink, gold rules, Fell type, script margin notes, Roman numerals).
+The professional profile as a codex: five chapters (intro, Eisen, Meta, Washington Capital Partners, contact), each job with an instrument of its trade: a banker's balance, a globe with 48 locale pins, a stone bridge whose keystone drops in.
 
 Spec: `superpowers/specs/2026-09-20-instruments-design.md` (local).
 
