@@ -27,5 +27,6 @@ npm run shots                # /lab/instruments at 1440×900, 1280×720, 390×84
 npm run shots -- --route /lab/chapters --motion --full
 ```
 
-Output lands in `shots/<route>/<w>x<h>/NN-<section>.png` (gitignored). Reduced motion is
-on by default for deterministic frames; `--motion` restores idle animation.
+Output lands in `shots/<route>/<w>x<h>/NN-<section>.png` (gitignored). Plate sections
+(`data-kind="plate"`) are captured at four scroll positions as `NN-<section>-p10/40/70/95.png`.
+Reduced motion is on by default for deterministic frames; `--motion` restores idle animation.
