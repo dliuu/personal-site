@@ -11,7 +11,14 @@ import { useLabStore } from "@/store/useLabStore";
 import { useSectionsStore } from "@/store/useSectionsStore";
 import { chapters, type InstrumentKind } from "./chapters";
 import { INK, PARCHMENT } from "./palette";
-import { Armillary, EdgedModeContext, Gears, Quadrant } from "./Instruments";
+import {
+  Armillary,
+  Balance,
+  Bridge,
+  EdgedModeContext,
+  Globe,
+  Quadrant,
+} from "./Instruments";
 
 const CAMERA_Z = 6;
 const DOLLY = 0.4;
@@ -23,9 +30,9 @@ const KIND: Record<
   (p: { mech: RefObject<Group | null> }) => JSX.Element
 > = {
   armillary: Armillary,
-  balance: Armillary,
-  globe: Armillary,
-  bridge: Gears,
+  balance: Balance,
+  globe: Globe,
+  bridge: Bridge,
   quadrant: Quadrant,
 };
 
@@ -107,8 +114,13 @@ export function HeroObjects() {
             m.rotation.z = base + idle;
             break;
           case "tilt":
-          case "drop":
+            m.rotation.z = Math.sin(base) * 0.22;
             break;
+          case "drop": {
+            const p = Math.min(1, Math.max(0, t / 0.5));
+            m.position.y = 0.5 * (1 - p);
+            break;
+          }
           default:
             m.rotation.y = base + idle;
         }
