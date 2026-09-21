@@ -10,10 +10,12 @@ import {
 import { Effect } from "postprocessing";
 import { Color, SRGBColorSpace, Uniform } from "three";
 import { frameLerp } from "@/lib/drawIn";
+import { lerp } from "@/lib/progress";
 import { useLabStore } from "@/store/useLabStore";
 import { useSectionsStore } from "@/store/useSectionsStore";
 import { chapters } from "./chapters";
 import { INK, PARCHMENT } from "./palette";
+import { plateState } from "./plateState";
 
 const fragment = /* glsl */ `
 uniform vec3 ink;
@@ -93,6 +95,10 @@ export function Effects() {
     if (e) {
       (e.uniforms.get("ink")!.value as Color).copy(cur.ink);
       (e.uniforms.get("paper")!.value as Color).copy(cur.paper);
+      // A finer pitch as the plate hero expands, so the engraving keeps its
+      // weight against a much larger subject.
+      e.uniforms.get("pitch")!.value =
+        (high ? lerp(7, 6, plateState.expand) : 9) * dpr;
     }
     if (scene.background instanceof Color) scene.background.copy(cur.paper);
   });

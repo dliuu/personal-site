@@ -130,6 +130,7 @@ export function Codex() {
   useSectionProgress(getEls);
   const active = useSectionsStore((s) => s.active);
   const pal = chapters[active]?.palette ?? chapters[0].palette;
+  const activeChapter = sections[active]?.chapter ?? 0;
 
   return (
     <div
@@ -148,7 +149,7 @@ export function Codex() {
           <a
             key={c.id}
             href={`#${c.id}`}
-            className={i === active ? "is-active" : undefined}
+            className={i === activeChapter ? "is-active" : undefined}
           >
             <span className="instruments-numeral">{c.numeral}</span> {c.title}
           </a>
