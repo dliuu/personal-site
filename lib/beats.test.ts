@@ -5,6 +5,7 @@ import {
   pinTint,
   smooth,
   plateYaw,
+  revealAmount,
   stagger,
   tickAlive,
   washAmount,
@@ -103,5 +104,13 @@ describe("plateYaw", () => {
     expect(plateYaw(2, 0.5)).toBeCloseTo(0.45, 6);
     expect(plateYaw(2, 1)).toBeCloseTo(0.6, 6);
     expect(plateYaw(3, 0)).toBeCloseTo(0.6, 6);
+  });
+});
+describe("revealAmount", () => {
+  it("waits for the wash, then dissolves the hatching by full expand", () => {
+    expect(revealAmount(0)).toBe(0);
+    expect(revealAmount(0.35)).toBe(0);
+    expect(revealAmount(0.675)).toBeCloseTo(0.5, 6);
+    expect(revealAmount(1)).toBe(1);
   });
 });

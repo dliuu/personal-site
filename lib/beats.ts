@@ -55,3 +55,7 @@ export function plateYaw(beat: number, t: number): number {
   if (beat === 2) return 0.6 * (1 - (1 - t) * (1 - t));
   return 0.6;
 }
+/** How far the engraving has dissolved into the real render, for a plate expansion 0..1: the wash leads, then the hatching goes. */
+export function revealAmount(expand: number): number {
+  return smooth(0.35, 1, expand);
+}

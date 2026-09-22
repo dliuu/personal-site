@@ -17,6 +17,8 @@ export const plateState = {
   t: 0,
   /** Smoothed hero expansion, 0..1. */
   expand: 0,
+  /** How far the engraving has dissolved into the real render, 0..1. */
+  reveal: 0,
   /**
    * World point the camera looks at in beat 1; written by the instrument.
    * Written by the solid Globe's useFrame, which runs before HeroObjects' —
