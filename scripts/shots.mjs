@@ -89,7 +89,7 @@ async function main() {
       } else {
         for (let i = 0; i < ids.length; i++) {
           if (kinds[i] === "plate") {
-            for (const f of [0.1, 0.4, 0.7, 0.95]) {
+            for (const f of [0.1, 0.4, 0.7, 0.82, 0.95]) {
               await page.evaluate(
                 ([id, frac]) => {
                   const el = document.getElementById(id);

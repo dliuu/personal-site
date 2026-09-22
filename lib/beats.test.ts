@@ -4,7 +4,7 @@ import {
   expandAmount,
   pinTint,
   smooth,
-  spinRate,
+  plateYaw,
   stagger,
   tickAlive,
   washAmount,
@@ -92,13 +92,16 @@ describe("tickAlive", () => {
     expect(tickAlive(23, 3, 0)).toBe(false);
   });
 });
-describe("spinRate", () => {
-  it("is 1 outside a plate and throttles to 0 across beat 2", () => {
-    expect(spinRate(false, 2, 0.5)).toBe(1);
-    expect(spinRate(true, 0, 0.5)).toBe(1.5);
-    expect(spinRate(true, 1, 0.5)).toBe(1);
-    expect(spinRate(true, 2, 0)).toBeCloseTo(1.5, 6);
-    expect(spinRate(true, 2, 1)).toBe(0);
-    expect(spinRate(true, 3, 0)).toBe(0);
+describe("plateYaw", () => {
+  it("turns from the Atlantic to New York in beat 0 and holds there in beat 1", () => {
+    expect(plateYaw(0, 0)).toBeCloseTo(-0.9, 6);
+    expect(plateYaw(0, 1)).toBeCloseTo(0, 6);
+    expect(plateYaw(1, 0.5)).toBe(0);
+  });
+  it("decelerates to a stop across beat 2 and stays still in beat 3", () => {
+    expect(plateYaw(2, 0)).toBe(0);
+    expect(plateYaw(2, 0.5)).toBeCloseTo(0.45, 6);
+    expect(plateYaw(2, 1)).toBeCloseTo(0.6, 6);
+    expect(plateYaw(3, 0)).toBeCloseTo(0.6, 6);
   });
 });

@@ -9,7 +9,7 @@ import { heroPlacement } from "@/lib/heroRegion";
 import { heroContinuous } from "@/lib/heroContinuous";
 import { heroWeight } from "@/lib/sectionProgress";
 import { lerp } from "@/lib/progress";
-import { beatAt, expandAmount, smooth } from "@/lib/beats";
+import { beatAt, expandAmount, plateYaw, smooth } from "@/lib/beats";
 import { frameLerp, lineOpacity, lineScale, solidScale } from "@/lib/drawIn";
 import { useLabStore } from "@/store/useLabStore";
 import { useSectionsStore } from "@/store/useSectionsStore";
@@ -39,6 +39,9 @@ const FOCUS_DISTANCE = 3.4;
 // detail clears the sticky caption: sideways on wide, upward on narrow.
 const FOCUS_SHIFT_X = 0.55;
 const FOCUS_SHIFT_Y = 0.4;
+// Key light at rest, and raking low from camera-left during the beat-1 push-in.
+const KEY_POS = new Vector3(3, 4, 5);
+const KEY_RAKE = new Vector3(-4, 1.5, 4);
 
 const KIND: Record<
   InstrumentKind,
@@ -87,7 +90,9 @@ export function HeroObjects() {
   const primed = useRef(false);
   const introDone = useRef(false);
   const yaw = useRef<number[]>(chapters.map(() => 0));
+  const idleAngle = useRef<number[]>(chapters.map(() => 0));
   const settleOff = useRef<number[]>(chapters.map(() => 0));
+  const keyGoal = useRef(new Vector3().copy(KEY_POS));
   const fadeCur = useRef(1);
   const expandCur = useRef(0);
   const dragging = useRef(false);
@@ -237,13 +242,22 @@ export function HeroObjects() {
 
       const t = heroCont - i;
       const base = t * Math.PI * 0.8;
-      const idle = reducedMotion ? 0 : clock.elapsedTime * chapters[i].spin;
-      // Beat 1 pushes in on a detail, so the mechanism eases to face front:
-      // an offset that cancels the spin, so the turn never snaps back.
-      const settle =
-        plateState.instrument === chapters[i].instrument &&
-        plateState.beat === 1;
-      const goal = settle ? -(base + idle) : 0;
+      // Idle spin is an accumulated angle (not clock time) so its plate can
+      // pause it and fold an offset into it.
+      const inPlate = plateState.instrument === chapters[i].instrument;
+      if (!inPlate && settleOff.current[i] !== 0) {
+        // Leaving the plate: absorb the scripted offset so nothing unwinds.
+        idleAngle.current[i] += settleOff.current[i];
+        settleOff.current[i] = 0;
+      }
+      if (!reducedMotion && !inPlate)
+        idleAngle.current[i] += delta * chapters[i].spin;
+      const idle = idleAngle.current[i];
+      // In its plate the yaw is scripted per beat (plateYaw); the offset
+      // cancels the running spin, so the turn never snaps.
+      const goal = inPlate
+        ? plateYaw(plateState.beat, plateState.t) - (base + idle)
+        : 0;
       settleOff.current[i] = reducedMotion
         ? goal
         : lerp(settleOff.current[i], goal, frameLerp(CAM_LERP, delta));
@@ -279,9 +293,24 @@ export function HeroObjects() {
 
     if (keyLight.current) keyLight.current.intensity = 2.5 + 0.7 * expand;
     if (rimLight.current) rimLight.current.intensity = 1.2 * expand;
+    // Beat 1: the key light swings low across the surface so coasts catch
+    // hatching under the push-in.
+    const rake =
+      plateState.instrument && plateState.beat === 1
+        ? smooth(0, 0.4, plateState.t)
+        : 0;
+    keyGoal.current.copy(KEY_POS).lerp(KEY_RAKE, rake);
+    if (keyLight.current)
+      keyLight.current.position.lerp(
+        keyGoal.current,
+        reducedMotion ? 1 : frameLerp(CAM_LERP, delta),
+      );
 
     goalPos.current.set(0, 0, CAMERA_Z - DOLLY * (heroCont / chapters.length));
     goalTgt.current.set(0, 0, 0);
+    // Beat 3: ease back so all three satellite rings clear the frame.
+    if (plateState.instrument && plateState.beat === 3)
+      goalPos.current.z += 0.6 * smooth(0, 1, plateState.t);
     if (
       parent &&
       plateState.instrument &&
