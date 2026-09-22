@@ -17,13 +17,14 @@ import {
   EdgesGeometry,
   Float32BufferAttribute,
   Group,
+  LineBasicMaterial,
   Mesh,
+  MeshStandardMaterial,
   RingGeometry,
   SphereGeometry,
   TorusGeometry,
   Vector3,
 } from "three";
-import type { LineBasicMaterial, MeshStandardMaterial } from "three";
 import { archVoussoirs } from "@/lib/arch";
 import { smooth, stagger } from "@/lib/beats";
 import { lerp } from "@/lib/progress";
@@ -83,6 +84,9 @@ export function Edged({
   edges: edgesOverride,
   meshRef,
   linesOnly = false,
+  color,
+  material,
+  lineMaterial,
 }: {
   geometry: BufferGeometry;
   position?: [number, number, number];
@@ -92,6 +96,12 @@ export function Edged({
   meshRef?: RefObject<Mesh | null>;
   /** Draw only in lines mode — `geometry` is then unused; pass the line set as `edges`. */
   linesOnly?: boolean;
+  /** Solid colour (default bronze). */
+  color?: string;
+  /** Solid material override, so several parts can share and animate one. */
+  material?: MeshStandardMaterial;
+  /** Line material override for this part only. */
+  lineMaterial?: LineBasicMaterial;
 }) {
   const ctx = useContext(EdgedModeContext);
   const edges = useMemo(
@@ -102,20 +112,27 @@ export function Edged({
   return (
     <group position={position} rotation={rotation}>
       {ctx.mode === "solid" ? (
-        <mesh ref={meshRef} geometry={geometry} name="solid">
-          <meshStandardMaterial
-            color={BRONZE}
-            roughness={0.6}
-            metalness={0.15}
-            polygonOffset
-            polygonOffsetFactor={1}
-            polygonOffsetUnits={1}
-          />
+        <mesh
+          ref={meshRef}
+          geometry={geometry}
+          name="solid"
+          material={material}
+        >
+          {material ? null : (
+            <meshStandardMaterial
+              color={color ?? BRONZE}
+              roughness={0.6}
+              metalness={0.15}
+              polygonOffset
+              polygonOffsetFactor={1}
+              polygonOffsetUnits={1}
+            />
+          )}
         </mesh>
-      ) : ctx.lineMaterial ? (
+      ) : (lineMaterial ?? ctx.lineMaterial) ? (
         <lineSegments
           geometry={edges}
-          material={ctx.lineMaterial}
+          material={lineMaterial ?? ctx.lineMaterial}
           name="edge"
         />
       ) : (
