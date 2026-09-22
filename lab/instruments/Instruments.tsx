@@ -4,14 +4,17 @@ import {
   createContext,
   createRef,
   useContext,
+  useEffect,
   useMemo,
   useRef,
+  useState,
   type RefObject,
 } from "react";
 import { useFrame } from "@react-three/fiber";
 import {
   BoxGeometry,
   BufferGeometry,
+  Color,
   ConeGeometry,
   CylinderGeometry,
   EdgesGeometry,
@@ -26,9 +29,17 @@ import {
   Vector3,
 } from "three";
 import { archVoussoirs } from "@/lib/arch";
-import { smooth, stagger } from "@/lib/beats";
+import { pinTint, smooth, stagger, tickAlive } from "@/lib/beats";
+import { latLonToVec3, rankByLongitude } from "@/lib/geo";
 import { lerp } from "@/lib/progress";
-import { BRONZE, INK } from "./palette";
+import {
+  buildCoastGeometry,
+  buildLandTexture,
+  loadLand,
+  type Land,
+} from "./geo";
+import { locales, NYC } from "./locales";
+import { BRASS, BRONZE, GOLD, INK, OCEAN, VERMILION } from "./palette";
 import { plateState } from "./plateState";
 
 export type EdgedMode = {
@@ -228,23 +239,12 @@ export function Balance({ mech }: { mech: RefObject<Group | null> }) {
   );
 }
 
-function fibonacciSphere(n: number): [number, number, number][] {
-  const pts: [number, number, number][] = [];
-  const golden = Math.PI * (3 - Math.sqrt(5));
-  for (let i = 0; i < n; i++) {
-    const y = 1 - (2 * (i + 0.5)) / n;
-    const r = Math.sqrt(1 - y * y);
-    const a = golden * i;
-    pts.push([Math.cos(a) * r, y, Math.sin(a) * r]);
-  }
-  return pts;
-}
-const PIN_POINTS = fibonacciSphere(48);
-const PIN_DIRS = PIN_POINTS.map(([x, y, z]) => new Vector3(x, y, z));
+const PIN_DIRS = locales.map((l) => new Vector3(...latLonToVec3(l.lat, l.lon)));
+/** Beat-0 drop order: rank by longitude, so the rollout sweeps west → east. */
+const PIN_ORDER = rankByLongitude(locales);
 /** Radius the pins sit at once seated: base near the surface, tip outward. */
 const PIN_R = 1.18;
-/** Manhattan: latitude 40.7° (0.71 rad) on the prime azimuth. */
-const NYC_DIR = new Vector3(0, Math.sin(0.71), Math.cos(0.71));
+const NYC_DIR = new Vector3(...latLonToVec3(NYC.lat, NYC.lon));
 /** Graticule latitudes: the equator and two parallels either side. */
 const GRATICULE_LATS = [
   -Math.PI / 3,
@@ -254,6 +254,7 @@ const GRATICULE_LATS = [
   Math.PI / 3,
 ];
 const GRATICULE_R = 1.052;
+const COAST_R = 1.056;
 const MERIDIAN_COUNT = 6;
 const GAUGE_R = 1.16;
 const SATELLITES = [
@@ -261,6 +262,27 @@ const SATELLITES = [
   { r: 1.75, tilt: -0.4 },
   { r: 1.9, tilt: 0.9 },
 ];
+
+/** A solid material with the Edged defaults, for parts that share and animate one. */
+function partMaterial(color: string): MeshStandardMaterial {
+  return new MeshStandardMaterial({
+    color,
+    roughness: 0.6,
+    metalness: 0.15,
+    polygonOffset: true,
+    polygonOffsetFactor: 1,
+    polygonOffsetUnits: 1,
+  });
+}
+/**
+ * Euler that turns local +y onto the unit direction d: three composes an XYZ
+ * Euler as Rx*Ry*Rz, so with ry = 0 local +y lands on
+ * (-sin rz, cos rx * cos rz, sin rx * cos rz); solving for d gives
+ * rz = -asin(x) and rx = atan2(z, y).
+ */
+function radialEuler(d: Vector3): [number, number, number] {
+  return [Math.atan2(d.z, d.y), 0, -Math.asin(d.x)];
+}
 
 export function Globe({ mech }: { mech: RefObject<Group | null> }) {
   const g = useMemo(() => {
@@ -282,40 +304,98 @@ export function Globe({ mech }: { mech: RefObject<Group | null> }) {
         torusOutline(GRATICULE_R * Math.cos(lat), 0),
       ),
       meridianLines: torusOutline(GRATICULE_R, 0),
-      satRings: SATELLITES.map((s) => torusOutline(s.r, 0)),
+      gauge: ring(GAUGE_R, 0.012),
+      gaugeLine: torusOutline(GAUGE_R, 0.012),
+      halo: ring(0.25, 0.008),
+      satRings: SATELLITES.map((s) => ring(s.r, 0.008)),
+      satRingLines: SATELLITES.map((s) => torusOutline(s.r, 0.008)),
       satBody: new SphereGeometry(0.06, 12, 10),
     };
   }, []);
   const pinEdges = useMemo(() => new EdgesGeometry(g.pin, 20), [g.pin]);
   const nycEdges = useMemo(() => new EdgesGeometry(g.nyc, 20), [g.nyc]);
+  const mats = useMemo(
+    () => ({
+      pin: partMaterial(VERMILION),
+      nyc: partMaterial(VERMILION),
+      halo: partMaterial(VERMILION),
+      tickLive: partMaterial(VERMILION),
+      tickDoomed: partMaterial(BRONZE),
+    }),
+    [],
+  );
+  const coastMat = useMemo(
+    () => new LineBasicMaterial({ color: INK, transparent: true, opacity: 0 }),
+    [],
+  );
+  const bronze = useMemo(() => new Color(BRONZE), []);
+  const vermilion = useMemo(() => new Color(VERMILION), []);
   const pinRefs = useMemo(() => PIN_DIRS.map(() => createRef<Group>()), []);
   const tickRefs = useMemo(() => TICKS_24.map(() => createRef<Group>()), []);
   const satRefs = useMemo(() => SATELLITES.map(() => createRef<Group>()), []);
   const nycGroup = useRef<Group>(null);
-  const nycMesh = useRef<Mesh>(null);
+  const haloRef = useRef<Group>(null);
+  const gaugeRef = useRef<Group>(null);
+  const tiltRef = useRef<Group>(null);
   const { mode } = useContext(EdgedModeContext);
+
+  // Geography: the baked Natural Earth land becomes a land/ocean texture on
+  // the solid sphere and coastline segments in the lines layer.
+  const [land, setLand] = useState<Land | null>(null);
+  useEffect(() => {
+    let on = true;
+    loadLand().then(
+      (l) => {
+        if (on) setLand(l);
+      },
+      () => {},
+    );
+    return () => {
+      on = false;
+    };
+  }, []);
+  const landTex = useMemo(
+    () => (land && mode === "solid" ? buildLandTexture(land) : null),
+    [land, mode],
+  );
+  const coast = useMemo(
+    () => (land && mode === "lines" ? buildCoastGeometry(land, COAST_R) : null),
+    [land, mode],
+  );
+  // A fresh sphere material once the land texture exists (once per mount).
+  const sphereMat = useMemo(() => {
+    const m = partMaterial(landTex ? "#ffffff" : OCEAN);
+    m.map = landTex;
+    return m;
+  }, [landTex]);
 
   // Both instruments (solid and lines) run this; every value is a pure
   // function of plateState, so the two stay in lockstep.
+  // eslint-disable-next-line react-hooks/immutability -- r3f pattern: mutate memoized materials and ref object3Ds in useFrame
   useFrame(() => {
     const active = plateState.instrument === "globe";
+    const { beat, t, expand } = plateState;
+    // eslint-disable-next-line react-hooks/immutability -- same r3f pattern
+    coastMat.opacity = 0.7 * expand;
 
-    // Beat 0: the pins fall in, staggered, from well above the surface. The
+    // Beat 0: the pins fall in west to east, from well above the surface. The
     // drop is faded in by `expand`, so pins stay seated outside the plate and
     // rise as it opens instead of popping to 2.2r.
-    const dropping = active && plateState.beat === 0;
+    const dropping = active && beat === 0;
     for (let i = 0; i < PIN_DIRS.length; i++) {
       const dropR = dropping
-        ? lerp(2.2, PIN_R, stagger(plateState.t, i, PIN_DIRS.length, 0.6))
+        ? lerp(2.2, PIN_R, stagger(t, PIN_ORDER[i], PIN_DIRS.length, 0.6))
         : PIN_R;
-      const r = lerp(PIN_R, dropR, plateState.expand);
+      const r = lerp(PIN_R, dropR, expand);
       pinRefs[i].current?.position.copy(PIN_DIRS[i]).multiplyScalar(r);
     }
+    mats.pin.color.copy(bronze).lerp(vermilion, active ? pinTint(beat, t) : 1);
 
-    // Beat 1: the Manhattan pin lifts off the surface and lights up, and the
-    // solid instrument publishes its world point for the camera to push in on.
-    const close = active && plateState.beat === 1;
-    const lift = close ? 1.1 + 0.15 * smooth(0, 0.3, plateState.t) : 1.1;
+    // Beat 1: the Manhattan pin lifts off the surface and glows, a halo
+    // spreads from its base, and the solid instrument publishes its world
+    // point for the camera to push in on.
+    const close = active && beat === 1;
+    const lift = close ? 1.1 + 0.15 * smooth(0, 0.3, t) : 1.1;
     const nyc = nycGroup.current;
     if (nyc) {
       nyc.position.copy(NYC_DIR).multiplyScalar(lift);
@@ -324,47 +404,59 @@ export function Globe({ mech }: { mech: RefObject<Group | null> }) {
         plateState.hasFocus = true;
       }
     }
-    if (nycMesh.current) {
-      const m = nycMesh.current.material as MeshStandardMaterial;
-      m.emissive.setScalar(close ? 0.9 : 0);
+    const glow = close ? smooth(0, 0.3, t) : 0;
+    mats.nyc.emissive.copy(vermilion).multiplyScalar(0.6 * glow);
+    if (haloRef.current) {
+      haloRef.current.visible = close;
+      haloRef.current.scale.setScalar(0.2 + 0.8 * smooth(0.1, 0.8, t));
     }
 
-    // Beat 2: the gauge reads down from 24 ticks to 4, and holds at 4 after.
-    const gauge = active && plateState.beat >= 2;
-    const count = !gauge
-      ? 0
-      : plateState.beat === 2
-        ? Math.round(24 - 20 * smooth(0, 1, plateState.t))
-        : 4;
+    // Beat 2: a brass gauge ring rises on the equator and its ticks die from
+    // 24 down to the four cardinal survivors, which hold through beat 3.
+    if (gaugeRef.current) {
+      gaugeRef.current.visible = active && beat >= 2;
+      gaugeRef.current.scale.setScalar(
+        expand * (beat === 2 ? smooth(0, 0.15, t) : 1),
+      );
+    }
     tickRefs.forEach((ref, i) => {
       if (!ref.current) return;
-      ref.current.visible = i < count;
+      ref.current.visible = active && tickAlive(i, beat, t);
       // Scale with the plate so the gauge shrinks away instead of vanishing.
-      ref.current.scale.setScalar(plateState.expand);
+      ref.current.scale.setScalar(expand);
     });
 
-    // Beat 3: three satellites come up on their tilted rings.
-    const sats = active && plateState.beat === 3;
+    // Beat 3: three satellites come up on their brass rings while the globe
+    // settles level; the closing expand → 0 restores the tilt.
+    const sats = active && beat === 3;
     satRefs.forEach((ref, k) => {
       if (!ref.current) return;
       ref.current.visible = sats;
-      ref.current.scale.setScalar(plateState.expand);
-      ref.current.rotation.y = plateState.t * Math.PI * 2 * (1 + k * 0.3) + k;
+      ref.current.scale.setScalar(expand * smooth(0, 0.15, t));
+      ref.current.rotation.y = t * Math.PI * 2 * (1 + k * 0.3) + k;
     });
+    const level = sats ? smooth(0, 0.5, t) : 0;
+    if (tiltRef.current)
+      tiltRef.current.rotation.z = 0.41 * (1 - expand * level);
   });
 
   return (
     <group position={[0, -0.3, 0]}>
-      <Edged geometry={g.base} position={[0, -1.35, 0]} />
-      <Edged geometry={g.stand} position={[0, -0.85, 0]} />
-      <Edged geometry={g.meridian} edges={g.meridianLine} />
-      <group rotation={[0, 0, 0.41]}>
+      <Edged geometry={g.base} position={[0, -1.35, 0]} color={BRASS} />
+      <Edged geometry={g.stand} position={[0, -0.85, 0]} color={BRASS} />
+      <Edged geometry={g.meridian} edges={g.meridianLine} color={BRASS} />
+      <group ref={tiltRef} rotation={[0, 0, 0.41]}>
         <group ref={mech}>
-          <Edged geometry={g.sphere} edges={g.sphereLine} />
+          <Edged
+            geometry={g.sphere}
+            edges={g.sphereLine}
+            material={sphereMat}
+          />
           <Edged
             geometry={g.equator}
             edges={g.equatorLine}
             rotation={[Math.PI / 2, 0, 0]}
+            color={BRASS}
           />
           {GRATICULE_LATS.map((lat, i) => (
             <Edged
@@ -385,24 +477,27 @@ export function Globe({ mech }: { mech: RefObject<Group | null> }) {
               rotation={[0, (k * Math.PI) / MERIDIAN_COUNT, 0]}
             />
           ))}
-          {PIN_POINTS.map((p, i) => {
-            // Orient the pin along the radial direction: three composes an XYZ
-            // Euler as Rx*Ry*Rz, so with ry = 0 local +y lands on
-            // (-sin rz, cos rx * cos rz, sin rx * cos rz). Solving that for p
-            // gives rz = -asin(x) and rx = atan2(z, y).
-            const [x, y, z] = p;
-            const rotZ = -Math.asin(x);
-            const rotX = Math.atan2(z, y);
+          {coast ? (
+            <Edged
+              linesOnly
+              geometry={g.sphere}
+              edges={coast}
+              lineMaterial={coastMat}
+            />
+          ) : null}
+          {locales.map((l, i) => {
+            const d = PIN_DIRS[i];
             return (
               <group
-                key={i}
+                key={l.id}
                 ref={pinRefs[i]}
-                position={[x * PIN_R, y * PIN_R, z * PIN_R]}
+                position={[d.x * PIN_R, d.y * PIN_R, d.z * PIN_R]}
               >
                 <Edged
                   geometry={g.pin}
                   edges={pinEdges}
-                  rotation={[rotX, 0, rotZ]}
+                  rotation={radialEuler(d)}
+                  material={mats.pin}
                 />
               </group>
             );
@@ -414,9 +509,24 @@ export function Globe({ mech }: { mech: RefObject<Group | null> }) {
             <Edged
               geometry={g.nyc}
               edges={nycEdges}
-              meshRef={nycMesh}
-              rotation={[Math.atan2(NYC_DIR.z, NYC_DIR.y), 0, 0]}
+              rotation={radialEuler(NYC_DIR)}
+              material={mats.nyc}
             />
+          </group>
+          <group
+            ref={haloRef}
+            position={[NYC_DIR.x * 1.062, NYC_DIR.y * 1.062, NYC_DIR.z * 1.062]}
+            rotation={radialEuler(NYC_DIR)}
+            visible={false}
+          >
+            <Edged
+              geometry={g.halo}
+              material={mats.halo}
+              rotation={[Math.PI / 2, 0, 0]}
+            />
+          </group>
+          <group ref={gaugeRef} rotation={[Math.PI / 2, 0, 0]} visible={false}>
+            <Edged geometry={g.gauge} edges={g.gaugeLine} color={BRASS} />
           </group>
           {TICKS_24.map((a, i) => (
             <group
@@ -426,7 +536,11 @@ export function Globe({ mech }: { mech: RefObject<Group | null> }) {
               rotation={[0, -a, 0]}
               visible={false}
             >
-              <Edged geometry={g.tick} edges={g.tickEdges} />
+              <Edged
+                geometry={g.tick}
+                edges={g.tickEdges}
+                material={i % 6 === 0 ? mats.tickLive : mats.tickDoomed}
+              />
             </group>
           ))}
           {SATELLITES.map((s, k) => (
@@ -437,12 +551,12 @@ export function Globe({ mech }: { mech: RefObject<Group | null> }) {
               visible={false}
             >
               <Edged
-                linesOnly
-                geometry={g.sphere}
-                edges={g.satRings[k]}
+                geometry={g.satRings[k]}
+                edges={g.satRingLines[k]}
                 rotation={[Math.PI / 2, 0, 0]}
+                color={BRASS}
               />
-              <Edged geometry={g.satBody} position={[s.r, 0, 0]} />
+              <Edged geometry={g.satBody} position={[s.r, 0, 0]} color={GOLD} />
             </group>
           ))}
         </group>
