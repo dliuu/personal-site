@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { beatAt, expandAmount, smooth, stagger } from "./beats";
+import {
+  beatAt,
+  expandAmount,
+  smooth,
+  revealAmount,
+  stagger,
+  tickAlive,
+  washAmount,
+} from "./beats";
 
 describe("beatAt", () => {
   it("splits progress into equal beats", () => {
@@ -37,7 +45,7 @@ describe("expandAmount", () => {
   });
   it("is fully open across the hold and ramps at the ends", () => {
     expect(expandAmount(0.12)).toBe(1);
-    expect(expandAmount(0.88)).toBe(1);
+    expect(expandAmount(0.94)).toBe(1);
     expect(expandAmount(0.06)).toBeCloseTo(0.5, 2);
   });
 });
@@ -46,5 +54,38 @@ describe("smooth", () => {
     expect(smooth(0, 1, -1)).toBe(0);
     expect(smooth(0, 1, 2)).toBe(1);
     expect(smooth(0, 1, 0.5)).toBe(0.5);
+  });
+});
+
+describe("washAmount", () => {
+  it("scales expand to 0.85", () => {
+    expect(washAmount(0)).toBe(0);
+    expect(washAmount(1)).toBeCloseTo(0.85, 6);
+  });
+});
+describe("tickAlive", () => {
+  it("shows nothing before beat 2", () => {
+    expect(tickAlive(0, 1, 1)).toBe(false);
+  });
+  it("keeps the four cardinal ticks", () => {
+    for (const i of [0, 6, 12, 18]) {
+      expect(tickAlive(i, 2, 1)).toBe(true);
+      expect(tickAlive(i, 3, 0.5)).toBe(true);
+    }
+  });
+  it("kills the doomed ticks in index order over beat 2", () => {
+    expect(tickAlive(1, 2, 0)).toBe(true);
+    expect(tickAlive(1, 2, 0.06)).toBe(false);
+    expect(tickAlive(23, 2, 0.99)).toBe(true);
+    expect(tickAlive(23, 2, 1)).toBe(true);
+    expect(tickAlive(23, 3, 0)).toBe(false);
+  });
+});
+describe("revealAmount", () => {
+  it("waits for the wash, then dissolves the hatching by full expand", () => {
+    expect(revealAmount(0)).toBe(0);
+    expect(revealAmount(0.35)).toBe(0);
+    expect(revealAmount(0.675)).toBeCloseTo(0.5, 6);
+    expect(revealAmount(1)).toBe(1);
   });
 });

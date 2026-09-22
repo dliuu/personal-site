@@ -1,0 +1,121 @@
+/**
+ * The 48 language-locales AI Translation launched in, as one city each.
+ * PLACEHOLDER: 48 major languages and a representative city; replace with the
+ * real locale list (owner input), keeping one entry per locale.
+ */
+export type Region = "europe" | "south-asia" | "east-asia" | "other";
+export type Locale = {
+  id: string;
+  city: string;
+  lat: number;
+  lon: number;
+  region: Region;
+};
+
+export const NYC: Locale = {
+  id: "en-US",
+  city: "New York",
+  lat: 40.71,
+  lon: -74.01,
+  region: "other",
+};
+
+export const locales: Locale[] = [
+  { id: "es-ES", city: "Madrid", lat: 40.42, lon: -3.7, region: "europe" },
+  {
+    id: "es-MX",
+    city: "Mexico City",
+    lat: 19.43,
+    lon: -99.13,
+    region: "other",
+  },
+  { id: "pt-PT", city: "Lisbon", lat: 38.72, lon: -9.14, region: "europe" },
+  { id: "pt-BR", city: "São Paulo", lat: -23.55, lon: -46.63, region: "other" },
+  {
+    id: "es-AR",
+    city: "Buenos Aires",
+    lat: -34.6,
+    lon: -58.38,
+    region: "other",
+  },
+  { id: "fr-FR", city: "Paris", lat: 48.86, lon: 2.35, region: "europe" },
+  { id: "fr-CA", city: "Montreal", lat: 45.5, lon: -73.57, region: "other" },
+  { id: "de-DE", city: "Berlin", lat: 52.52, lon: 13.41, region: "europe" },
+  { id: "it-IT", city: "Rome", lat: 41.9, lon: 12.5, region: "europe" },
+  { id: "nl-NL", city: "Amsterdam", lat: 52.37, lon: 4.9, region: "europe" },
+  { id: "sv-SE", city: "Stockholm", lat: 59.33, lon: 18.07, region: "europe" },
+  { id: "nb-NO", city: "Oslo", lat: 59.91, lon: 10.75, region: "europe" },
+  { id: "da-DK", city: "Copenhagen", lat: 55.68, lon: 12.57, region: "europe" },
+  { id: "fi-FI", city: "Helsinki", lat: 60.17, lon: 24.94, region: "europe" },
+  { id: "pl-PL", city: "Warsaw", lat: 52.23, lon: 21.01, region: "europe" },
+  { id: "cs-CZ", city: "Prague", lat: 50.08, lon: 14.44, region: "europe" },
+  { id: "sk-SK", city: "Bratislava", lat: 48.15, lon: 17.11, region: "europe" },
+  { id: "hu-HU", city: "Budapest", lat: 47.5, lon: 19.04, region: "europe" },
+  { id: "ro-RO", city: "Bucharest", lat: 44.43, lon: 26.1, region: "europe" },
+  { id: "bg-BG", city: "Sofia", lat: 42.7, lon: 23.32, region: "europe" },
+  { id: "hr-HR", city: "Zagreb", lat: 45.81, lon: 15.98, region: "europe" },
+  { id: "el-GR", city: "Athens", lat: 37.98, lon: 23.73, region: "europe" },
+  { id: "tr-TR", city: "Ankara", lat: 39.93, lon: 32.86, region: "europe" },
+  { id: "ru-RU", city: "Moscow", lat: 55.76, lon: 37.62, region: "europe" },
+  { id: "uk-UA", city: "Kyiv", lat: 50.45, lon: 30.52, region: "europe" },
+  { id: "he-IL", city: "Tel Aviv", lat: 32.08, lon: 34.78, region: "other" },
+  { id: "ar-SA", city: "Riyadh", lat: 24.71, lon: 46.68, region: "other" },
+  { id: "ar-EG", city: "Cairo", lat: 30.04, lon: 31.24, region: "other" },
+  { id: "fa-IR", city: "Tehran", lat: 35.69, lon: 51.39, region: "other" },
+  { id: "sw-KE", city: "Nairobi", lat: -1.29, lon: 36.82, region: "other" },
+  { id: "am-ET", city: "Addis Ababa", lat: 9.03, lon: 38.74, region: "other" },
+  { id: "ha-NG", city: "Abuja", lat: 9.06, lon: 7.49, region: "other" },
+  { id: "af-ZA", city: "Cape Town", lat: -33.92, lon: 18.42, region: "other" },
+  {
+    id: "hi-IN",
+    city: "New Delhi",
+    lat: 28.61,
+    lon: 77.21,
+    region: "south-asia",
+  },
+  { id: "bn-BD", city: "Dhaka", lat: 23.81, lon: 90.41, region: "south-asia" },
+  {
+    id: "ur-PK",
+    city: "Islamabad",
+    lat: 33.68,
+    lon: 73.05,
+    region: "south-asia",
+  },
+  {
+    id: "ta-IN",
+    city: "Chennai",
+    lat: 13.08,
+    lon: 80.27,
+    region: "south-asia",
+  },
+  {
+    id: "te-IN",
+    city: "Hyderabad",
+    lat: 17.39,
+    lon: 78.49,
+    region: "south-asia",
+  },
+  { id: "mr-IN", city: "Mumbai", lat: 19.08, lon: 72.88, region: "south-asia" },
+  { id: "th-TH", city: "Bangkok", lat: 13.76, lon: 100.5, region: "east-asia" },
+  { id: "vi-VN", city: "Hanoi", lat: 21.03, lon: 105.85, region: "east-asia" },
+  {
+    id: "id-ID",
+    city: "Jakarta",
+    lat: -6.21,
+    lon: 106.85,
+    region: "east-asia",
+  },
+  {
+    id: "ms-MY",
+    city: "Kuala Lumpur",
+    lat: 3.14,
+    lon: 101.69,
+    region: "east-asia",
+  },
+  { id: "fil-PH", city: "Manila", lat: 14.6, lon: 120.98, region: "east-asia" },
+  { id: "ja-JP", city: "Tokyo", lat: 35.68, lon: 139.69, region: "east-asia" },
+  { id: "ko-KR", city: "Seoul", lat: 37.57, lon: 126.98, region: "east-asia" },
+  { id: "zh-CN", city: "Beijing", lat: 39.9, lon: 116.4, region: "east-asia" },
+  { id: "zh-TW", city: "Taipei", lat: 25.03, lon: 121.57, region: "east-asia" },
+  { id: "en-AU", city: "Sydney", lat: -33.87, lon: 151.21, region: "other" },
+];

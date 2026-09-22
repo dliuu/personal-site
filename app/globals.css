@@ -401,7 +401,8 @@ body:has(.instruments) {
   font-size: 18px;
   opacity: 0.75;
 }
-.instruments-caption p {
+.instruments-caption p,
+.instruments-callout-card p {
   margin: 8px 0 0;
   font-size: clamp(18px, 2vw, 24px);
   line-height: 1.35;
@@ -410,6 +411,86 @@ body:has(.instruments) {
   .instruments-captions {
     top: 58vh;
     margin-left: 16px;
+  }
+}
+/* On wide screens an anchored beat's caption lives in its callout on the
+   globe; the docked copy only serves narrow screens and anchor-less beats. */
+@media (min-width: 721px) {
+  .instruments-caption.is-anchored {
+    display: none;
+  }
+}
+
+/* ---- callouts: dot at the anchor, a leader that draws, then the card ---- */
+.instruments-callout {
+  position: relative;
+  width: 0;
+  height: 0;
+  font-family: var(--font-fell), Georgia, serif;
+  color: var(--ink);
+}
+.instruments-callout-dot {
+  position: absolute;
+  left: -5px;
+  top: -5px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--gold);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--gold) 30%, transparent);
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+.instruments-callout-leader {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 110px;
+  height: 1px;
+  background: var(--ink);
+  transform-origin: 0 0;
+  transform: rotate(-30deg) scaleX(0);
+  transition: transform 250ms ease;
+}
+.instruments-callout.is-left .instruments-callout-leader {
+  transform: rotate(210deg) scaleX(0);
+}
+.instruments-callout-card {
+  position: absolute;
+  bottom: 55px;
+  width: min(300px, 60vw);
+  padding: 12px 16px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--paper, #efe4cc) 88%, transparent);
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    opacity 300ms ease 200ms,
+    transform 300ms ease 200ms;
+}
+.instruments-callout.is-right .instruments-callout-card {
+  left: 103px;
+}
+.instruments-callout.is-left .instruments-callout-card {
+  right: 103px;
+}
+.instruments-callout.is-shown .instruments-callout-dot {
+  opacity: 1;
+}
+.instruments-callout.is-shown .instruments-callout-leader {
+  transform: rotate(-30deg) scaleX(1);
+}
+.instruments-callout.is-left.is-shown .instruments-callout-leader {
+  transform: rotate(210deg) scaleX(1);
+}
+.instruments-callout.is-shown .instruments-callout-card {
+  opacity: 1;
+  transform: none;
+}
+@media (max-width: 720px) {
+  .instruments-callout-leader,
+  .instruments-callout-card {
+    display: none;
   }
 }
 .instruments-title a {

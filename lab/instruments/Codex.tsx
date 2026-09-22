@@ -108,11 +108,11 @@ function PlateCaptions({
       {beats.map((b, i) => (
         <div
           key={i}
-          className={`instruments-caption${i === beat ? " is-active" : ""}`}
+          className={`instruments-caption${i === beat ? " is-active" : ""}${b.at ? " is-anchored" : ""}`}
           aria-hidden={i !== beat}
         >
           <span className="instruments-caption-num">
-            {["i", "ii", "iii", "iv"][i]}
+            {["i", "ii", "iii", "iv", "v", "vi", "vii", "viii"][i]}
           </span>
           <span className="instruments-caption-sub">{b.sub}</span>
           <p>{b.caption}</p>
@@ -165,7 +165,9 @@ export function Codex() {
                 key={s.id}
                 id={s.id}
                 data-kind="plate"
+                data-beats={c.plate?.beats.length ?? 0}
                 className="instruments-plate"
+                style={{ minHeight: `${(c.plate?.beats.length ?? 0) * 90}vh` }}
                 ref={(el) => {
                   els.current[i] = el;
                 }}

@@ -10,8 +10,66 @@ export type Chapter = {
   note: string;
   spin: number;
   palette: { paper: string; ink: string; accent: string };
-  plate?: { beats: { caption: string; sub?: string }[] };
+  plate?: { beats: PlateBeat[] };
 };
+export type PlateBeat = {
+  caption: string;
+  sub?: string;
+  /** Locale id, or "nyc", the card and camera anchor on the globe. */
+  at?: string;
+  /** Longitude to face when there is no anchor. */
+  lon?: number;
+  zoom: "far" | "full" | "mid" | "close";
+  /** Which side of the anchor the card sits on. */
+  side?: "left" | "right";
+};
+
+export const metaBeats: PlateBeat[] = [
+  {
+    caption:
+      "From New York: AI Translation launched across 48 language-locales.",
+    sub: "Manhattan",
+    at: "nyc",
+    zoom: "full",
+    side: "right",
+  },
+  {
+    caption:
+      "Offline and online benchmarks: Llama 3.1 and Llama 4 against Gemini, Claude and GPT, across 48 languages.",
+    sub: "Paris",
+    at: "fr-FR",
+    zoom: "close",
+    side: "left",
+  },
+  {
+    caption:
+      "Six months of online experimentation across 23 live production metrics with human post-editing, presented to leadership to green-light AI4T in new locales.",
+    sub: "New Delhi",
+    at: "hi-IN",
+    zoom: "close",
+    side: "left",
+  },
+  {
+    caption:
+      "Concurrency limits across new locale codebases: largest inference spike down 32%, peak threshold down 73%.",
+    sub: "Tokyo",
+    at: "ja-JP",
+    zoom: "close",
+    side: "left",
+  },
+  {
+    caption: "AI inference throttles down 84% in H2 2025.",
+    sub: "The gauge",
+    lon: -100,
+    zoom: "full",
+  },
+  {
+    caption: "$4.31M in annualized translation OPEX savings.",
+    sub: "Savings",
+    lon: -74,
+    zoom: "far",
+  },
+];
 
 export const chapters: Chapter[] = [
   {
@@ -43,24 +101,7 @@ export const chapters: Chapter[] = [
     note: "forty-eight pins, one per tongue",
     spin: 0.08,
     palette: { paper: "#e9e7e0", ink: "#1c2b4b", accent: "#b8432e" },
-    plate: {
-      beats: [
-        {
-          caption: "AI Translation launched across 48 language-locales.",
-          sub: "Forty-eight pins",
-        },
-        {
-          caption:
-            "Offline and online benchmarks: Llama 3.1 and Llama 4 against Gemini, Claude and GPT.",
-          sub: "Manhattan",
-        },
-        { caption: "AI inference throttles down 84%.", sub: "The gauge" },
-        {
-          caption: "$4.31M in annualized translation OPEX savings.",
-          sub: "Savings",
-        },
-      ],
-    },
+    plate: { beats: metaBeats },
   },
   {
     id: "wcp",

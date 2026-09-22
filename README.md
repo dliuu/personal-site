@@ -9,6 +9,12 @@ npm run dev      # http://localhost:3000/lab
 npm run check    # typecheck + lint + tests
 ```
 
+`npm run geo` re-bakes `public/geo/land.json` (Natural Earth 110m land via
+world-atlas) for the instruments globe; the output is committed.
+
+Earth textures in `public/textures/earth` are the three.js example planet set
+(MIT), derived from NASA Blue Marble imagery.
+
 To add an experiment: create `lab/<slug>/index.tsx` and `README.md`, add an
 entry to `lab/registry.ts` and a loader to `lab/loaders.tsx`.
 
@@ -28,5 +34,5 @@ npm run shots -- --route /lab/chapters --motion --full
 ```
 
 Output lands in `shots/<route>/<w>x<h>/NN-<section>.png` (gitignored). Plate sections
-(`data-kind="plate"`) are captured at four scroll positions as `NN-<section>-p10/40/70/95.png`.
+(`data-kind="plate"`) are captured once per beat (60 % through it) as `NN-<section>-b0…bN.png`, plus `-in` and `-out` for the entry and exit.
 Reduced motion is on by default for deterministic frames; `--motion` restores idle animation.

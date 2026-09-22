@@ -89,7 +89,30 @@ async function main() {
       } else {
         for (let i = 0; i < ids.length; i++) {
           if (kinds[i] === "plate") {
-            for (const f of [0.1, 0.4, 0.7, 0.95]) {
+            // One frame per beat (60 % through it), plus the entry and exit.
+            const beats = await page.$eval(`section[id="${ids[i]}"]`, (e) =>
+              Number(e.dataset.beats ?? 0),
+            );
+            const fracs =
+              beats > 0
+                ? [
+                    0.02,
+                    ...Array.from(
+                      { length: beats },
+                      (_, b) => (b + 0.6) / beats,
+                    ),
+                    0.98,
+                  ]
+                : [0.1, 0.4, 0.7, 0.82, 0.95];
+            const label = (f, j) =>
+              beats > 0
+                ? j === 0
+                  ? "in"
+                  : j === fracs.length - 1
+                    ? "out"
+                    : `b${j - 1}`
+                : `p${Math.round(f * 100)}`;
+            for (const [j, f] of fracs.entries()) {
               await page.evaluate(
                 ([id, frac]) => {
                   const el = document.getElementById(id);
@@ -106,7 +129,7 @@ async function main() {
               await page.waitForTimeout(700);
               const file = path.join(
                 dir,
-                `${String(i).padStart(2, "0")}-${ids[i]}-p${Math.round(f * 100)}.png`,
+                `${String(i).padStart(2, "0")}-${ids[i]}-${label(f, j)}.png`,
               );
               await page.screenshot({ path: file });
               written.push(file);
