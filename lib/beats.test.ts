@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { beatAt, expandAmount, smooth, stagger } from "./beats";
+import {
+  beatAt,
+  expandAmount,
+  pinTint,
+  smooth,
+  spinRate,
+  stagger,
+  tickAlive,
+  washAmount,
+} from "./beats";
 
 describe("beatAt", () => {
   it("splits progress into equal beats", () => {
@@ -46,5 +55,50 @@ describe("smooth", () => {
     expect(smooth(0, 1, -1)).toBe(0);
     expect(smooth(0, 1, 2)).toBe(1);
     expect(smooth(0, 1, 0.5)).toBe(0.5);
+  });
+});
+
+describe("washAmount", () => {
+  it("scales expand to 0.85", () => {
+    expect(washAmount(0)).toBe(0);
+    expect(washAmount(1)).toBeCloseTo(0.85, 6);
+  });
+});
+describe("pinTint", () => {
+  it("is full in beat 0, fades early in beat 1, off after", () => {
+    expect(pinTint(0, 0.7)).toBe(1);
+    expect(pinTint(1, 0)).toBe(1);
+    expect(pinTint(1, 0.3)).toBe(0);
+    expect(pinTint(1, 0.15)).toBeCloseTo(0.5, 6);
+    expect(pinTint(2, 0)).toBe(0);
+    expect(pinTint(3, 1)).toBe(0);
+  });
+});
+describe("tickAlive", () => {
+  it("shows nothing before beat 2", () => {
+    expect(tickAlive(0, 1, 1)).toBe(false);
+  });
+  it("keeps the four cardinal ticks", () => {
+    for (const i of [0, 6, 12, 18]) {
+      expect(tickAlive(i, 2, 1)).toBe(true);
+      expect(tickAlive(i, 3, 0.5)).toBe(true);
+    }
+  });
+  it("kills the doomed ticks in index order over beat 2", () => {
+    expect(tickAlive(1, 2, 0)).toBe(true);
+    expect(tickAlive(1, 2, 0.06)).toBe(false);
+    expect(tickAlive(23, 2, 0.99)).toBe(true);
+    expect(tickAlive(23, 2, 1)).toBe(true);
+    expect(tickAlive(23, 3, 0)).toBe(false);
+  });
+});
+describe("spinRate", () => {
+  it("is 1 outside a plate and throttles to 0 across beat 2", () => {
+    expect(spinRate(false, 2, 0.5)).toBe(1);
+    expect(spinRate(true, 0, 0.5)).toBe(1.5);
+    expect(spinRate(true, 1, 0.5)).toBe(1);
+    expect(spinRate(true, 2, 0)).toBeCloseTo(1.5, 6);
+    expect(spinRate(true, 2, 1)).toBe(0);
+    expect(spinRate(true, 3, 0)).toBe(0);
   });
 });
