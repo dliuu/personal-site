@@ -9,6 +9,7 @@ import {
 } from "@react-three/postprocessing";
 import { Effect } from "postprocessing";
 import { Color, SRGBColorSpace, Uniform } from "three";
+import { washAmount } from "@/lib/beats";
 import { frameLerp } from "@/lib/drawIn";
 import { lerp } from "@/lib/progress";
 import { useLabStore } from "@/store/useLabStore";
@@ -21,6 +22,7 @@ const fragment = /* glsl */ `
 uniform vec3 ink;
 uniform vec3 paper;
 uniform float pitch;
+uniform float wash;
 
 float lineSet(float coord, float width) {
   float hw = 0.5 * width;
@@ -37,7 +39,11 @@ void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor)
   float b = lineSet(p.x - p.y, 0.7 * smoothstep(0.35, 1.0, dark));
   float c = lineSet(p.y * 1.5, 0.6 * smoothstep(0.7, 1.0, dark));
   float k = max(a, max(b, c));
-  outputColor = vec4(mix(paper, ink, k), inputColor.a);
+  // Hand-tint: the scene colour's chroma (luminance divided out) multiplies
+  // the paper under the hatching; hatch density itself still follows light.
+  vec3 chroma = min(inputColor.rgb / max(l, 0.02), vec3(1.6));
+  vec3 base = paper * mix(vec3(1.0), chroma, wash);
+  outputColor = vec4(mix(base, ink, k), inputColor.a);
 }
 `;
 
@@ -56,6 +62,7 @@ class EngravingImpl extends Effect {
         ["ink", new Uniform(new Color(ink))],
         ["paper", new Uniform(new Color(paper))],
         ["pitch", new Uniform(pitch)],
+        ["wash", new Uniform(0)],
       ]),
     });
     this.inputColorSpace = SRGBColorSpace;
@@ -99,6 +106,7 @@ export function Effects() {
       // weight against a much larger subject.
       e.uniforms.get("pitch")!.value =
         (high ? lerp(7, 6, plateState.expand) : 9) * dpr;
+      e.uniforms.get("wash")!.value = washAmount(plateState.expand);
     }
     if (scene.background instanceof Color) scene.background.copy(cur.paper);
   });
