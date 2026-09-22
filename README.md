@@ -34,5 +34,5 @@ npm run shots -- --route /lab/chapters --motion --full
 ```
 
 Output lands in `shots/<route>/<w>x<h>/NN-<section>.png` (gitignored). Plate sections
-(`data-kind="plate"`) are captured at five scroll positions as `NN-<section>-p10/40/70/82/95.png`.
+(`data-kind="plate"`) are captured once per beat (60 % through it) as `NN-<section>-b0…bN.png`, plus `-in` and `-out` for the entry and exit.
 Reduced motion is on by default for deterministic frames; `--motion` restores idle animation.

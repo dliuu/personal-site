@@ -19,6 +19,7 @@ import {
   CylinderGeometry,
   EdgesGeometry,
   Float32BufferAttribute,
+  CatmullRomCurve3,
   Group,
   LineBasicMaterial,
   Mesh,
@@ -28,10 +29,12 @@ import {
   RingGeometry,
   SphereGeometry,
   TorusGeometry,
+  TubeGeometry,
   Vector3,
 } from "three";
 import { archVoussoirs } from "@/lib/arch";
-import { pinTint, smooth, stagger, tickAlive } from "@/lib/beats";
+import { smooth, stagger, tickAlive } from "@/lib/beats";
+import { frameLerp } from "@/lib/drawIn";
 import { latLonToVec3, rankByLongitude } from "@/lib/geo";
 import { lerp } from "@/lib/progress";
 import { useLabStore } from "@/store/useLabStore";
@@ -49,7 +52,9 @@ import {
   makeShadowTexture,
   type EarthTextures,
 } from "./EarthMaterials";
-import { locales, NYC } from "./locales";
+import { Callouts } from "./Callouts";
+import { chapters, metaBeats, sections } from "./chapters";
+import { locales, NYC, type Region } from "./locales";
 import { BRASS, BRONZE, GOLD, INK, OCEAN, VERMILION } from "./palette";
 import { plateState } from "./plateState";
 
@@ -266,6 +271,52 @@ const GRATICULE_LATS = [
 ];
 const GRATICULE_R = 1.052;
 const COAST_R = 1.056;
+/** Per beat: the anchor direction on the globe (null = no anchor) and its region. */
+const ANCHORS = metaBeats.map((b) =>
+  b.at === "nyc"
+    ? NYC_DIR
+    : b.at
+      ? PIN_DIRS[locales.findIndex((l) => l.id === b.at)]
+      : null,
+);
+const BEAT_REGION = metaBeats.map(
+  (b) => locales.find((l) => l.id === b.at)?.region ?? null,
+);
+const REGIONS: Region[] = ["europe", "south-asia", "east-asia", "other"];
+const META_PLATE = sections.findIndex(
+  (s) => s.kind === "plate" && chapters[s.chapter].instrument === "globe",
+);
+const META_PALETTE = chapters.find((c) => c.instrument === "globe")!.palette;
+const ARC_SEGMENTS = 32;
+
+/** Great-circle arc from a to b (unit vectors) as a thin tube, lifted off the surface in the middle. */
+function arcTube(a: Vector3, b: Vector3): TubeGeometry {
+  const pts: Vector3[] = [];
+  const angle = a.angleTo(b);
+  const sa = Math.sin(angle) || 1;
+  for (let i = 0; i <= ARC_SEGMENTS; i++) {
+    const s = i / ARC_SEGMENTS;
+    const q = a
+      .clone()
+      .multiplyScalar(Math.sin((1 - s) * angle) / sa)
+      .addScaledVector(b, Math.sin(s * angle) / sa);
+    pts.push(q.multiplyScalar(1.06 + 0.25 * Math.sin(Math.PI * s)));
+  }
+  return new TubeGeometry(
+    new CatmullRomCurve3(pts),
+    ARC_SEGMENTS,
+    0.006,
+    5,
+    false,
+  );
+}
+/** How lit a region's pins are in a beat: all in the rollout, the visited region on close-ups, half at the end. */
+function regionLit(active: boolean, beat: number, region: Region): number {
+  if (!active || beat === 0) return 1;
+  const r = BEAT_REGION[beat];
+  if (r) return r === region ? 1 : 0;
+  return 0.5;
+}
 const MERIDIAN_COUNT = 6;
 const GAUGE_R = 1.16;
 const SATELLITES = [
@@ -318,6 +369,7 @@ export function Globe({ mech }: { mech: RefObject<Group | null> }) {
       gauge: ring(GAUGE_R, 0.012),
       gaugeLine: torusOutline(GAUGE_R, 0.012),
       halo: ring(0.25, 0.008),
+      anchorDot: new SphereGeometry(0.018, 12, 10),
       satRings: SATELLITES.map((s) => ring(s.r, 0.008)),
       satRingLines: SATELLITES.map((s) => torusOutline(s.r, 0.008)),
       satBody: new SphereGeometry(0.06, 12, 10),
@@ -333,13 +385,44 @@ export function Globe({ mech }: { mech: RefObject<Group | null> }) {
     () => ({
       brass: partMaterial(BRASS),
       gold: partMaterial(GOLD),
-      pin: partMaterial(VERMILION),
       nyc: partMaterial(VERMILION),
       halo: partMaterial(VERMILION),
       tickLive: partMaterial(VERMILION),
       tickDoomed: partMaterial(BRONZE),
     }),
     [],
+  );
+  const pinMats = useMemo(
+    () =>
+      Object.fromEntries(
+        REGIONS.map((r) => [r, partMaterial(VERMILION)]),
+      ) as Record<Region, MeshStandardMaterial>,
+    [],
+  );
+  const litCur = useRef<Record<Region, number>>({
+    europe: 1,
+    "south-asia": 1,
+    "east-asia": 1,
+    other: 1,
+  });
+  const arcMat = useMemo(
+    () =>
+      new MeshBasicMaterial({
+        color: VERMILION,
+        transparent: true,
+        opacity: 0,
+        depthWrite: false,
+      }),
+    [],
+  );
+  const arcs = useMemo(
+    () =>
+      PIN_DIRS.map((d) => {
+        const g = arcTube(NYC_DIR, d);
+        g.setDrawRange(0, 0);
+        return new Mesh(g, arcMat);
+      }),
+    [arcMat],
   );
   const coastMat = useMemo(
     () => new LineBasicMaterial({ color: INK, transparent: true, opacity: 0 }),
@@ -351,6 +434,7 @@ export function Globe({ mech }: { mech: RefObject<Group | null> }) {
   const tickRefs = useMemo(() => TICKS_24.map(() => createRef<Group>()), []);
   const satRefs = useMemo(() => SATELLITES.map(() => createRef<Group>()), []);
   const nycGroup = useRef<Group>(null);
+  const anchorRef = useRef<Group>(null);
   const haloRef = useRef<Group>(null);
   const gaugeRef = useRef<Group>(null);
   const tiltRef = useRef<Group>(null);
@@ -454,63 +538,85 @@ export function Globe({ mech }: { mech: RefObject<Group | null> }) {
         ? lerp(2.2, PIN_R, stagger(t, PIN_ORDER[i], PIN_DIRS.length, 0.6))
         : PIN_R;
       const r = lerp(PIN_R, dropR, expand);
-      pinRefs[i].current?.position.copy(PIN_DIRS[i]).multiplyScalar(r);
+      const pin = pinRefs[i].current;
+      if (!pin) continue;
+      pin.position.copy(PIN_DIRS[i]).multiplyScalar(r);
+      // Engraved pins are drawn large; real markers on a real Earth are small.
+      pin.scale.setScalar(lerp(1, 0.45, reveal));
     }
-    const tint = active ? pinTint(beat, t) : 1;
-    mats.pin.color.copy(bronze).lerp(vermilion, tint);
-    mats.pin.emissive.copy(vermilion).multiplyScalar(tint);
-    mats.pin.emissiveIntensity = 2.2 * reveal;
+    nycGroup.current?.scale.setScalar(lerp(1, 0.45, reveal));
+    for (const region of REGIONS) {
+      const target = regionLit(active, beat, region);
+      const lit = (litCur.current[region] = lerp(
+        litCur.current[region],
+        target,
+        frameLerp(0.1, delta),
+      ));
+      const m = pinMats[region];
+      m.color.copy(bronze).lerp(vermilion, lit);
+      m.emissive.copy(vermilion);
+      m.emissiveIntensity = reveal * (0.4 + 1.8 * lit);
+    }
 
-    // Beat 1: the Manhattan pin lifts off the surface and glows, a halo
-    // spreads from its base, and the solid instrument publishes its world
-    // point for the camera to push in on.
-    const close = active && beat === 1;
-    const lift = close ? 1.1 + 0.15 * smooth(0, 0.3, t) : 1.1;
-    const nyc = nycGroup.current;
-    if (nyc) {
-      nyc.position.copy(NYC_DIR).multiplyScalar(lift);
-      if (mode === "solid") {
-        nyc.getWorldPosition(plateState.focus);
-        plateState.hasFocus = true;
-      }
+    // Beat 0: arcs fan out from Manhattan to every locale in the same order
+    // as the drop; they fade during the travel into beat 1.
+    for (let i = 0; i < arcs.length; i++) {
+      const v =
+        active && beat === 0
+          ? stagger(t, PIN_ORDER[i], arcs.length, 0.6)
+          : active && beat === 1
+            ? 1
+            : 0;
+      const n = arcs[i].geometry.index?.count ?? 0;
+      arcs[i].geometry.setDrawRange(0, Math.round(v * n));
     }
-    const glow = close ? smooth(0, 0.3, t) : 0;
+    arcMat.opacity =
+      0.8 * reveal * (beat === 0 ? 1 : beat === 1 ? 1 - smooth(0, 0.3, t) : 0);
+
+    // The Manhattan pin glows through the arrival beat; the anchor marker (a
+    // dot and a spreading halo) follows whichever place the beat visits.
+    const glow = active && beat === 0 ? smooth(0, 0.3, t) : 0;
     mats.nyc.emissive.copy(vermilion);
     mats.nyc.emissiveIntensity = 0.6 * glow + reveal * (1.5 + 3 * glow);
     mats.halo.emissive.copy(vermilion);
     mats.halo.emissiveIntensity = 1.5 * reveal;
-    if (haloRef.current) {
-      haloRef.current.visible = close;
-      haloRef.current.scale.setScalar(0.2 + 0.8 * smooth(0.1, 0.8, t));
+    const anchor = active ? ANCHORS[beat] : null;
+    if (anchorRef.current) {
+      anchorRef.current.visible = anchor !== null;
+      if (anchor) {
+        anchorRef.current.position.copy(anchor).multiplyScalar(1.062);
+        const [rx, , rz] = radialEuler(anchor);
+        anchorRef.current.rotation.set(rx, 0, rz);
+      }
     }
+    if (haloRef.current)
+      haloRef.current.scale.setScalar(0.2 + 0.3 * smooth(0, 0.4, t));
 
-    // Beat 2: a brass gauge ring rises on the equator and its ticks die from
-    // 24 down to the four cardinal survivors, which hold through beat 3.
+    // Beat 4: a brass gauge ring rises on the equator and its ticks die from
+    // 24 down to the four cardinal survivors, which hold through beat 5.
     if (gaugeRef.current) {
-      gaugeRef.current.visible = active && beat >= 2;
+      gaugeRef.current.visible = active && beat >= 4;
       gaugeRef.current.scale.setScalar(
-        expand * (beat === 2 ? smooth(0, 0.15, t) : 1),
+        expand * (beat === 4 ? smooth(0, 0.15, t) : 1),
       );
     }
     tickRefs.forEach((ref, i) => {
       if (!ref.current) return;
-      ref.current.visible = active && tickAlive(i, beat, t);
+      ref.current.visible = active && tickAlive(i, beat - 2, t);
       // Scale with the plate so the gauge shrinks away instead of vanishing.
       ref.current.scale.setScalar(expand);
     });
 
-    // Beat 3: three satellites come up on their brass rings while the globe
-    // settles level; the closing expand → 0 restores the tilt.
-    const sats = active && beat === 3;
+    // Beat 5: three satellites come up on their brass rings.
+    const sats = active && beat === 5;
     satRefs.forEach((ref, k) => {
       if (!ref.current) return;
       ref.current.visible = sats;
       ref.current.scale.setScalar(expand * smooth(0, 0.15, t));
       ref.current.rotation.y = t * Math.PI * 2 * (1 + k * 0.3) + k;
     });
-    const level = sats ? smooth(0, 0.5, t) : 0;
-    if (tiltRef.current)
-      tiltRef.current.rotation.z = 0.41 * (1 - expand * level);
+    // The axis levels as the plate opens, so the turn is about the vertical.
+    if (tiltRef.current) tiltRef.current.rotation.z = 0.41 * (1 - expand);
   });
   /* eslint-enable react-hooks/immutability */
 
@@ -601,7 +707,7 @@ export function Globe({ mech }: { mech: RefObject<Group | null> }) {
                   geometry={g.pin}
                   edges={pinEdges}
                   rotation={radialEuler(d)}
-                  material={mats.pin}
+                  material={pinMats[l.region]}
                 />
               </group>
             );
@@ -617,18 +723,27 @@ export function Globe({ mech }: { mech: RefObject<Group | null> }) {
               material={mats.nyc}
             />
           </group>
-          <group
-            ref={haloRef}
-            position={[NYC_DIR.x * 1.062, NYC_DIR.y * 1.062, NYC_DIR.z * 1.062]}
-            rotation={radialEuler(NYC_DIR)}
-            visible={false}
-          >
-            <Edged
-              geometry={g.halo}
-              material={mats.halo}
-              rotation={[Math.PI / 2, 0, 0]}
-            />
+          {mode === "solid"
+            ? arcs.map((l, i) => <primitive key={i} object={l} />)
+            : null}
+          <group ref={anchorRef} visible={false}>
+            <Edged geometry={g.anchorDot} material={mats.halo} />
+            <group ref={haloRef}>
+              <Edged
+                geometry={g.halo}
+                material={mats.halo}
+                rotation={[Math.PI / 2, 0, 0]}
+              />
+            </group>
           </group>
+          {mode === "solid" ? (
+            <Callouts
+              beats={metaBeats}
+              anchors={ANCHORS}
+              sectionIndex={META_PLATE}
+              palette={META_PALETTE}
+            />
+          ) : null}
           <group ref={gaugeRef} rotation={[Math.PI / 2, 0, 0]} visible={false}>
             <Edged
               geometry={g.gauge}
