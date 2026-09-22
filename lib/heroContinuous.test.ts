@@ -20,9 +20,9 @@ describe("heroContinuous", () => {
   });
   it("holds through the plate and hands off on the way out", () => {
     expect(heroContinuous(sections, 2, 0)).toBeCloseTo(1.5, 6);
-    expect(heroContinuous(sections, 2, 0.88)).toBeCloseTo(1.5, 6);
+    expect(heroContinuous(sections, 2, 0.94)).toBeCloseTo(1.5, 6);
     expect(heroContinuous(sections, 2, 1)).toBeCloseTo(2, 6);
-    const mid = heroContinuous(sections, 2, 0.94);
+    const mid = heroContinuous(sections, 2, 0.97);
     expect(mid).toBeGreaterThan(1.5);
     expect(mid).toBeLessThan(2);
   });

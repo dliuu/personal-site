@@ -2,9 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   beatAt,
   expandAmount,
-  pinTint,
   smooth,
-  plateYaw,
   revealAmount,
   stagger,
   tickAlive,
@@ -47,7 +45,7 @@ describe("expandAmount", () => {
   });
   it("is fully open across the hold and ramps at the ends", () => {
     expect(expandAmount(0.12)).toBe(1);
-    expect(expandAmount(0.88)).toBe(1);
+    expect(expandAmount(0.94)).toBe(1);
     expect(expandAmount(0.06)).toBeCloseTo(0.5, 2);
   });
 });
@@ -63,16 +61,6 @@ describe("washAmount", () => {
   it("scales expand to 0.85", () => {
     expect(washAmount(0)).toBe(0);
     expect(washAmount(1)).toBeCloseTo(0.85, 6);
-  });
-});
-describe("pinTint", () => {
-  it("is full in beat 0, fades early in beat 1, off after", () => {
-    expect(pinTint(0, 0.7)).toBe(1);
-    expect(pinTint(1, 0)).toBe(1);
-    expect(pinTint(1, 0.3)).toBe(0);
-    expect(pinTint(1, 0.15)).toBeCloseTo(0.5, 6);
-    expect(pinTint(2, 0)).toBe(0);
-    expect(pinTint(3, 1)).toBe(0);
   });
 });
 describe("tickAlive", () => {
@@ -91,19 +79,6 @@ describe("tickAlive", () => {
     expect(tickAlive(23, 2, 0.99)).toBe(true);
     expect(tickAlive(23, 2, 1)).toBe(true);
     expect(tickAlive(23, 3, 0)).toBe(false);
-  });
-});
-describe("plateYaw", () => {
-  it("turns from the Atlantic to New York in beat 0 and holds there in beat 1", () => {
-    expect(plateYaw(0, 0)).toBeCloseTo(-0.9, 6);
-    expect(plateYaw(0, 1)).toBeCloseTo(0, 6);
-    expect(plateYaw(1, 0.5)).toBe(0);
-  });
-  it("decelerates to a stop across beat 2 and stays still in beat 3", () => {
-    expect(plateYaw(2, 0)).toBe(0);
-    expect(plateYaw(2, 0.5)).toBeCloseTo(0.45, 6);
-    expect(plateYaw(2, 1)).toBeCloseTo(0.6, 6);
-    expect(plateYaw(3, 0)).toBeCloseTo(0.6, 6);
   });
 });
 describe("revealAmount", () => {

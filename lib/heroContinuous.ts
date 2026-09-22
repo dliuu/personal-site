@@ -1,4 +1,4 @@
-import { smooth } from "./beats";
+import { PLATE_EXIT, smooth } from "./beats";
 
 export type HeroSection = { chapter: number; kind: "chapter" | "plate" };
 
@@ -11,8 +11,8 @@ export function heroContinuous(
   const sec = sections[active] ?? sections[0];
   if (sec.kind === "plate") {
     // Hold at the half point, then hand off to the next hero while the plate
-    // shrinks back (matches expandAmount's 0.88..1 ramp).
-    return sec.chapter + 0.5 + 0.5 * smooth(0.88, 1, progress);
+    // shrinks back (matches expandAmount's exit ramp).
+    return sec.chapter + 0.5 + 0.5 * smooth(PLATE_EXIT, 1, progress);
   }
   const next = sections[active + 1];
   if (next && next.kind === "plate")
