@@ -421,6 +421,30 @@ body:has(.instruments) {
   }
 }
 
+/* ---- intro scene overlay: name over the room, fades as he stands ---- */
+.instruments-intro {
+  position: sticky;
+  top: 16vh;
+  margin-left: max(16px, calc((100vw - 540px) / 3));
+  width: min(480px, 84vw);
+  transition: opacity 120ms linear;
+}
+.instruments-intro .instruments-title {
+  margin: 0;
+}
+.instruments-intro .instruments-lede {
+  margin-top: 8px;
+}
+.instruments-intro .instruments-hint {
+  margin-top: 24px;
+}
+@media (max-width: 720px) {
+  .instruments-intro {
+    top: 12vh;
+    margin-left: 16px;
+  }
+}
+
 /* ---- callouts: dot at the anchor, a leader that draws, then the card ---- */
 .instruments-callout {
   position: relative;

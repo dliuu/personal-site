@@ -7,6 +7,7 @@ export type Hotspot = {
 };
 
 export const hotspots: Record<InstrumentKind, Hotspot[]> = {
+  desk: [],
   armillary: [
     {
       position: [1.5, 0, 0],

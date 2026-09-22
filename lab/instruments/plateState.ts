@@ -1,5 +1,7 @@
 import type { InstrumentKind } from "./chapters";
 
+import { Vector3 } from "three";
+
 /**
  * Imperative, per-frame plate state. Written once by HeroObjects in its
  * useFrame (before the chapter loop) and read by instruments and effects, so
@@ -20,4 +22,9 @@ export const plateState = {
   reveal: 0,
   /** Camera for this frame of the plate: mech yaw, elevation (rad), distance as a multiple of the sphere radius. */
   cam: { yaw: 0, el: 0, k: 3.1 },
+  /** Camera for the intro scene, written by DeskScene each frame it is active. */
+  introCam: {
+    pos: new Vector3(-1.6, 1.5, 2.6),
+    tgt: new Vector3(0.1, 0.9, 0.2),
+  },
 };

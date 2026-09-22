@@ -21,6 +21,7 @@ import {
   type PlateBeat,
 } from "./chapters";
 import { locales, NYC } from "./locales";
+import { DeskScene } from "./DeskScene";
 import { Hotspots, useHotspotDismiss } from "./Hotspots";
 import { INK, PARCHMENT } from "./palette";
 import { plateState } from "./plateState";
@@ -64,6 +65,7 @@ const KIND: Record<
   InstrumentKind,
   (p: { mech: RefObject<Group | null> }) => JSX.Element
 > = {
+  desk: () => <></>,
   armillary: Armillary,
   balance: Balance,
   globe: Globe,
@@ -74,6 +76,7 @@ const KIND: Record<
 // Per-instrument half-width (world units at scale 1), used to shrink wide
 // instruments to fit inside HERO_RADIUS; compact ones keep scale 1.
 const FIT: Record<InstrumentKind, number> = {
+  desk: 1,
   armillary: 1.75 / 1.9,
   balance: 1.75 / 1.5,
   globe: 1.75 / 1.5,
@@ -123,6 +126,7 @@ export function HeroObjects() {
   const goalTgt = useRef(new Vector3(0, 0, 0));
   const tmp = useRef(new Vector3());
   const plateGoal = useRef(new Vector3());
+  const sceneWas = useRef(false);
   const size = useThree((s) => s.size);
   const vp = useThree((s) => s.viewport);
   const gl = useThree((s) => s.gl);
@@ -228,10 +232,12 @@ export function HeroObjects() {
       plateState.cam.el = cam.el;
       plateState.cam.k = cam.k;
     }
-    plateState.reveal = revealAmount(expand);
-    // The studio environment only lights the revealed globe.
+    // A scene chapter is drawn real from its first frame; plates reveal.
+    const isScene = Boolean(chapter.scene);
+    plateState.reveal = isScene || chapter.screen ? 1 : revealAmount(expand);
+    // The studio environment only lights the revealed globe (and, faintly, the room).
     // eslint-disable-next-line react-hooks/immutability -- r3f pattern: scene setting driven in useFrame
-    scene.environmentIntensity = plateState.reveal;
+    scene.environmentIntensity = isScene ? 0.35 : plateState.reveal;
 
     const parent = parentRef.current;
     if (parent) {
@@ -345,7 +351,11 @@ export function HeroObjects() {
 
     goalPos.current.set(0, 0, CAMERA_Z - DOLLY * (heroCont / chapters.length));
     goalTgt.current.set(0, 0, 0);
-    if (parent && plateState.instrument) {
+    if (chapter.scene === "desk" && sec.kind === "plate") {
+      // The room owns its camera path; DeskScene writes it each frame.
+      goalPos.current.copy(plateState.introCam.pos);
+      goalTgt.current.copy(plateState.introCam.tgt);
+    } else if (parent && plateState.instrument) {
       // Orbit the sphere's centre: rise to the anchor's latitude, sit k radii
       // out, and look at the centre; blended in by expand so entry is smooth.
       tmp.current.set(0, -PLATE_LIFT, 0);
@@ -359,7 +369,14 @@ export function HeroObjects() {
       goalPos.current.lerp(plateGoal.current, expand);
       goalTgt.current.lerp(tmp.current, expand);
     }
-    const ck = reducedMotion ? 1 : frameLerp(CAM_LERP, delta);
+    // Leaving the room lands inside the monitor with the screen covering the
+    // viewport, so the camera snaps to the next chapter's rig unseen.
+    const wasScene = sceneWas.current;
+    sceneWas.current = chapter.scene === "desk";
+    const ck =
+      reducedMotion || wasScene !== sceneWas.current
+        ? 1
+        : frameLerp(CAM_LERP, delta);
     camPos.current.lerp(goalPos.current, ck);
     camTgt.current.lerp(goalTgt.current, ck);
     camera.position.copy(camPos.current);
@@ -397,6 +414,7 @@ export function HeroObjects() {
           target={[0, 0, 0]}
         />
       </Environment>
+      <DeskScene />
       <directionalLight
         ref={keyLight}
         color="#fff1dc"

@@ -93,8 +93,12 @@ async function main() {
             const beats = await page.$eval(`section[id="${ids[i]}"]`, (e) =>
               Number(e.dataset.beats ?? 0),
             );
-            const fracs =
-              beats > 0
+            const scene = await page.$eval(`section[id="${ids[i]}"]`, (e) =>
+              Boolean(e.dataset.scene),
+            );
+            const fracs = scene
+              ? [0.02, 0.2, 0.45, 0.75, 0.97]
+              : beats > 0
                 ? [
                     0.02,
                     ...Array.from(
@@ -105,7 +109,7 @@ async function main() {
                   ]
                 : [0.1, 0.4, 0.7, 0.82, 0.95];
             const label = (f, j) =>
-              beats > 0
+              beats > 0 && !scene
                 ? j === 0
                   ? "in"
                   : j === fracs.length - 1

@@ -4,6 +4,7 @@ import { useCallback, useRef } from "react";
 import { useSectionProgress } from "@/hooks/useSectionProgress";
 import { useSectionsStore } from "@/store/useSectionsStore";
 import { beatAt } from "@/lib/beats";
+import { overlayOpacity } from "@/lib/introTimeline";
 import { chapters, sections, type Chapter } from "./chapters";
 import { links, profile, roles, type Role } from "./content";
 import { fell, script, ui } from "./fonts";
@@ -122,6 +123,24 @@ function PlateCaptions({
   );
 }
 
+function IntroOverlay({ sectionIndex }: { sectionIndex: number }) {
+  // Quantised so the overlay re-renders a handful of times across its fade.
+  const opacity = useSectionsStore((s) =>
+    s.active === sectionIndex
+      ? Math.round(overlayOpacity(s.progress) * 20) / 20
+      : s.active < sectionIndex
+        ? 1
+        : 0,
+  );
+  return (
+    <div className="instruments-intro" style={{ opacity }} aria-hidden>
+      <h1 className="instruments-title">{profile.name}</h1>
+      <p className="instruments-lede">{profile.line}</p>
+      <p className="instruments-hint">Scroll</p>
+    </div>
+  );
+}
+
 export function Codex() {
   const els = useRef<(HTMLElement | null)[]>([]);
   const getEls = useCallback(
@@ -158,6 +177,25 @@ export function Codex() {
       </nav>
       <main>
         {sections.map((s, i) => {
+          if (s.kind === "plate" && chapters[s.chapter].scene) {
+            const c = chapters[s.chapter];
+            return (
+              <section
+                key={s.id}
+                id={s.id}
+                data-kind="plate"
+                data-scene={c.scene}
+                className="instruments-plate instruments-scene"
+                style={{ minHeight: "400vh" }}
+                aria-label={`${profile.name}. ${profile.line}`}
+                ref={(el) => {
+                  els.current[i] = el;
+                }}
+              >
+                <IntroOverlay sectionIndex={i} />
+              </section>
+            );
+          }
           if (s.kind === "plate") {
             const c = chapters[s.chapter];
             return (

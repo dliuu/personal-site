@@ -1,5 +1,5 @@
 export type InstrumentKind =
-  "armillary" | "balance" | "globe" | "bridge" | "quadrant";
+  "desk" | "armillary" | "balance" | "globe" | "bridge" | "quadrant";
 export type MechKind = "spinY" | "spinZ" | "swing" | "tilt" | "drop";
 export type Chapter = {
   id: "intro" | "eisen" | "meta" | "wcp" | "contact";
@@ -11,6 +11,10 @@ export type Chapter = {
   spin: number;
   palette: { paper: string; ink: string; accent: string };
   plate?: { beats: PlateBeat[] };
+  /** A full-screen scene instead of a text chapter: the chapter is its plate. */
+  scene?: "desk";
+  /** Presented as a screen (the desktop inside the intro's monitor): drawn raw, never engraved. */
+  screen?: boolean;
 };
 export type PlateBeat = {
   caption: string;
@@ -76,11 +80,13 @@ export const chapters: Chapter[] = [
     id: "intro",
     numeral: "I",
     title: "Hello",
-    instrument: "armillary",
+    instrument: "desk",
     mech: "spinY",
-    note: "the heavens, in three rings",
-    spin: 0.12,
-    palette: { paper: "#efe4cc", ink: "#2b2118", accent: "#c49a3c" },
+    note: "a room, then the screen",
+    spin: 0,
+    palette: { paper: "#1a1720", ink: "#efe4cc", accent: "#c49a3c" },
+    scene: "desk",
+    plate: { beats: [] },
   },
   {
     id: "eisen",
@@ -90,7 +96,9 @@ export const chapters: Chapter[] = [
     mech: "tilt",
     note: "weigh, then settle",
     spin: 0,
-    palette: { paper: "#e7e3db", ink: "#1f2a36", accent: "#c49a3c" },
+    // Eisen is the desktop inside the intro's monitor: a screen, not a page.
+    palette: { paper: "#14161c", ink: "#e6e9ef", accent: "#7fb0ff" },
+    screen: true,
   },
   {
     id: "meta",
@@ -131,10 +139,12 @@ export type Section = {
   kind: "chapter" | "plate";
 };
 export const sections: Section[] = chapters.flatMap((c, i) =>
-  c.plate
-    ? [
-        { id: c.id, chapter: i, kind: "chapter" as const },
-        { id: `${c.id}-plate`, chapter: i, kind: "plate" as const },
-      ]
-    : [{ id: c.id, chapter: i, kind: "chapter" as const }],
+  c.scene
+    ? [{ id: `${c.id}-plate`, chapter: i, kind: "plate" as const }]
+    : c.plate
+      ? [
+          { id: c.id, chapter: i, kind: "chapter" as const },
+          { id: `${c.id}-plate`, chapter: i, kind: "plate" as const },
+        ]
+      : [{ id: c.id, chapter: i, kind: "chapter" as const }],
 );
