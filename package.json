@@ -13,7 +13,8 @@
     "test": "vitest run",
     "check": "npm run typecheck && npm run lint && npm run format:check && npm run test",
     "shots": "node scripts/shots.mjs",
-    "shots:install": "playwright install chromium"
+    "shots:install": "playwright install chromium",
+    "geo": "node scripts/geo.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.8",
@@ -36,7 +37,9 @@
     "eslint-config-next": "16.3.5",
     "playwright": "^1.63.0",
     "prettier": "^3.9.8",
+    "topojson-client": "^3.1.0",
     "typescript": "^5",
-    "vitest": "^5.0.1"
+    "vitest": "^5.0.1",
+    "world-atlas": "^2.0.2"
   }
 }

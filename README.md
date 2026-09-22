@@ -9,6 +9,9 @@ npm run dev      # http://localhost:3000/lab
 npm run check    # typecheck + lint + tests
 ```
 
+`npm run geo` re-bakes `public/geo/land.json` (Natural Earth 110m land via
+world-atlas) for the instruments globe; the output is committed.
+
 To add an experiment: create `lab/<slug>/index.tsx` and `README.md`, add an
 entry to `lab/registry.ts` and a loader to `lab/loaders.tsx`.
 
