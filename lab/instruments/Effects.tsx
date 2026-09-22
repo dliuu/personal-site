@@ -123,15 +123,20 @@ export function Effects() {
 
   return (
     <EffectComposer multisampling={0}>
-      {/* Edges are smoothed on the raw render, before the hatching. */}
-      <SMAA />
-      <Bloom
-        ref={bloomRef}
-        mipmapBlur
-        luminanceThreshold={1.1}
-        luminanceSmoothing={0.2}
-        intensity={0}
-      />
+      {/* Edges are smoothed on the raw render, before the hatching; bloom
+          only lights the revealed globe's emissives. Both are high-tier. */}
+      {high ? <SMAA /> : <></>}
+      {high ? (
+        <Bloom
+          ref={bloomRef}
+          mipmapBlur
+          luminanceThreshold={1.3}
+          luminanceSmoothing={0.2}
+          intensity={0}
+        />
+      ) : (
+        <></>
+      )}
       <Engraving ref={effectRef} ink={INK} paper={PARCHMENT} pitch={pitch} />
       {high ? <Vignette eskil={false} offset={0.2} darkness={0.3} /> : <></>}
     </EffectComposer>

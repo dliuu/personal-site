@@ -22,7 +22,9 @@ import {
   Group,
   LineBasicMaterial,
   Mesh,
+  MeshBasicMaterial,
   MeshStandardMaterial,
+  PlaneGeometry,
   RingGeometry,
   SphereGeometry,
   TorusGeometry,
@@ -32,12 +34,21 @@ import { archVoussoirs } from "@/lib/arch";
 import { pinTint, smooth, stagger, tickAlive } from "@/lib/beats";
 import { latLonToVec3, rankByLongitude } from "@/lib/geo";
 import { lerp } from "@/lib/progress";
+import { useLabStore } from "@/store/useLabStore";
 import {
   buildCoastGeometry,
   buildLandTexture,
   loadLand,
   type Land,
 } from "./geo";
+import {
+  loadEarthTextures,
+  makeAtmosphereMaterial,
+  makeCloudMaterial,
+  makeEarthMaterial,
+  makeShadowTexture,
+  type EarthTextures,
+} from "./EarthMaterials";
 import { locales, NYC } from "./locales";
 import { BRASS, BRONZE, GOLD, INK, OCEAN, VERMILION } from "./palette";
 import { plateState } from "./plateState";
@@ -310,12 +321,18 @@ export function Globe({ mech }: { mech: RefObject<Group | null> }) {
       satRings: SATELLITES.map((s) => ring(s.r, 0.008)),
       satRingLines: SATELLITES.map((s) => torusOutline(s.r, 0.008)),
       satBody: new SphereGeometry(0.06, 12, 10),
+      earth: new SphereGeometry(1.055, 64, 40),
+      clouds: new SphereGeometry(1.07, 48, 30),
+      atmo: new SphereGeometry(1.1, 48, 30),
+      shadow: new PlaneGeometry(1.8, 1.1),
     };
   }, []);
   const pinEdges = useMemo(() => new EdgesGeometry(g.pin, 20), [g.pin]);
   const nycEdges = useMemo(() => new EdgesGeometry(g.nyc, 20), [g.nyc]);
   const mats = useMemo(
     () => ({
+      brass: partMaterial(BRASS),
+      gold: partMaterial(GOLD),
       pin: partMaterial(VERMILION),
       nyc: partMaterial(VERMILION),
       halo: partMaterial(VERMILION),
@@ -337,6 +354,7 @@ export function Globe({ mech }: { mech: RefObject<Group | null> }) {
   const haloRef = useRef<Group>(null);
   const gaugeRef = useRef<Group>(null);
   const tiltRef = useRef<Group>(null);
+  const cloudsRef = useRef<Mesh>(null);
   const { mode } = useContext(EdgedModeContext);
 
   // Geography: the baked Natural Earth land becomes a land/ocean texture on
@@ -369,14 +387,63 @@ export function Globe({ mech }: { mech: RefObject<Group | null> }) {
     return m;
   }, [landTex]);
 
+  // The real Earth: a second sphere that fades in over the hatched one as the
+  // engraving dissolves, so the chapter band never changes.
+  const [earth, setEarth] = useState<EarthTextures | null>(null);
+  useEffect(() => {
+    if (mode !== "solid") return;
+    let on = true;
+    loadEarthTextures().then(
+      (t) => {
+        if (on) setEarth(t);
+      },
+      () => {},
+    );
+    return () => {
+      on = false;
+    };
+  }, [mode]);
+  const earthMat = useMemo(
+    () => (earth ? makeEarthMaterial(earth) : null),
+    [earth],
+  );
+  const cloudMat = useMemo(
+    () => (earth ? makeCloudMaterial(earth) : null),
+    [earth],
+  );
+  const atmoMat = useMemo(() => makeAtmosphereMaterial(), []);
+  const shadowMat = useMemo(
+    () =>
+      new MeshBasicMaterial({
+        map: makeShadowTexture(),
+        transparent: true,
+        opacity: 0,
+        depthWrite: false,
+      }),
+    [],
+  );
+
   // Both instruments (solid and lines) run this; every value is a pure
   // function of plateState, so the two stay in lockstep.
-  // eslint-disable-next-line react-hooks/immutability -- r3f pattern: mutate memoized materials and ref object3Ds in useFrame
-  useFrame(() => {
+  /* eslint-disable react-hooks/immutability -- r3f pattern: mutate memoized materials and ref object3Ds in useFrame */
+  useFrame((_, delta) => {
     const active = plateState.instrument === "globe";
-    const { beat, t, expand } = plateState;
-    // eslint-disable-next-line react-hooks/immutability -- same r3f pattern
-    coastMat.opacity = 0.7 * expand;
+    const { beat, t, expand, reveal } = plateState;
+    coastMat.opacity = 0.7 * expand * (1 - reveal);
+
+    // Reveal: hatched bronze becomes reflective metal, markers light up, the
+    // real Earth, its clouds, atmosphere and shadow fade in. All zero in
+    // chapters, so the engraving there is unchanged.
+    mats.brass.metalness = reveal;
+    mats.brass.roughness = lerp(0.6, 0.28, reveal);
+    mats.gold.metalness = reveal;
+    mats.gold.roughness = lerp(0.6, 0.25, reveal);
+    if (earthMat) earthMat.opacity = reveal;
+    if (cloudMat) cloudMat.opacity = 0.55 * reveal;
+    if (cloudsRef.current && !useLabStore.getState().reducedMotion)
+      cloudsRef.current.rotation.y += 0.008 * delta;
+    atmoMat.uniforms.reveal.value = reveal;
+    shadowMat.opacity = 0.35 * reveal;
 
     // Beat 0: the pins fall in west to east, from well above the surface. The
     // drop is faded in by `expand`, so pins stay seated outside the plate and
@@ -389,7 +456,10 @@ export function Globe({ mech }: { mech: RefObject<Group | null> }) {
       const r = lerp(PIN_R, dropR, expand);
       pinRefs[i].current?.position.copy(PIN_DIRS[i]).multiplyScalar(r);
     }
-    mats.pin.color.copy(bronze).lerp(vermilion, active ? pinTint(beat, t) : 1);
+    const tint = active ? pinTint(beat, t) : 1;
+    mats.pin.color.copy(bronze).lerp(vermilion, tint);
+    mats.pin.emissive.copy(vermilion).multiplyScalar(tint);
+    mats.pin.emissiveIntensity = 2.2 * reveal;
 
     // Beat 1: the Manhattan pin lifts off the surface and glows, a halo
     // spreads from its base, and the solid instrument publishes its world
@@ -405,7 +475,10 @@ export function Globe({ mech }: { mech: RefObject<Group | null> }) {
       }
     }
     const glow = close ? smooth(0, 0.3, t) : 0;
-    mats.nyc.emissive.copy(vermilion).multiplyScalar(0.6 * glow);
+    mats.nyc.emissive.copy(vermilion);
+    mats.nyc.emissiveIntensity = 0.6 * glow + reveal * (1.5 + 3 * glow);
+    mats.halo.emissive.copy(vermilion);
+    mats.halo.emissiveIntensity = 1.5 * reveal;
     if (haloRef.current) {
       haloRef.current.visible = close;
       haloRef.current.scale.setScalar(0.2 + 0.8 * smooth(0.1, 0.8, t));
@@ -439,12 +512,32 @@ export function Globe({ mech }: { mech: RefObject<Group | null> }) {
     if (tiltRef.current)
       tiltRef.current.rotation.z = 0.41 * (1 - expand * level);
   });
+  /* eslint-enable react-hooks/immutability */
 
   return (
     <group position={[0, -0.3, 0]}>
-      <Edged geometry={g.base} position={[0, -1.35, 0]} color={BRASS} />
-      <Edged geometry={g.stand} position={[0, -0.85, 0]} color={BRASS} />
-      <Edged geometry={g.meridian} edges={g.meridianLine} color={BRASS} />
+      {mode === "solid" ? (
+        <>
+          <mesh geometry={g.atmo} material={atmoMat} renderOrder={3} />
+          <mesh
+            geometry={g.shadow}
+            material={shadowMat}
+            position={[0, -1.72, 0]}
+            rotation={[-Math.PI / 2, 0, 0]}
+          />
+        </>
+      ) : null}
+      <Edged geometry={g.base} position={[0, -1.35, 0]} material={mats.brass} />
+      <Edged
+        geometry={g.stand}
+        position={[0, -0.85, 0]}
+        material={mats.brass}
+      />
+      <Edged
+        geometry={g.meridian}
+        edges={g.meridianLine}
+        material={mats.brass}
+      />
       <group ref={tiltRef} rotation={[0, 0, 0.41]}>
         <group ref={mech}>
           <Edged
@@ -452,11 +545,22 @@ export function Globe({ mech }: { mech: RefObject<Group | null> }) {
             edges={g.sphereLine}
             material={sphereMat}
           />
+          {earthMat ? (
+            <mesh geometry={g.earth} material={earthMat} renderOrder={1} />
+          ) : null}
+          {cloudMat ? (
+            <mesh
+              ref={cloudsRef}
+              geometry={g.clouds}
+              material={cloudMat}
+              renderOrder={2}
+            />
+          ) : null}
           <Edged
             geometry={g.equator}
             edges={g.equatorLine}
             rotation={[Math.PI / 2, 0, 0]}
-            color={BRASS}
+            material={mats.brass}
           />
           {GRATICULE_LATS.map((lat, i) => (
             <Edged
@@ -526,7 +630,11 @@ export function Globe({ mech }: { mech: RefObject<Group | null> }) {
             />
           </group>
           <group ref={gaugeRef} rotation={[Math.PI / 2, 0, 0]} visible={false}>
-            <Edged geometry={g.gauge} edges={g.gaugeLine} color={BRASS} />
+            <Edged
+              geometry={g.gauge}
+              edges={g.gaugeLine}
+              material={mats.brass}
+            />
           </group>
           {TICKS_24.map((a, i) => (
             <group
@@ -554,9 +662,13 @@ export function Globe({ mech }: { mech: RefObject<Group | null> }) {
                 geometry={g.satRings[k]}
                 edges={g.satRingLines[k]}
                 rotation={[Math.PI / 2, 0, 0]}
-                color={BRASS}
+                material={mats.brass}
               />
-              <Edged geometry={g.satBody} position={[s.r, 0, 0]} color={GOLD} />
+              <Edged
+                geometry={g.satBody}
+                position={[s.r, 0, 0]}
+                material={mats.gold}
+              />
             </group>
           ))}
         </group>

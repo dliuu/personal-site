@@ -3,13 +3,20 @@
 import { createRef, useEffect, useMemo, useRef, type RefObject } from "react";
 import type { JSX } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
+import { Environment, Lightformer } from "@react-three/drei";
 import { DirectionalLight, Group, LineBasicMaterial, Vector3 } from "three";
 import type { PerspectiveCamera } from "three";
 import { heroPlacement } from "@/lib/heroRegion";
 import { heroContinuous } from "@/lib/heroContinuous";
 import { heroWeight } from "@/lib/sectionProgress";
 import { lerp } from "@/lib/progress";
-import { beatAt, expandAmount, plateYaw, smooth } from "@/lib/beats";
+import {
+  beatAt,
+  expandAmount,
+  plateYaw,
+  revealAmount,
+  smooth,
+} from "@/lib/beats";
 import { frameLerp, lineOpacity, lineScale, solidScale } from "@/lib/drawIn";
 import { useLabStore } from "@/store/useLabStore";
 import { useSectionsStore } from "@/store/useSectionsStore";
@@ -110,6 +117,7 @@ export function HeroObjects() {
   const size = useThree((s) => s.size);
   const vp = useThree((s) => s.viewport);
   const gl = useThree((s) => s.gl);
+  const scene = useThree((s) => s.scene);
   const active = useSectionsStore((s) => s.active);
   const tall = useSectionsStore((s) => s.tall);
   const place = heroPlacement({
@@ -195,6 +203,10 @@ export function HeroObjects() {
     plateState.beat = b.index;
     plateState.t = b.t;
     plateState.expand = expand;
+    plateState.reveal = revealAmount(expand);
+    // The studio environment only lights the revealed globe.
+    // eslint-disable-next-line react-hooks/immutability -- r3f pattern: scene setting driven in useFrame
+    scene.environmentIntensity = plateState.reveal;
 
     const parent = parentRef.current;
     if (parent) {
@@ -219,6 +231,7 @@ export function HeroObjects() {
       const { root, solid, lines } = refs.current[i];
       if (!root || !solid || !lines) continue;
 
+      const inPlate = plateState.instrument === chapters[i].instrument;
       const target = heroWeight(i, heroCont);
       const k = i === 0 && !introDone.current ? INTRO_LERP : LERP;
       let w = reducedMotion
@@ -235,6 +248,8 @@ export function HeroObjects() {
       let op = lineOpacity(w);
       solid.visible = ss > 0.001 && fade > 0.6;
       op *= Math.max(0.12, fade);
+      // The construction lines dissolve with the engraving in the plate.
+      if (inPlate) op *= 1 - plateState.reveal;
       solid.scale.setScalar(Math.max(ss, 0.0001));
       lines.scale.setScalar(Math.max(lineScale(w), 0.0001));
       // eslint-disable-next-line react-hooks/immutability -- r3f pattern: mutate the memoized line material in useFrame
@@ -244,7 +259,6 @@ export function HeroObjects() {
       const base = t * Math.PI * 0.8;
       // Idle spin is an accumulated angle (not clock time) so its plate can
       // pause it and fold an offset into it.
-      const inPlate = plateState.instrument === chapters[i].instrument;
       if (!inPlate && settleOff.current[i] !== 0) {
         // Leaving the plate: absorb the scripted offset so nothing unwinds.
         idleAngle.current[i] += settleOff.current[i];
@@ -358,6 +372,34 @@ export function HeroObjects() {
   return (
     <>
       <hemisphereLight args={[PARCHMENT, INK, 0.6]} />
+      {/* A studio for the revealed globe: warm key, cool fill, thin rim. Its
+          intensity is driven per frame from plateState.reveal. */}
+      <Environment frames={1} resolution={256} environmentIntensity={0}>
+        <Lightformer
+          form="rect"
+          color="#fff1dc"
+          intensity={2.2}
+          scale={[4, 4]}
+          position={[4, 5, 4]}
+          target={[0, 0, 0]}
+        />
+        <Lightformer
+          form="rect"
+          color="#cfe0f5"
+          intensity={1.2}
+          scale={[6, 6]}
+          position={[-6, 2, 2]}
+          target={[0, 0, 0]}
+        />
+        <Lightformer
+          form="rect"
+          color="#ffffff"
+          intensity={2}
+          scale={[8, 0.6]}
+          position={[0, 3, -6]}
+          target={[0, 0, 0]}
+        />
+      </Environment>
       <directionalLight
         ref={keyLight}
         color="#fff1dc"
