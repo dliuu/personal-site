@@ -203,6 +203,7 @@ export function RoomSet({
     }),
     [woodTex, rugTex, spines, photoTex],
   );
+  const baked = useRoomStore((s) => s.baked);
   const posterThing = useThing(
     "the codex",
     "chapters II–V; click to turn the page",
@@ -215,12 +216,14 @@ export function RoomSet({
       {/* Shell: floor, two plaster walls, a slatted ceiling; the back is glass. */}
       <mesh
         geometry={g.floor}
+        visible={!baked}
         material={m.floor}
         rotation={[-Math.PI / 2, 0, 0]}
         receiveShadow
       />
       <mesh
         geometry={g.wallSide}
+        visible={!baked}
         material={m.wall}
         position={[-2.4, 1.3, 1.8]}
         rotation={[0, Math.PI / 2, 0]}
@@ -228,6 +231,7 @@ export function RoomSet({
       />
       <mesh
         geometry={g.wallSide}
+        visible={!baked}
         material={m.wall}
         position={[2.4, 1.3, 1.8]}
         rotation={[0, -Math.PI / 2, 0]}
@@ -235,6 +239,7 @@ export function RoomSet({
       />
       <mesh
         geometry={g.ceiling}
+        visible={!baked}
         material={m.ceiling}
         position={[0, 2.6, 1.8]}
         rotation={[Math.PI / 2, 0, 0]}
@@ -244,6 +249,7 @@ export function RoomSet({
             <mesh
               key={i}
               geometry={g.slat}
+              visible={!baked}
               material={m.slat}
               position={[0, 2.56, -0.9 + i * 0.5]}
             />
@@ -251,12 +257,14 @@ export function RoomSet({
         : null}
       <mesh
         geometry={g.baseboard}
+        visible={!baked}
         material={m.trim}
         position={[-2.39, 0.03, 1.8]}
         rotation={[0, Math.PI / 2, 0]}
       />
       <mesh
         geometry={g.baseboard}
+        visible={!baked}
         material={m.trim}
         position={[2.39, 0.03, 1.8]}
         rotation={[0, Math.PI / 2, 0]}
@@ -266,19 +274,27 @@ export function RoomSet({
         <mesh
           key={x}
           geometry={g.mullion}
+          visible={!baked}
           material={m.black}
           position={[x, 1.3, -1.2]}
           castShadow
         />
       ))}
-      <mesh geometry={g.header} material={m.black} position={[0, 2.57, -1.2]} />
+      <mesh
+        geometry={g.header}
+        visible={!baked}
+        material={m.black}
+        position={[0, 2.57, -1.2]}
+      />
       <mesh
         geometry={g.threshold}
+        visible={!baked}
         material={m.black}
         position={[0, 0.01, -1.2]}
       />
       <mesh
         geometry={g.rug}
+        visible={!baked}
         material={m.rug}
         rotation={[-Math.PI / 2, 0, 0]}
         position={[0.2, 0.004, 0.55]}
@@ -286,10 +302,16 @@ export function RoomSet({
       />
       {/* Door on the right wall */}
       <group position={[2.39, 1.03, 1.6]}>
-        <mesh geometry={g.doorFrame} material={m.trim} />
-        <mesh geometry={g.door} material={m.door} position={[-0.01, 0, 0]} />
+        <mesh geometry={g.doorFrame} visible={!baked} material={m.trim} />
+        <mesh
+          geometry={g.door}
+          visible={!baked}
+          material={m.door}
+          position={[-0.01, 0, 0]}
+        />
         <mesh
           geometry={g.handle}
+          visible={!baked}
           material={m.brass}
           position={[-0.04, 0, -0.32]}
         />
@@ -349,9 +371,16 @@ export function RoomSet({
       {/* Shelf wall (right): two oak shelves, books, record player, deck, photo */}
       {stage >= 1 ? (
         <group position={[2.27, 1.25, -0.3]} rotation={[0, Math.PI / 2, 0]}>
-          <mesh geometry={g.shelf} material={m.oak} castShadow receiveShadow />
           <mesh
             geometry={g.shelf}
+            visible={!baked}
+            material={m.oak}
+            castShadow
+            receiveShadow
+          />
+          <mesh
+            geometry={g.shelf}
+            visible={!baked}
             material={m.oak}
             position={[0, 0.5, 0]}
             castShadow
@@ -418,6 +447,7 @@ export function RoomSet({
         <>
           <mesh
             geometry={g.floorCushion}
+            visible={!baked}
             material={m.cushion}
             position={[1.75, 0.06, 0.25]}
             castShadow
@@ -437,6 +467,7 @@ export function RoomSet({
               <mesh
                 key={i}
                 geometry={g.standLeg}
+                visible={!baked}
                 material={m.black}
                 position={[
                   Math.cos(i * 2.1) * 0.12,
@@ -447,6 +478,7 @@ export function RoomSet({
             ))}
             <mesh
               geometry={g.standTop}
+              visible={!baked}
               material={m.oak}
               position={[0, 0.5, 0]}
             />
@@ -463,6 +495,7 @@ export function RoomSet({
           <group position={[1.4, 0, -0.95]}>
             <mesh
               geometry={g.bench}
+              visible={!baked}
               material={m.oak}
               position={[0, 0.42, 0]}
               castShadow
@@ -470,11 +503,13 @@ export function RoomSet({
             />
             <mesh
               geometry={g.benchLeg}
+              visible={!baked}
               material={m.oak}
               position={[-0.55, 0.2, 0]}
             />
             <mesh
               geometry={g.benchLeg}
+              visible={!baked}
               material={m.oak}
               position={[0.55, 0.2, 0]}
             />

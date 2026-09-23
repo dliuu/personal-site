@@ -15,6 +15,23 @@ world-atlas) for the instruments globe; the output is committed.
 Earth textures in `public/textures/earth` are the three.js example planet set
 (MIT), derived from NASA Blue Marble imagery.
 
+## The baked room
+
+The intro room's static shell and furniture are modelled, lit and baked in
+Blender by `scripts/room/build.py` (CC0 textures and an HDRI from Poly Haven,
+fetched into `assets/room/cache`), then packed for the web:
+
+```bash
+brew install --cask blender     # once
+blender -b --python scripts/room/build.py -- --samples 256 --preview
+node scripts/room/pack.mjs      # Draco + WebP -> public/models/room.glb
+```
+
+`--preview` also renders `assets/room/out/preview.png` from the resting camera.
+Extra props: drop GLBs into `assets/room/props/` with a `manifest.json` of
+`{ file, position, rotationY, scale }` entries and rebake. The Draco decoder in
+`public/draco` is copied from the three.js package.
+
 To add an experiment: create `lab/<slug>/index.tsx` and `README.md`, add an
 entry to `lab/registry.ts` and a loader to `lab/loaders.tsx`.
 

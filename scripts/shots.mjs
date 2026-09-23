@@ -71,6 +71,10 @@ async function main() {
       await page.goto(url, { waitUntil: "networkidle" });
       await page.evaluate(() => document.fonts?.ready);
       await page.waitForSelector("canvas", { timeout: 15000 }).catch(() => {});
+      // The intro's baked room arrives after first paint; give it a moment.
+      await page
+        .waitForSelector("html[data-baked-room]", { timeout: 25000 })
+        .catch(() => {});
       await page.waitForTimeout(1200);
 
       const dir = path.join("shots", slug, `${vp.width}x${vp.height}`);

@@ -15,6 +15,7 @@ import {
   SpotLight,
   Vector3,
   type DirectionalLight,
+  type HemisphereLight,
   type PerspectiveCamera,
 } from "three";
 import { flicker, parallax } from "@/lib/ambient";
@@ -31,6 +32,7 @@ import { lerp } from "@/lib/progress";
 import { useLabStore } from "@/store/useLabStore";
 import { useSectionsStore } from "@/store/useSectionsStore";
 import { Avatar, type AvatarHandle } from "./Avatar";
+import { BakedRoom } from "./BakedRoom";
 import { chapters, sections } from "./chapters";
 import { Plant } from "./Plant";
 import { plateState } from "./plateState";
@@ -178,6 +180,8 @@ export function DeskScene() {
   const soundOn = useRoomStore((s) => s.soundOn);
   const curtainsOpen = useRoomStore((s) => s.curtainsOpen);
   const catAwakeUntil = useRoomStore((s) => s.catAwakeUntil);
+  const baked = useRoomStore((s) => s.baked);
+  const hemi = useRef<HemisphereLight>(null);
   useEffect(() => {
     if (soundOn && !audio.current) {
       try {
@@ -259,8 +263,13 @@ export function DeskScene() {
     if (glow.current)
       glow.current.intensity =
         1.2 * (1 + (reducedMotion ? 0 : 0.04 * Math.sin(t * 11)));
+    // With the baked room in, sun and sky are already in the lightmap; the
+    // real-time copies drop so dynamic things still get lit and shadowed
+    // without doubling the room.
+    const bakedK = room.baked ? 0.5 : 1;
+    if (hemi.current) hemi.current.intensity = room.baked ? 0.25 : 0.6;
     if (windowLight.current) {
-      windowLight.current.intensity = room.curtainsOpen ? 2.4 : 1.2;
+      windowLight.current.intensity = (room.curtainsOpen ? 2.4 : 1.2) * bakedK;
       if (windowTarget.current)
         windowLight.current.target = windowTarget.current;
     }
@@ -313,7 +322,7 @@ export function DeskScene() {
 
   return (
     <group ref={root} visible={false}>
-      <hemisphereLight args={["#cfe0f0", "#b8a58a", 0.6]} />
+      <hemisphereLight ref={hemi} args={["#cfe0f0", "#b8a58a", 0.6]} />
       {/* The sun, low through the glass wall from the garden side. */}
       <directionalLight
         ref={windowLight}
@@ -356,12 +365,14 @@ export function DeskScene() {
         position={[0, 1.05, -0.2]}
       />
 
+      <BakedRoom />
       <RoomSet stage={stage} fonts={fonts} />
       <RoomLife stage={stage} typing={typing} lampLevel={lampLevel} />
 
       {/* Desk and what sits on it */}
       <mesh
         geometry={g.deskTop}
+        visible={!baked}
         material={m.wood}
         position={[0, 0.735, -0.36]}
         castShadow
@@ -369,20 +380,33 @@ export function DeskScene() {
       />
       <mesh
         geometry={g.deskLeg}
+        visible={!baked}
         material={m.wood}
         position={[-0.8, 0.36, -0.36]}
         castShadow
       />
       <mesh
         geometry={g.deskLeg}
+        visible={!baked}
         material={m.wood}
         position={[0.8, 0.36, -0.36]}
         castShadow
       />
-      <mesh geometry={g.foot} material={m.dark} position={[0, 0.76, -0.5]} />
-      <mesh geometry={g.stem} material={m.dark} position={[0, 0.84, -0.5]} />
+      <mesh
+        geometry={g.foot}
+        visible={!baked}
+        material={m.dark}
+        position={[0, 0.76, -0.5]}
+      />
+      <mesh
+        geometry={g.stem}
+        visible={!baked}
+        material={m.dark}
+        position={[0, 0.84, -0.5]}
+      />
       <mesh
         geometry={g.panel}
+        visible={!baked}
         material={m.dark}
         position={[0, 1.05, -0.46]}
         castShadow
@@ -394,12 +418,14 @@ export function DeskScene() {
       />
       <mesh
         geometry={g.keyboard}
+        visible={!baked}
         material={m.dark}
         position={[0, 0.759, -0.15]}
         castShadow
       />
       <mesh
         geometry={g.mouse}
+        visible={!baked}
         material={m.dark}
         position={[0.32, 0.765, -0.15]}
         castShadow
@@ -449,16 +475,28 @@ export function DeskScene() {
       />
 
       {/* Chair */}
-      <mesh geometry={g.base} material={m.dark} position={[0, 0.02, 0.42]} />
-      <mesh geometry={g.column} material={m.metal} position={[0, 0.22, 0.42]} />
+      <mesh
+        geometry={g.base}
+        visible={!baked}
+        material={m.dark}
+        position={[0, 0.02, 0.42]}
+      />
+      <mesh
+        geometry={g.column}
+        visible={!baked}
+        material={m.metal}
+        position={[0, 0.22, 0.42]}
+      />
       <mesh
         geometry={g.seat}
+        visible={!baked}
         material={m.fabric}
         position={[0, 0.43, 0.42]}
         castShadow
       />
       <mesh
         geometry={g.back}
+        visible={!baked}
         material={m.fabric}
         position={[0, 0.72, 0.64]}
         rotation={[-0.1, 0, 0]}

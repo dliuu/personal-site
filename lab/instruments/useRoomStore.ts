@@ -12,6 +12,8 @@ type RoomState = {
   hover: Hover;
   pinned: string | null;
   steamPuff: number;
+  /** The baked room has faded in; the procedural shell can hide. */
+  baked: boolean;
   toggleLamp: () => void;
   toggleSound: () => void;
   toggleCurtains: () => void;
@@ -19,6 +21,7 @@ type RoomState = {
   setHover: (h: Hover) => void;
   pin: (note: string | null) => void;
   puff: () => void;
+  setBaked: (b: boolean) => void;
 };
 
 export const useRoomStore = create<RoomState>()(
@@ -31,6 +34,7 @@ export const useRoomStore = create<RoomState>()(
       hover: null,
       pinned: null,
       steamPuff: 0,
+      baked: false,
       toggleLamp: () => set((s) => ({ lampOn: !s.lampOn })),
       toggleSound: () => set((s) => ({ soundOn: !s.soundOn })),
       toggleCurtains: () => set((s) => ({ curtainsOpen: !s.curtainsOpen })),
@@ -38,6 +42,7 @@ export const useRoomStore = create<RoomState>()(
       setHover: (hover) => set({ hover }),
       pin: (pinned) => set({ pinned }),
       puff: () => set({ steamPuff: performance.now() / 1000 }),
+      setBaked: (baked) => set({ baked }),
     }),
     {
       name: "instruments-room-2",
