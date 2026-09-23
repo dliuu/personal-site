@@ -14,9 +14,9 @@ export type Emphasis = Record<Layer, number>;
 export const ORCHESTRATORS = 5;
 export const WORKERS_PER = 7;
 /** Orchestrators sit on a small raised circle; their workers fan out below. */
-export const ORCH_R = 0.42;
+export const ORCH_R = 0.55;
 export const ORCH_Y = 0.32;
-const WORKER_R = [0.86, 1.18];
+const WORKER_R = [0.95, 1.25];
 const WORKER_Y = -0.12;
 /** Angular width of one orchestrator's sector of workers. */
 const SECTOR = 0.9;
