@@ -85,6 +85,7 @@ export function Effects() {
   const pitch = useMemo(() => (high ? 7 : 9) * dpr, [high, dpr]);
   const effectRef = useRef<EngravingImpl | null>(null);
   const bloomRef = useRef<BloomEffect | null>(null);
+  const lastActive = useRef(0);
   const cur = useMemo(
     () => ({ ink: new Color(INK), paper: new Color(PARCHMENT) }),
     [],
@@ -102,7 +103,12 @@ export function Effects() {
     const { active } = useSectionsStore.getState();
     const { reducedMotion } = useLabStore.getState();
     const tgt = targets[sections[active]?.chapter ?? 0];
-    const k = reducedMotion ? 1 : frameLerp(0.08, delta);
+    // Leaving a dive plate is a cut behind a filled screen: the next
+    // chapter's paper must be there on the first frame, not eased in.
+    const cut =
+      active !== lastActive.current && sections[lastActive.current]?.dive;
+    lastActive.current = active;
+    const k = reducedMotion || cut ? 1 : frameLerp(0.08, delta);
     cur.ink.lerp(tgt.ink, k);
     cur.paper.lerp(tgt.paper, k);
     const e = effectRef.current;

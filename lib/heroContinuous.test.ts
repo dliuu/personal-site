@@ -26,6 +26,17 @@ describe("heroContinuous", () => {
     expect(mid).toBeGreaterThan(1.5);
     expect(mid).toBeLessThan(2);
   });
+  it("holds a dive plate's hero to the very end", () => {
+    const dive: HeroSection[] = [
+      { chapter: 0, kind: "chapter" },
+      { chapter: 0, kind: "plate", dive: true },
+      { chapter: 1, kind: "chapter" },
+    ];
+    expect(heroContinuous(dive, 1, 0)).toBeCloseTo(0.5, 6);
+    expect(heroContinuous(dive, 1, 0.97)).toBeCloseTo(0.5, 6);
+    expect(heroContinuous(dive, 1, 1)).toBeCloseTo(0.5, 6);
+    expect(heroContinuous(dive, 2, 0)).toBeCloseTo(1, 6);
+  });
   it("is continuous at both plate joins", () => {
     expect(heroContinuous(sections, 1, 1)).toBeCloseTo(
       heroContinuous(sections, 2, 0),

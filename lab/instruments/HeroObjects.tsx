@@ -4,7 +4,13 @@ import { createRef, useEffect, useMemo, useRef, type RefObject } from "react";
 import type { JSX } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Environment, Lightformer } from "@react-three/drei";
-import { DirectionalLight, Group, LineBasicMaterial, Vector3 } from "three";
+import {
+  DirectionalLight,
+  Group,
+  LineBasicMaterial,
+  type PerspectiveCamera,
+  Vector3,
+} from "three";
 import { heroPlacement } from "@/lib/heroRegion";
 import { heroContinuous } from "@/lib/heroContinuous";
 import { heroWeight } from "@/lib/sectionProgress";
@@ -16,6 +22,7 @@ import { useLabStore } from "@/store/useLabStore";
 import { useSectionsStore } from "@/store/useSectionsStore";
 import {
   chapters,
+  plateSlots,
   sections,
   type InstrumentKind,
   type PlateBeat,
@@ -49,6 +56,9 @@ const CLOSE_K_NARROW = 2.1;
 // The globe's sphere sits 0.3 below its root; lift the hero so the sphere is
 // centred on screen while the plate is open.
 const PLATE_LIFT = 0.3;
+/** How far through a dive slot the camera has reached the screen; the rest is a safe hold for the cut. */
+const DIVE_ARRIVE = 0.85;
+const DIVE_OVERFILL = 0.9;
 /** Camera keys for a plate's beats: an anchor's lat/lon, or a longitude to face. */
 function beatKeys(beats: PlateBeat[], closeK: number): CameraKey[] {
   return beats.map((b) => {
@@ -132,6 +142,8 @@ export function HeroObjects() {
   const tmp = useRef(new Vector3());
   const plateGoal = useRef(new Vector3());
   const sceneWas = useRef(false);
+  const lastActive = useRef(0);
+  const diveGoal = useRef(new Vector3());
   const size = useThree((s) => s.size);
   const vp = useThree((s) => s.viewport);
   const gl = useThree((s) => s.gl);
@@ -204,6 +216,18 @@ export function HeroObjects() {
     const { reducedMotion } = useLabStore.getState();
     const sec = sections[active] ?? sections[0];
     const chapter = chapters[sec.chapter];
+    // Leaving a dive plate for another chapter is a cut behind a filled
+    // screen: nothing eases, or the old hero would shrink back in view.
+    const prev = sections[lastActive.current] ?? sec;
+    const cut =
+      active !== lastActive.current &&
+      Boolean(prev.dive) &&
+      prev.chapter !== sec.chapter;
+    lastActive.current = active;
+    if (cut) {
+      expandCur.current = 0;
+      weights.current[prev.chapter] = 0;
+    }
     // Heroes follow chapters, not sections: a plate holds its chapter centred
     // and hands off to the next hero as it shrinks back.
     const heroCont = heroContinuous(sections, active, progress);
@@ -216,7 +240,8 @@ export function HeroObjects() {
       : lerp(fadeCur.current, fadeTarget, frameLerp(LERP, delta));
     const fade = fadeCur.current;
 
-    const expandTarget = sec.kind === "plate" ? expandAmount(progress) : 0;
+    const expandTarget =
+      sec.kind === "plate" ? expandAmount(progress, Boolean(sec.dive)) : 0;
     expandCur.current = reducedMotion
       ? expandTarget
       : lerp(expandCur.current, expandTarget, frameLerp(EXPAND_LERP, delta));
@@ -226,7 +251,7 @@ export function HeroObjects() {
     // useFrame (which may run before or after this one) see a coherent frame.
     plateState.instrument = sec.kind === "plate" ? chapter.instrument : null;
     plateState.p = sec.kind === "plate" ? progress : 0;
-    const b = beatAt(plateState.p, chapter.plate?.beats.length ?? 1);
+    const b = beatAt(plateState.p, Math.max(1, plateSlots(chapter)));
     plateState.beat = b.index;
     plateState.t = b.t;
     plateState.expand = expand;
@@ -374,13 +399,29 @@ export function HeroObjects() {
         .add(tmp.current);
       goalPos.current.lerp(plateGoal.current, expand);
       goalTgt.current.lerp(tmp.current, expand);
+      // A dive: over the plate's last slot, fly into the screen the
+      // instrument published until it covers the viewport in both axes.
+      if (sec.dive && b.index >= (chapter.plate?.beats.length ?? 0)) {
+        const s = smooth(0, DIVE_ARRIVE, b.t);
+        const { pos, normal, halfHeight, halfWidth } = plateState.dive;
+        const cam = camera as PerspectiveCamera;
+        const tanHalf = Math.tan((cam.fov * Math.PI) / 360);
+        // Overfill a little: the smoothed camera trails the goal, and the
+        // screen's edge must never show before the cut.
+        const d =
+          DIVE_OVERFILL *
+          Math.min(halfHeight / tanHalf, halfWidth / (tanHalf * cam.aspect));
+        diveGoal.current.copy(normal).multiplyScalar(d).add(pos);
+        goalPos.current.lerp(diveGoal.current, s);
+        goalTgt.current.lerp(pos, s);
+      }
     }
     // Leaving the room lands inside the monitor with the screen covering the
     // viewport, so the camera snaps to the next chapter's rig unseen.
     const wasScene = sceneWas.current;
     sceneWas.current = chapter.scene === "desk";
     const ck =
-      reducedMotion || wasScene !== sceneWas.current
+      reducedMotion || wasScene !== sceneWas.current || cut
         ? 1
         : frameLerp(CAM_LERP, delta);
     camPos.current.lerp(goalPos.current, ck);

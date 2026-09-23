@@ -24,8 +24,10 @@ export function stagger(
 }
 /** Where a plate starts shrinking back to the band (fraction of its progress). */
 export const PLATE_EXIT = 0.94;
-export function expandAmount(p: number): number {
-  return smooth(0, 0.12, p) * (1 - smooth(PLATE_EXIT, 1, p));
+/** A dive plate never shrinks back: it ends inside one of its screens. */
+export function expandAmount(p: number, dive = false): number {
+  const open = smooth(0, 0.12, p);
+  return dive ? open : open * (1 - smooth(PLATE_EXIT, 1, p));
 }
 /** Wash strength of the hand-tint for a plate expansion 0..1. */
 export function washAmount(expand: number): number {

@@ -153,7 +153,12 @@ export const VERDICT_Y = TEMPLATE_ROWS * COL_LINES * LINE_H;
  */
 export const STRIP_STRIDE = 2 * LINE_H;
 export const STATUS_Y = VERDICT_Y + 2 * STRIP_STRIDE;
-export const ATLAS_H = STATUS_Y + STATUS_STRIPS * STRIP_STRIDE;
+/**
+ * The page: one screen's worth of rows (VIEW_LINES) painted as the codex's
+ * next page, for the terminal the Eisen plate dives into.
+ */
+export const PAGE_Y = STATUS_Y + STATUS_STRIPS * STRIP_STRIDE;
+export const ATLAS_H = PAGE_Y + VIEW_LINES * LINE_H;
 
 /** Top-left pixel of template i's column. */
 export function templateOrigin(i: number): { x: number; y: number } {

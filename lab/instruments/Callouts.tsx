@@ -20,16 +20,20 @@ export function Callouts({
   anchors,
   sectionIndex,
   palette,
+  slots,
 }: {
   beats: PlateBeat[];
   anchors: (Vector3 | null)[];
   sectionIndex: number;
   palette: { paper: string; ink: string; accent: string };
+  /** Scroll slots in the plate when it has more than its beats (a dive). */
+  slots?: number;
 }) {
   const shown = useSectionsStore((s) => {
     if (s.active !== sectionIndex || s.kind !== "plate") return -1;
-    const b = beatAt(s.progress, beats.length);
-    return b.t > TRAVEL ? b.index : -1;
+    // A dive plate has one slot past its beats with no card.
+    const b = beatAt(s.progress, slots ?? beats.length);
+    return b.index < beats.length && b.t > TRAVEL ? b.index : -1;
   });
   return (
     <>
