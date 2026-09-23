@@ -4,12 +4,17 @@ import { useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import {
   Bloom,
+  DepthOfField,
   EffectComposer,
   SMAA,
   Vignette,
   wrapEffect,
 } from "@react-three/postprocessing";
-import { Effect, type BloomEffect } from "postprocessing";
+import {
+  Effect,
+  type BloomEffect,
+  type DepthOfFieldEffect,
+} from "postprocessing";
 import { Color, SRGBColorSpace, Uniform } from "three";
 import { washAmount } from "@/lib/beats";
 import { frameLerp } from "@/lib/drawIn";
@@ -85,6 +90,7 @@ export function Effects() {
   const pitch = useMemo(() => (high ? 7 : 9) * dpr, [high, dpr]);
   const effectRef = useRef<EngravingImpl | null>(null);
   const bloomRef = useRef<BloomEffect | null>(null);
+  const dofRef = useRef<DepthOfFieldEffect | null>(null);
   const cur = useMemo(
     () => ({ ink: new Color(INK), paper: new Color(PARCHMENT) }),
     [],
@@ -118,6 +124,13 @@ export function Effects() {
     }
     if (scene.background instanceof Color) scene.background.copy(cur.paper);
     // Bloom only exists for the revealed globe's emissives; chapters get none.
+    // The room gets a lens: focus follows the camera's target (the figure at
+    // rest, the screen on the way in), so the garden and foreground soften.
+    if (dofRef.current) {
+      const inScene = Boolean(chapters[sections[active]?.chapter ?? 0].scene);
+      dofRef.current.bokehScale = inScene ? 2.4 : 0;
+      dofRef.current.target = inScene ? plateState.introCam.tgt : null;
+    }
     if (bloomRef.current) {
       bloomRef.current.intensity = 0.8 * plateState.reveal;
       // A scene (the room) wants its small lights to glow; the globe does not.
@@ -134,6 +147,16 @@ export function Effects() {
       {/* Edges are smoothed on the raw render, before the hatching; bloom
           only lights the revealed globe's emissives. Both are high-tier. */}
       {high ? <SMAA /> : <></>}
+      {high ? (
+        <DepthOfField
+          ref={dofRef}
+          focalLength={0.05}
+          worldFocusRange={2.2}
+          bokehScale={0}
+        />
+      ) : (
+        <></>
+      )}
       {high ? (
         <Bloom
           ref={bloomRef}

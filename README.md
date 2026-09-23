@@ -27,7 +27,9 @@ blender -b --python scripts/room/build.py -- --samples 256 --preview
 node scripts/room/pack.mjs      # Draco + WebP -> public/models/room.glb
 ```
 
-`--preview` also renders `assets/room/out/preview.png` from the resting camera.
+`--preview` also renders `assets/room/out/preview.png` (day) and `preview_evening.png`
+(lamp on) from the resting camera. The bake writes two atlases (day, evening) and
+`garden.jpg`, the view through the glass, cut from the same HDRI.
 Props: `node scripts/room/fetchProps.mjs <poly-haven-id> …` pulls CC0 models at 1k
 into `assets/room/props/<id>/`; `assets/room/props/manifest.json` places them
 (`{ file, position, rotationY, scale }`, three.js coordinates); rebake to include

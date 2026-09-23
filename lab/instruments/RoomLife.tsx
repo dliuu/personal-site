@@ -13,6 +13,7 @@ import {
   InstancedMesh,
   Mesh,
   MeshBasicMaterial,
+  MeshPhysicalMaterial,
   MeshStandardMaterial,
   Object3D,
   PlaneGeometry,
@@ -31,10 +32,9 @@ import { useLabStore } from "@/store/useLabStore";
 import { Cat } from "./Cat";
 import { useThing } from "./RoomSet";
 import { rng } from "@/lib/roomTextures";
-import { nature, sprite } from "./roomTextures";
+import { loadGarden, nature, sprite } from "./roomTextures";
 import { useRoomStore } from "./useRoomStore";
 
-const TREES = 28;
 const BULBS = 24;
 const KEYS = 60;
 const DUST = 240;
@@ -47,21 +47,11 @@ const paneShader = {
   `,
   fragment: /* glsl */ `
     uniform sampler2D city;
-    uniform float time;
     uniform float bright;
-    uniform float rain;
+    uniform vec3 tint;
     varying vec2 vUv;
-    float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
     void main() {
-      vec2 uv = vUv;
-      float col = floor(uv.x * 60.0);
-      float speed = 0.15 + 0.25 * hash(vec2(col, 1.0));
-      float y = fract(uv.y * 3.0 + time * speed + hash(vec2(col, 2.0)));
-      float streak = smoothstep(0.0, 0.08, y) * smoothstep(0.35, 0.08, y) * step(0.55, hash(vec2(col, 3.0)));
-      float drop = pow(1.0 - fract(uv.y * 8.0 - time * (0.4 + 0.3 * hash(vec2(col, 4.0)))), 12.0) * step(0.85, hash(vec2(col, 5.0)));
-      vec2 off = vec2(0.0, streak * 0.02 + drop * 0.03) * rain;
-      vec3 c = texture2D(city, uv + off).rgb * bright;
-      c += vec3(0.25, 0.3, 0.4) * (streak * 0.35 + drop * 0.6) * rain;
+      vec3 c = texture2D(city, vUv).rgb * bright * tint;
       gl_FragColor = vec4(c, 1.0);
     }
   `,
@@ -89,57 +79,80 @@ export function RoomLife({
   const tmpColor = useMemo(() => new Color(), []);
 
   // Blinds + pane
-  const trees = useRef<InstancedMesh>(null);
-  const canopies = useRef<InstancedMesh>(null);
   const natureTex = useMemo(() => (stage >= 1 ? nature() : null), [stage]);
   const pane = useMemo(
     () =>
       new ShaderMaterial({
         uniforms: {
           city: { value: null },
-          time: { value: 0 },
           bright: { value: 1 },
-          rain: { value: 0 },
+          tint: { value: new Color("#ffffff") },
         },
         vertexShader: paneShader.vertex,
         fragmentShader: paneShader.fragment,
+        toneMapped: false,
       }),
     [],
   );
   useEffect(() => {
+    // The painted garden shows at once; the photographic one replaces it.
     // eslint-disable-next-line react-hooks/immutability -- r3f pattern: hand the memoized material its texture once it exists
     pane.uniforms.city.value = natureTex;
+    let on = true;
+    loadGarden().then(
+      (t) => {
+        if (on) pane.uniforms.city.value = t;
+      },
+      () => {},
+    );
+    return () => {
+      on = false;
+    };
   }, [pane, natureTex]);
+  const dayTint = useMemo(() => new Color("#ffffff"), []);
+  const duskTint = useMemo(() => new Color("#ffa478"), []);
+  const glassMat = useMemo(
+    () =>
+      new MeshPhysicalMaterial({
+        color: "#ffffff",
+        roughness: 0.04,
+        metalness: 0,
+        transparent: true,
+        opacity: 0.1,
+        envMapIntensity: 1.2,
+        depthWrite: false,
+      }),
+    [],
+  );
   const curtainsCur = useRef(1);
   const curtainL = useRef<Mesh>(null);
   const curtainR = useRef<Mesh>(null);
-  const curtainGeom = useMemo(() => new PlaneGeometry(1, 2.5, 8, 1), []);
+  // Linen with folds: a fine plane displaced by a sine along its width, so
+  // the folds bunch as the curtain gathers (scale.x shrinks).
+  const curtainGeom = useMemo(() => {
+    const g = new PlaneGeometry(1, 2.5, 64, 1);
+    const pos = g.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i);
+      pos.setZ(
+        i,
+        0.035 * Math.sin(x * Math.PI * 16) + 0.012 * Math.sin(x * Math.PI * 37),
+      );
+    }
+    g.computeVertexNormals();
+    return g;
+  }, []);
   const curtainMat = useMemo(
     () =>
       new MeshStandardMaterial({
         color: "#efe6d8",
         roughness: 1,
         transparent: true,
-        opacity: 0.85,
+        opacity: 0.93,
         side: 2,
       }),
     [],
   );
-  const treeSeeds = useMemo(() => {
-    const r = rng(21);
-    return Array.from({ length: TREES }, () => [r(), r(), r()] as const);
-  }, []);
-  const trunkGeom = useMemo(() => new CylinderGeometry(0.06, 0.1, 1.6, 7), []);
-  const canopyGeom = useMemo(() => new SphereGeometry(0.9, 10, 8), []);
-  const trunkMat = useMemo(
-    () => new MeshStandardMaterial({ color: "#6b5238", roughness: 0.95 }),
-    [],
-  );
-  const canopyMat = useMemo(
-    () => new MeshStandardMaterial({ color: "#5f8a55", roughness: 0.95 }),
-    [],
-  );
-
   // String lights
   const bulbs = useRef<InstancedMesh>(null);
   const bulbGeom = useMemo(() => new SphereGeometry(0.02, 8, 6), []);
@@ -220,7 +233,7 @@ export function RoomLife({
   const keys = useRef<InstancedMesh>(null);
   const keyGeom = useMemo(() => new BoxGeometry(0.024, 0.008, 0.024), []);
   const keyMat = useMemo(
-    () => new MeshStandardMaterial({ color: "#2a2d36", roughness: 0.7 }),
+    () => new MeshStandardMaterial({ color: "#1c1d22", roughness: 0.45 }),
     [],
   );
   const phoneScreen = useRef<Mesh>(null);
@@ -251,9 +264,9 @@ export function RoomLife({
   );
   const g = useMemo(
     () => ({
-      pane: new PlaneGeometry(4.8, 2.6),
+      garden: new PlaneGeometry(13.5, 6.75),
+      glass: new PlaneGeometry(1.55, 2.6),
       rail: new CylinderGeometry(0.012, 0.012, 4.8, 8).rotateZ(Math.PI / 2),
-      ground: new PlaneGeometry(14, 10),
       knob: new SphereGeometry(0.012, 8, 6),
       phone: new BoxGeometry(0.07, 0.008, 0.14),
       phoneScreen: new PlaneGeometry(0.062, 0.13),
@@ -285,7 +298,6 @@ export function RoomLife({
         metalness: 0.9,
       }),
       blade: new MeshStandardMaterial({ color: "#b89b74", roughness: 0.8 }),
-      grass: new MeshStandardMaterial({ color: "#8aa06e", roughness: 1 }),
     }),
     [],
   );
@@ -332,32 +344,10 @@ export function RoomLife({
       c.position.x = side * (2.4 - spread / 2);
       c.rotation.y = side * 0.06 * open;
     }
-    pane.uniforms.time.value = reducedMotion ? 0 : t;
-    pane.uniforms.bright.value = 0.85 + 0.15 * open;
-    // Trees outside, laid out once per frame (cheap), swaying a little.
-    if (trees.current && canopies.current) {
-      for (let i = 0; i < TREES; i++) {
-        const [a, b, c] = treeSeeds[i];
-        const x = -6 + a * 12;
-        const z = -3.2 - b * 6;
-        const h = 0.8 + c * 0.9;
-        dummy.position.set(x, h * 0.8, z);
-        dummy.rotation.set(
-          0,
-          0,
-          reducedMotion ? 0 : 0.02 * Math.sin(t * 0.7 + a * 9),
-        );
-        dummy.scale.set(1, h, 1);
-        dummy.updateMatrix();
-        trees.current.setMatrixAt(i, dummy.matrix);
-        dummy.position.set(x, h * 1.6 + 0.5, z);
-        dummy.scale.setScalar(0.8 + c * 0.6);
-        dummy.updateMatrix();
-        canopies.current.setMatrixAt(i, dummy.matrix);
-      }
-      trees.current.instanceMatrix.needsUpdate = true;
-      canopies.current.instanceMatrix.needsUpdate = true;
-    }
+    // Outside: bright by day, dim and warm as the lamp comes on (evening).
+    const ev = lampLevel.current;
+    pane.uniforms.bright.value = (0.85 + 0.15 * open) * (1 - 0.72 * ev);
+    (pane.uniforms.tint.value as Color).copy(dayTint).lerp(duskTint, ev);
 
     // String lights: laid out each frame (24 is nothing), twinkling by
     // instance colour.
@@ -448,39 +438,24 @@ export function RoomLife({
 
   return (
     <group>
-      {/* The glass wall: three panes with the garden painted behind them,
-          linen curtains on a rail, and trees outside for parallax. */}
+      {/* The glass wall: the garden well behind it for parallax, three sheets
+          of glass with a faint reflection, linen curtains on a rail. */}
       {stage >= 1 ? (
-        <mesh geometry={g.pane} material={pane} position={[0, 1.3, -1.22]} />
+        <mesh geometry={g.garden} material={pane} position={[0, 1.9, -3.8]} />
       ) : null}
+      {[-1.6, 0, 1.6].map((x) => (
+        <mesh
+          key={x}
+          geometry={g.glass}
+          material={glassMat}
+          position={[x, 1.3, -1.2]}
+        />
+      ))}
       <group position={[0, 1.32, -1.08]} {...curtainsThing}>
         <mesh ref={curtainL} geometry={curtainGeom} material={curtainMat} />
         <mesh ref={curtainR} geometry={curtainGeom} material={curtainMat} />
         <mesh geometry={g.rail} material={m.black} position={[0, 1.27, 0]} />
       </group>
-      {stage >= 2 ? (
-        <>
-          <mesh
-            geometry={g.ground}
-            material={m.grass}
-            rotation={[-Math.PI / 2, 0, 0]}
-            position={[0, -0.01, -6]}
-            receiveShadow
-          />
-          <instancedMesh
-            ref={trees}
-            args={[trunkGeom, trunkMat, TREES]}
-            frustumCulled={false}
-            castShadow
-          />
-          <instancedMesh
-            ref={canopies}
-            args={[canopyGeom, canopyMat, TREES]}
-            frustumCulled={false}
-            castShadow
-          />
-        </>
-      ) : null}
       {stage >= 2 ? (
         <instancedMesh
           ref={bulbs}

@@ -1,6 +1,12 @@
 "use client";
 
-import { CanvasTexture, RepeatWrapping, SRGBColorSpace } from "three";
+import {
+  CanvasTexture,
+  RepeatWrapping,
+  SRGBColorSpace,
+  Texture,
+  TextureLoader,
+} from "three";
 import {
   paintCity,
   paintGobo,
@@ -62,3 +68,16 @@ export const note = (text: string, color: string, font: string) =>
   make(128, 128, (c) => paintNote(c, text, color, font));
 export const neon = (text: string, color: string, font: string) =>
   make(512, 128, (c) => paintNeon(c, text, color, font));
+
+let gardenPromise: Promise<Texture> | null = null;
+/** The view beyond the glass: a tone-mapped slice of the bake's own meadow HDRI. */
+export function loadGarden(): Promise<Texture> {
+  gardenPromise ??= new TextureLoader()
+    .loadAsync("/models/garden.jpg")
+    .then((t) => {
+      t.colorSpace = SRGBColorSpace;
+      t.anisotropy = 8;
+      return t;
+    });
+  return gardenPromise;
+}

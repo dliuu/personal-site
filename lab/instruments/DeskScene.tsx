@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import {
   BoxGeometry,
+  Color,
   CylinderGeometry,
   Fog,
   Group,
@@ -52,6 +53,10 @@ const EISEN_PAPER =
   chapters.find((c) => c.id === "eisen")?.palette.paper ?? "#14161c";
 const INTRO_CHAPTER = chapters.findIndex((c) => c.scene === "desk");
 const FOG = new Fog("#e9dcc4", 9, 22);
+const FOG_DAY = new Color("#e9dcc4");
+const FOG_DUSK = new Color("#5a4a4a");
+const SUN_DAY = new Color("#ffe4c0");
+const SUN_DUSK = new Color("#ff9a60");
 const ESTABLISH_SECONDS = 2.5;
 const ESTABLISH_OFFSET = new Vector3(-0.7, 0.35, 1.3);
 
@@ -266,10 +271,17 @@ export function DeskScene() {
     // With the baked room in, sun and sky are already in the lightmap; the
     // real-time copies drop so dynamic things still get lit and shadowed
     // without doubling the room.
+    // Lamp on = evening: the sun drops low and warm, the sky dims, the fog
+    // darkens; the baked atlases crossfade in BakedRoom.
+    const ev = lit;
     const bakedK = room.baked ? 0.5 : 1;
-    if (hemi.current) hemi.current.intensity = room.baked ? 0.25 : 0.6;
+    if (hemi.current)
+      hemi.current.intensity = (room.baked ? 0.25 : 0.6) * (1 - 0.7 * ev);
+    FOG.color.copy(FOG_DAY).lerp(FOG_DUSK, ev);
     if (windowLight.current) {
-      windowLight.current.intensity = (room.curtainsOpen ? 2.4 : 1.2) * bakedK;
+      windowLight.current.color.copy(SUN_DAY).lerp(SUN_DUSK, ev);
+      windowLight.current.intensity =
+        (room.curtainsOpen ? 2.4 : 1.2) * bakedK * (1 - 0.8 * ev);
       if (windowTarget.current)
         windowLight.current.target = windowTarget.current;
     }

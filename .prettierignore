@@ -2,3 +2,4 @@
 node_modules
 public/geo/land.json
 public/draco/
+.claude/

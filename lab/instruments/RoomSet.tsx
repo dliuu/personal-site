@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+import type { Texture } from "three";
 import {
   BoxGeometry,
   CylinderGeometry,
@@ -10,7 +11,7 @@ import {
   TorusGeometry,
 } from "three";
 import { Plant } from "./Plant";
-import { note, photo, rug, spine, wood } from "./roomTextures";
+import { loadGarden, note, photo, rug, spine, wood } from "./roomTextures";
 import { useRoomStore } from "./useRoomStore";
 
 const mat = (color: string, roughness = 0.85, metalness = 0) =>
@@ -147,7 +148,27 @@ export function RoomSet({
   );
   const woodTex = useMemo(() => (stage >= 1 ? wood() : null), [stage]);
   const rugTex = useMemo(() => (stage >= 1 ? rug() : null), [stage]);
-  const photoTex = useMemo(() => (stage >= 1 ? photo() : null), [stage]);
+  const paintedPhoto = useMemo(() => (stage >= 1 ? photo() : null), [stage]);
+  // The framed photo is a corner of the garden outside, until a real one lands.
+  const [gardenPhoto, setGardenPhoto] = useState<Texture | null>(null);
+  useEffect(() => {
+    let on = true;
+    loadGarden().then(
+      (t) => {
+        if (!on) return;
+        const c = t.clone();
+        c.repeat.set(0.28, 0.42);
+        c.offset.set(0.36, 0.3);
+        c.needsUpdate = true;
+        setGardenPhoto(c);
+      },
+      () => {},
+    );
+    return () => {
+      on = false;
+    };
+  }, []);
+  const photoTex = gardenPhoto ?? paintedPhoto;
   const spines = useMemo(
     () => (stage >= 1 ? BOOKS.map(([t, c]) => spine(t, c, fonts.fell)) : null),
     [stage, fonts.fell],
@@ -574,10 +595,16 @@ export function RoomSet({
           <group position={[-0.55, 0.9, -0.55]} rotation={[0, 0.35, 0]}>
             <mesh
               geometry={g.stem2}
+              visible={!baked}
               material={m.black}
               position={[0, -0.09, 0]}
             />
-            <mesh geometry={g.monitor2} material={m.black} castShadow />
+            <mesh
+              geometry={g.monitor2}
+              visible={!baked}
+              material={m.black}
+              castShadow
+            />
           </group>
           <group position={[0.45, 0.8, -0.55]}>
             <mesh geometry={g.penCup} material={m.terracotta} />
@@ -592,15 +619,17 @@ export function RoomSet({
             ))}
           </group>
           <group position={[0.34, 1.2, -0.42]} rotation={[0, 0, 0.2]}>
-            <mesh geometry={g.band} material={m.black} />
+            <mesh geometry={g.band} visible={!baked} material={m.black} />
             <mesh
               geometry={g.cup}
+              visible={!baked}
               material={m.black}
               position={[-0.075, 0, 0]}
               rotation={[0, 0, Math.PI / 2]}
             />
             <mesh
               geometry={g.cup}
+              visible={!baked}
               material={m.black}
               position={[0.075, 0, 0]}
               rotation={[0, 0, Math.PI / 2]}

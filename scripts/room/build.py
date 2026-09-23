@@ -172,6 +172,9 @@ M = {
     "steel": make_material("steel", color=(0.03, 0.03, 0.03, 1), roughness=0.45, metallic=0.6),
     "dark": make_material("dark", color=(0.05, 0.045, 0.04, 1), roughness=0.5, metallic=0.2),
     "door": make_material("door", textures="oak", tint=(0.85, 0.8, 0.72, 1), scale=1.0),
+    "alu": make_material("alu", color=(0.78, 0.78, 0.8, 1), roughness=0.32, metallic=1.0),
+    "plastic": make_material("plastic", color=(0.02, 0.02, 0.022, 1), roughness=0.38, metallic=0.0),
+    "leather": make_material("leather", color=(0.08, 0.06, 0.05, 1), roughness=0.55, metallic=0.0),
 }
 
 STATIC = []
@@ -196,21 +199,57 @@ def finish(obj, mat, uv_scale=1.0):
     return obj
 
 
-def box(name, size, center, mat, rot_y=0.0, uv_scale=1.0):
-    """A three.js box: size (w, h, d), centre (x, y, z), optional rotation about three's y."""
+def bevel(obj, width, segments=3):
+    """Round the edges (after applying scale, so the width is in metres) and smooth by angle."""
+    bpy.context.view_layer.objects.active = obj
+    bpy.ops.object.select_all(action="DESELECT")
+    obj.select_set(True)
+    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+    mod = obj.modifiers.new("bevel", "BEVEL")
+    mod.width = width
+    mod.segments = segments
+    mod.limit_method = "ANGLE"
+    bpy.ops.object.modifier_apply(modifier=mod.name)
+    try:
+        bpy.ops.object.shade_auto_smooth(angle=math.radians(40))
+    except Exception:
+        try:
+            bpy.ops.object.shade_smooth_by_angle(angle=math.radians(40))
+        except Exception:
+            pass
+
+
+def box(name, size, center, mat, rot_y=0.0, uv_scale=1.0, rot=None, bevel_w=0.0):
+    """A three.js box: size (w, h, d), centre (x, y, z), rotation about three's y (or a Blender euler)."""
     bpy.ops.mesh.primitive_cube_add(size=1, location=V(*center))
     obj = bpy.context.active_object
     obj.name = name
     obj.scale = (size[0], size[2], size[1])
-    obj.rotation_euler = (0, 0, rot_y)
+    obj.rotation_euler = rot if rot else (0, 0, rot_y)
+    if bevel_w:
+        bevel(obj, bevel_w)
     return finish(obj, mat, uv_scale)
 
 
-def cyl(name, r_top, r_bottom, h, center, mat, segments=32, uv_scale=1.0):
+def cyl(name, r_top, r_bottom, h, center, mat, segments=32, uv_scale=1.0, rot=None, bevel_w=0.0):
     bpy.ops.mesh.primitive_cone_add(radius1=r_bottom, radius2=r_top, depth=h, vertices=segments, location=V(*center))
     obj = bpy.context.active_object
     obj.name = name
+    if rot:
+        obj.rotation_euler = rot
+    if bevel_w:
+        bevel(obj, bevel_w)
     return finish(obj, mat, uv_scale)
+
+
+def torus(name, major, minor, center, mat, rot=None):
+    bpy.ops.mesh.primitive_torus_add(major_radius=major, minor_radius=minor, location=V(*center), major_segments=48, minor_segments=12)
+    obj = bpy.context.active_object
+    obj.name = name
+    if rot:
+        obj.rotation_euler = rot
+    bpy.ops.object.shade_smooth()
+    return finish(obj, mat)
 
 
 # ---------------------------------------------------------------- the room (three.js coordinates)
@@ -239,11 +278,23 @@ box("deskTop", (1.7, 0.035, 0.75), (0, 0.735, -0.36), M["oak"])
 box("deskLegL", (0.05, 0.72, 0.7), (-0.8, 0.36, -0.36), M["oak"])
 box("deskLegR", (0.05, 0.72, 0.7), (0.8, 0.36, -0.36), M["oak"])
 # The chair and lamp come from assets/room/props (see the manifest).
-box("monitorFoot", (0.28, 0.015, 0.16), (0, 0.76, -0.5), M["dark"])
-box("monitorStem", (0.05, 0.16, 0.04), (0, 0.84, -0.5), M["dark"])
-box("monitorPanel", (0.63, 0.37, 0.03), (0, 1.05, -0.46), M["dark"])
-box("keyboard", (0.44, 0.012, 0.15), (0, 0.759, -0.15), M["dark"])
-box("mouse", (0.06, 0.025, 0.1), (0.32, 0.765, -0.15), M["dark"])
+# The main monitor: a thin bevelled panel on an aluminium stem and foot; the
+# screen itself stays a real-time plane 5 mm in front of the panel face.
+box("monitorPanel", (0.63, 0.37, 0.018), (0, 1.05, -0.455), M["plastic"], bevel_w=0.004)
+box("monitorBack", (0.3, 0.2, 0.02), (0, 1.05, -0.474), M["alu"], bevel_w=0.004)
+box("monitorStem", (0.04, 0.2, 0.03), (0, 0.86, -0.48), M["alu"], bevel_w=0.006)
+box("monitorFoot", (0.26, 0.01, 0.16), (0, 0.755, -0.5), M["alu"], bevel_w=0.004)
+# A second, smaller monitor turned toward the man, switched off.
+box("monitor2Panel", (0.5, 0.3, 0.016), (-0.55, 0.9, -0.55), M["plastic"], rot_y=0.35, bevel_w=0.004)
+box("monitor2Stem", (0.035, 0.12, 0.03), (-0.55, 0.78, -0.57), M["alu"], rot_y=0.35, bevel_w=0.005)
+box("monitor2Foot", (0.2, 0.01, 0.13), (-0.55, 0.755, -0.58), M["alu"], rot_y=0.35, bevel_w=0.004)
+# Keyboard base (the keys are real time so they can press) and a rounded mouse.
+box("keyboardBase", (0.44, 0.014, 0.15), (0, 0.757, -0.15), M["alu"], bevel_w=0.004)
+box("mouse", (0.062, 0.032, 0.11), (0.32, 0.766, -0.15), M["plastic"], bevel_w=0.012)
+# Headphones hung on the monitor's corner: a band and two leather cups.
+torus("headBand", 0.08, 0.009, (0.34, 1.2, -0.42), M["plastic"], rot=(math.pi / 2, -0.2, 0))
+cyl("cupL", 0.036, 0.036, 0.03, (0.265, 1.2, -0.42), M["leather"], segments=24, rot=(0, math.pi / 2, 0), bevel_w=0.006)
+cyl("cupR", 0.036, 0.036, 0.03, (0.415, 1.2, -0.42), M["leather"], segments=24, rot=(0, math.pi / 2, 0), bevel_w=0.006)
 cyl("cushion", 0.28, 0.3, 0.12, (1.75, 0.06, 0.25), M["terracotta"], segments=24, uv_scale=0.5)
 cyl("standTop", 0.16, 0.16, 0.02, (-1.9, 0.5, 0.6), M["oak"], segments=20)
 for i in range(3):
@@ -292,6 +343,11 @@ if manifest.exists():
                 print("decimated", o.name, n, "->", len(o.data.polygons))
         for o in meshes:
             o.name = entry["file"].split("/")[0] + "_" + o.name
+            # A scan's own UV layout is already a clean atlas; copying it into
+            # the lightmap channel keeps its few large islands. Re-projecting a
+            # 40k-triangle leaf mesh makes tens of thousands of slivers that
+            # sink the packed atlas for everything.
+            o["prop"] = True
             if not o.data.uv_layers.get("lightmap"):
                 o.data.uv_layers.new(name="lightmap")
             for slot in o.material_slots:
@@ -332,6 +388,28 @@ wtex = wn.nodes.new("ShaderNodeTexCoord")
 wn.links.new(wtex.outputs["Generated"], wmap.inputs["Vector"])
 wn.links.new(wmap.outputs["Vector"], env.inputs["Vector"])
 
+# The view through the glass, for the app: a 120° × 60° slice of the same
+# meadow, centred on the direction beyond the glass wall (u = 0.5 after the
+# 90° turn), from 15° below the horizon to 45° above, tone-mapped like the bake.
+hdri4k = fetch(f"{PH}/HDRIs/hdr/4k/{HDRI[0]}_4k.hdr", CACHE / f"{HDRI[0]}_4k.hdr")
+big = bpy.data.images.load(str(hdri4k), check_existing=True)
+W4, H4 = big.size
+px4 = np.array(big.pixels[:], dtype=np.float32).reshape(H4, W4, 4)
+c0, c1 = int(W4 * (0.5 - 1 / 6)), int(W4 * (0.5 + 1 / 6))
+r0, r1 = int(H4 * (0.5 - 15 / 180)), int(H4 * (0.5 + 45 / 180))
+crop = px4[r0:r1, c0:c1].copy()
+crop[:, :, :3] *= 1.1
+crop[:, :, 3] = 1
+garden = bpy.data.images.new("garden", c1 - c0, r1 - r0, float_buffer=True)
+garden.pixels.foreach_set(crop.ravel())
+garden.update()
+scene.render.image_settings.file_format = "JPEG"
+scene.render.image_settings.quality = 86
+scene.render.image_settings.color_mode = "RGB"
+garden.save_render(str(OUT / "garden.jpg"), scene=scene)
+print("garden", (OUT / "garden.jpg").stat().st_size, c1 - c0, r1 - r0)
+bpy.data.images.remove(big)
+
 sun_data = bpy.data.lights.new("sun", "SUN")
 sun_data.energy = 4.0
 sun_data.angle = math.radians(2.5)
@@ -348,13 +426,21 @@ sun.rotation_euler = direction.to_track_quat("-Z", "Y").to_euler()
 # ---------------------------------------------------------------- lightmap UVs: unwrap each, pack across all
 for obj in STATIC:
     obj.data.uv_layers.active = obj.data.uv_layers["lightmap"]
+built = [o for o in STATIC if not o.get("prop")]
+bpy.ops.object.select_all(action="DESELECT")
+for obj in built:
+    obj.select_set(True)
+bpy.context.view_layer.objects.active = built[0]
+bpy.ops.object.mode_set(mode="EDIT")
+bpy.ops.mesh.select_all(action="SELECT")
+bpy.ops.uv.smart_project(angle_limit=math.radians(66), island_margin=0.003, scale_to_bounds=False)
+bpy.ops.object.mode_set(mode="OBJECT")
 bpy.ops.object.select_all(action="DESELECT")
 for obj in STATIC:
     obj.select_set(True)
 bpy.context.view_layer.objects.active = STATIC[0]
 bpy.ops.object.mode_set(mode="EDIT")
 bpy.ops.mesh.select_all(action="SELECT")
-bpy.ops.uv.smart_project(angle_limit=math.radians(66), island_margin=0.003, scale_to_bounds=False)
 bpy.ops.uv.select_all(action="SELECT")
 bpy.ops.uv.pack_islands(rotate=True, margin=0.004, margin_method="FRACTION")
 bpy.ops.object.mode_set(mode="OBJECT")
@@ -367,6 +453,7 @@ scene.render.bake.margin = 6
 scene.render.bake.use_clear = True
 bpy.ops.object.bake(type="DIFFUSE", pass_filter={"DIRECT", "INDIRECT"}, uv_layer="lightmap", margin=6, use_clear=True)
 print("baked")
+print("lightmap mean", round(float(np.mean(np.array(LIGHTMAP.pixels[:], dtype=np.float32)[0::4])), 3))
 
 # Store at half range so sunlit areas survive an 8-bit sRGB JPEG; the runtime uses lightMapIntensity 2.
 px = np.array(LIGHTMAP.pixels[:], dtype=np.float32).reshape(-1, 4)
@@ -387,7 +474,82 @@ for mat in bpy.data.materials:
     if mat.use_nodes and mat.node_tree.nodes.get("LIGHTMAP"):
         mat.node_tree.nodes["LIGHTMAP"].image = lm_img
 
-# ---------------------------------------------------------------- preview from the code's resting camera
+# ---------------------------------------------------------------- evening: the lamp toggle's second lightmap
+# Dusk outside, the desk lamp and the monitor lighting the room. Baked into a
+# second atlas the runtime blends toward when the lamp is switched on.
+LIGHTMAP2 = bpy.data.images.new("lightmap_evening_bake", LIGHTMAP_SIZE, LIGHTMAP_SIZE, float_buffer=True)
+LIGHTMAP2.colorspace_settings.name = "Non-Color"
+for mat in bpy.data.materials:
+    if mat.use_nodes and mat.node_tree.nodes.get("LIGHTMAP"):
+        mat.node_tree.nodes["LIGHTMAP"].image = LIGHTMAP2
+bg.inputs["Strength"].default_value = 0.09
+dusk = wn.nodes.new("ShaderNodeMix")
+dusk.data_type = "RGBA"
+dusk.blend_type = "MULTIPLY"
+dusk.inputs["Factor"].default_value = 1.0
+wn.links.new(env.outputs["Color"], dusk.inputs[6])
+dusk.inputs[7].default_value = (1.0, 0.55, 0.38, 1)
+wn.links.new(dusk.outputs[2], bg.inputs["Color"])
+sun_data.energy = 1.1
+sun_data.color = (1.0, 0.5, 0.25)
+sun.location = V(3.2, 0.7, -4.5)
+direction = mathutils.Vector(V(0, 0.6, 0.4)) - mathutils.Vector(V(3.2, 0.7, -4.5))
+sun.rotation_euler = direction.to_track_quat("-Z", "Y").to_euler()
+lamp_data = bpy.data.lights.new("lamp", "SPOT")
+lamp_data.energy = 28
+lamp_data.color = (1.0, 0.7, 0.42)
+lamp_data.spot_size = math.radians(95)
+lamp_data.spot_blend = 0.8
+lamp_data.shadow_soft_size = 0.05
+lamp = bpy.data.objects.new("lamp", lamp_data)
+scene.collection.objects.link(lamp)
+lamp.location = V(-0.47, 1.22, -0.46)
+ld = mathutils.Vector(V(0, 0.77, -0.15)) - mathutils.Vector(V(-0.47, 1.22, -0.46))
+lamp.rotation_euler = ld.to_track_quat("-Z", "Y").to_euler()
+mon_data = bpy.data.lights.new("monitor", "AREA")
+mon_data.energy = 5
+mon_data.color = (0.62, 0.76, 1.0)
+mon_data.shape = "RECTANGLE"
+mon_data.size = 0.58
+mon_data.size_y = 0.33
+mon = bpy.data.objects.new("monitor", mon_data)
+scene.collection.objects.link(mon)
+mon.location = V(0, 1.05, -0.43)
+mon.rotation_euler = (-math.pi / 2, 0, 0)
+bpy.ops.object.select_all(action="DESELECT")
+for obj in STATIC:
+    obj.select_set(True)
+bpy.context.view_layer.objects.active = STATIC[0]
+bpy.ops.object.bake(type="DIFFUSE", pass_filter={"DIRECT", "INDIRECT"}, uv_layer="lightmap", margin=6, use_clear=True)
+print("baked evening")
+px = np.array(LIGHTMAP2.pixels[:], dtype=np.float32).reshape(-1, 4)
+px[:, :3] = np.clip(px[:, :3] * 0.35, 0, 1)
+px[:, 3] = 1
+LIGHTMAP2.pixels.foreach_set(px.ravel())
+LIGHTMAP2.update()
+scene.render.image_settings.file_format = "JPEG"
+scene.render.image_settings.quality = 90
+lm2_path = OUT / "lightmap_evening.jpg"
+LIGHTMAP2.save_render(str(lm2_path), scene=scene)
+print("lightmap evening", lm2_path.stat().st_size)
+lm2_img = bpy.data.images.load(str(lm2_path))
+lm2_img.name = "lightmap_evening"
+for mat in bpy.data.materials:
+    if mat.use_nodes and mat.node_tree.nodes.get("LIGHTMAP"):
+        mat.node_tree.nodes["LIGHTMAP"].image = lm_img
+# A one-quad carrier so the exporter embeds the evening atlas as an emissive texture.
+bpy.ops.mesh.primitive_plane_add(size=0.01, location=V(0, -5, 0))
+carrier = bpy.context.active_object
+carrier.name = "lightmap_evening_carrier"
+cm = bpy.data.materials.new("lightmap_evening_carrier")
+cm.use_nodes = True
+cb = cm.node_tree.nodes["Principled BSDF"]
+ct = cm.node_tree.nodes.new("ShaderNodeTexImage")
+ct.image = lm2_img
+cm.node_tree.links.new(ct.outputs["Color"], cb.inputs["Emission Color"])
+cb.inputs["Emission Strength"].default_value = 1.0
+carrier.data.materials.append(cm)
+carrier.data.uv_layers.new(name="UVMap")
 if PREVIEW:
     cam_data = bpy.data.cameras.new("cam")
     cam_data.sensor_fit = "VERTICAL"
@@ -402,6 +564,23 @@ if PREVIEW:
     scene.render.resolution_y = 900
     scene.cycles.samples = 96
     scene.render.image_settings.file_format = "PNG"
+    scene.render.filepath = str(OUT / "preview_evening.png")
+    bpy.ops.render.render(write_still=True)
+    print("preview evening")
+    # Back to day for the main preview.
+    bpy.data.objects.remove(lamp)
+    bpy.data.objects.remove(mon)
+    wn.links.new(env.outputs["Color"], bg.inputs["Color"])
+    bg.inputs["Strength"].default_value = 1.3
+    sun_data.energy = 4.0
+    sun_data.color = (1.0, 0.9, 0.76)
+    sun.location = V(1.6, 3.2, -4.5)
+    direction = mathutils.Vector(V(0, 0.6, 0.4)) - mathutils.Vector(V(1.6, 3.2, -4.5))
+    sun.rotation_euler = direction.to_track_quat("-Z", "Y").to_euler()
+
+# ---------------------------------------------------------------- preview from the code's resting camera
+if PREVIEW:
+    scene.render.image_settings.file_format = "PNG"
     scene.render.filepath = str(OUT / "preview.png")
     bpy.ops.render.render(write_still=True)
     print("preview", scene.render.filepath)
@@ -410,6 +589,7 @@ if PREVIEW:
 bpy.ops.object.select_all(action="DESELECT")
 for obj in STATIC:
     obj.select_set(True)
+carrier.select_set(True)
 glb = OUT / "room.glb"
 bpy.ops.export_scene.gltf(
     filepath=str(glb),

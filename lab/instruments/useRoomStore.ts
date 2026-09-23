@@ -27,7 +27,7 @@ type RoomState = {
 export const useRoomStore = create<RoomState>()(
   persist(
     (set) => ({
-      lampOn: true,
+      lampOn: false,
       soundOn: false,
       curtainsOpen: true,
       catAwakeUntil: 0,
@@ -45,7 +45,7 @@ export const useRoomStore = create<RoomState>()(
       setBaked: (baked) => set({ baked }),
     }),
     {
-      name: "instruments-room-2",
+      name: "instruments-room-3",
       partialize: (s) => ({
         lampOn: s.lampOn,
         soundOn: s.soundOn,
