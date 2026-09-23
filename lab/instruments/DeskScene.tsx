@@ -144,7 +144,7 @@ export function DeskScene() {
         : mat("#b89b74", 0.6),
       dark: mat("#2a2724", 0.5, 0.2),
       metal: mat("#8c8c94", 0.35, 0.8),
-      fabric: mat("#7a8b6a", 0.95),
+      fabric: mat("#2a2b30", 0.95),
       mug: mat("#d9cdb8", 0.5),
       brass: mat("#b08d4f", 0.3, 0.9),
       bulb: new MeshStandardMaterial({
