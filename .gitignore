@@ -38,3 +38,4 @@ next-env.d.ts
 /assets/room/cache/
 /assets/room/out/
 /assets/room/props/*/
+/assets/avatar/

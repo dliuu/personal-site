@@ -519,7 +519,11 @@ export function DeskScene() {
         castShadow
       />
 
-      <Avatar ref={avatar} />
+      {/* The placeholder only stands in until the baked room brings the
+          seated figure with it. */}
+      <group visible={!baked}>
+        <Avatar ref={avatar} />
+      </group>
     </group>
   );
 }

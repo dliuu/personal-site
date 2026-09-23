@@ -279,25 +279,7 @@ box("benchLegR", (0.04, 0.4, 0.3), (1.95, 0.2, -0.95), M["oak"])
 box("deskTop", (1.7, 0.035, 0.75), (0, 0.735, -0.36), M["oak"])
 box("deskLegL", (0.05, 0.72, 0.7), (-0.8, 0.36, -0.36), M["oak"])
 box("deskLegR", (0.05, 0.72, 0.7), (0.8, 0.36, -0.36), M["oak"])
-# A task chair, modelled: five-star base on casters, gas lift, mesh seat and
-# tilted back, armrests, headrest. Facing the desk (back at +z).
-CH = (0, 0, 0.44)
-cyl("chairHub", 0.045, 0.045, 0.05, (CH[0], 0.07, CH[2]), M["plastic"], segments=20, bevel_w=0.006)
-for i in range(5):
-    a = i * 2 * math.pi / 5 + 0.3
-    box(f"chairArm{i}", (0.3, 0.028, 0.045), (CH[0] + math.cos(a) * 0.15, 0.05, CH[2] + math.sin(a) * 0.15), M["plastic"], rot_y=-a, bevel_w=0.006)
-    cyl(f"chairCaster{i}", 0.024, 0.024, 0.02, (CH[0] + math.cos(a) * 0.3, 0.024, CH[2] + math.sin(a) * 0.3), M["plastic"], segments=16, rot=(0, math.pi / 2, 0), bevel_w=0.005)
-cyl("chairLift", 0.032, 0.034, 0.1, (CH[0], 0.14, CH[2]), M["plastic"], segments=20)
-cyl("chairPiston", 0.02, 0.02, 0.24, (CH[0], 0.3, CH[2]), M["alu"], segments=16)
-box("chairSeatPan", (0.46, 0.03, 0.44), (CH[0], 0.42, CH[2]), M["plastic"], bevel_w=0.01)
-box("chairSeat", (0.47, 0.07, 0.45), (CH[0], 0.47, CH[2]), M["mesh"], bevel_w=0.03, uv_scale=0.3)
-box("chairBackFrame", (0.46, 0.6, 0.03), (CH[0], 0.83, CH[2] + 0.235), M["plastic"], rot=(-0.14, 0, 0), bevel_w=0.012)
-box("chairBack", (0.42, 0.56, 0.05), (CH[0], 0.83, CH[2] + 0.2), M["mesh"], rot=(-0.14, 0, 0), bevel_w=0.025, uv_scale=0.3)
-box("chairLumbar", (0.34, 0.12, 0.03), (CH[0], 0.66, CH[2] + 0.17), M["mesh"], rot=(-0.14, 0, 0), bevel_w=0.012, uv_scale=0.3)
-box("chairHeadrest", (0.28, 0.13, 0.05), (CH[0], 1.18, CH[2] + 0.28), M["mesh"], rot=(-0.22, 0, 0), bevel_w=0.02, uv_scale=0.3)
-for sx in (-1, 1):
-    box(f"chairArmPost{sx}", (0.03, 0.2, 0.04), (CH[0] + sx * 0.25, 0.56, CH[2] + 0.06), M["plastic"], bevel_w=0.006)
-    box(f"chairArmRest{sx}", (0.065, 0.022, 0.26), (CH[0] + sx * 0.25, 0.67, CH[2] + 0.02), M["plastic"], bevel_w=0.008)
+# The seated figure arrives with its own chair (assets/room/props/dev_figure).
 # The lamp comes from assets/room/props (see the manifest).
 # The main monitor: a thin bevelled panel on an aluminium stem and foot; the
 # screen itself stays a real-time plane 5 mm in front of the panel face.
