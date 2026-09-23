@@ -22,6 +22,17 @@ export const plateState = {
   reveal: 0,
   /** Camera for this frame of the plate: mech yaw, elevation (rad), distance as a multiple of the sphere radius. */
   cam: { yaw: 0, el: 0, k: 3.1 },
+  /**
+   * The screen a dive plate flies into, written by its instrument each frame
+   * (world space, one frame behind the mech rotation; CAM_LERP hides it):
+   * the screen's centre, its outward normal and its half-height.
+   */
+  dive: {
+    pos: new Vector3(),
+    normal: new Vector3(0, 0, 1),
+    halfHeight: 0.1,
+    halfWidth: 0.13,
+  },
   /** Camera for the intro scene, written by DeskScene each frame it is active. */
   introCam: {
     pos: new Vector3(-1.6, 1.5, 2.6),

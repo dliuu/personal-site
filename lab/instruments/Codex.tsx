@@ -6,7 +6,7 @@ import { useSectionsStore } from "@/store/useSectionsStore";
 import { useRoomStore } from "./useRoomStore";
 import { beatAt } from "@/lib/beats";
 import { overlayOpacity } from "@/lib/introTimeline";
-import { chapters, sections, type Chapter } from "./chapters";
+import { chapters, plateSlots, sections, type Chapter } from "./chapters";
 import { links, profile, roles, type Role } from "./content";
 import { fell, script, ui } from "./fonts";
 
@@ -100,11 +100,12 @@ function PlateCaptions({
   sectionIndex: number;
 }) {
   const beats = chapter.plate?.beats ?? [];
-  const beat = useSectionsStore((s) =>
-    s.active === sectionIndex && s.kind === "plate"
-      ? beatAt(s.progress, beats.length).index
-      : -1,
-  );
+  const beat = useSectionsStore((s) => {
+    if (s.active !== sectionIndex || s.kind !== "plate") return -1;
+    // A dive plate's last slot has no caption.
+    const i = beatAt(s.progress, plateSlots(chapter)).index;
+    return i < beats.length ? i : -1;
+  });
   return (
     <div className="instruments-captions" aria-live="polite">
       {beats.map((b, i) => (
@@ -270,8 +271,9 @@ export function Codex() {
                 id={s.id}
                 data-kind="plate"
                 data-beats={c.plate?.beats.length ?? 0}
+                data-dive={c.plate?.exit === "dive" ? "1" : undefined}
                 className="instruments-plate"
-                style={{ minHeight: `${(c.plate?.beats.length ?? 0) * 90}vh` }}
+                style={{ minHeight: `${plateSlots(c) * 90}vh` }}
                 ref={(el) => {
                   els.current[i] = el;
                 }}

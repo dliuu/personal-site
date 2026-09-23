@@ -10,6 +10,7 @@ import {
   LOG_LINES,
   logLines,
   MAX_CHARS,
+  PAGE_Y,
   printedLines,
   screenDim,
   screenScroll,
@@ -94,6 +95,7 @@ describe("atlas layout", () => {
       seen.add(k);
     });
     expect(STATUS_Y).toBe(VERDICT_Y + 2 * STRIP_STRIDE);
-    expect(ATLAS_H).toBe(STATUS_Y + STATUS_STRIPS * STRIP_STRIDE);
+    expect(PAGE_Y).toBe(STATUS_Y + STATUS_STRIPS * STRIP_STRIDE);
+    expect(ATLAS_H).toBe(PAGE_Y + VIEW_LINES * LINE_H);
   });
 });

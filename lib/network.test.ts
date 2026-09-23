@@ -120,5 +120,7 @@ describe("edgeDraw and pillarRise", () => {
     expect(pillarRise(true, 2, 0.4, 0, 6)).toBeGreaterThan(
       pillarRise(true, 2, 0.4, 5, 6),
     );
+    // A later slot (the dive) keeps them up.
+    expect(pillarRise(true, 3, 0, 5, 6)).toBe(1);
   });
 });

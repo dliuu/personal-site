@@ -100,6 +100,12 @@ async function main() {
             const scene = await page.$eval(`section[id="${ids[i]}"]`, (e) =>
               Boolean(e.dataset.scene),
             );
+            // A dive plate has one slot past its beats: two frames of the
+            // fly-in, mid-way and just before the cut.
+            const dive = await page.$eval(`section[id="${ids[i]}"]`, (e) =>
+              Boolean(e.dataset.dive),
+            );
+            const slots = beats + (dive ? 1 : 0);
             const fracs = scene
               ? [0.02, 0.2, 0.45, 0.75, 0.97]
               : beats > 0
@@ -107,8 +113,11 @@ async function main() {
                     0.02,
                     ...Array.from(
                       { length: beats },
-                      (_, b) => (b + 0.6) / beats,
+                      (_, b) => (b + 0.6) / slots,
                     ),
+                    ...(dive
+                      ? [(beats + 0.5) / slots, (beats + 0.95) / slots]
+                      : []),
                     0.98,
                   ]
                 : [0.1, 0.4, 0.7, 0.82, 0.95];
@@ -118,7 +127,9 @@ async function main() {
                   ? "in"
                   : j === fracs.length - 1
                     ? "out"
-                    : `b${j - 1}`
+                    : j - 1 < beats
+                      ? `b${j - 1}`
+                      : `d${j - 1 - beats}`
                 : `p${Math.round(f * 100)}`;
             for (const [j, f] of fracs.entries()) {
               await page.evaluate(

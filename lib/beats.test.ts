@@ -48,6 +48,11 @@ describe("expandAmount", () => {
     expect(expandAmount(0.94)).toBe(1);
     expect(expandAmount(0.06)).toBeCloseTo(0.5, 2);
   });
+  it("never shrinks back for a dive plate", () => {
+    expect(expandAmount(0, true)).toBe(0);
+    expect(expandAmount(0.97, true)).toBe(1);
+    expect(expandAmount(1, true)).toBe(1);
+  });
 });
 describe("smooth", () => {
   it("clamps and eases", () => {

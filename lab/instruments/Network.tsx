@@ -54,16 +54,18 @@ import {
 import { lerp } from "@/lib/progress";
 import { useLabStore } from "@/store/useLabStore";
 import { Callouts } from "./Callouts";
-import { chapters, eisenBeats, sections } from "./chapters";
+import { chapters, eisenBeats, plateSlots, sections } from "./chapters";
 import { EdgedModeContext } from "./Instruments";
 import { plateState } from "./plateState";
 import {
   screenAttributes,
   screenMaterial,
+  setPage,
   setStatus,
   setTemplate,
   terminalAtlas,
 } from "./terminalAtlas";
+import { smooth } from "@/lib/beats";
 
 /**
  * The Eisen hero: the software factory as an orchestrator-worker network on
@@ -128,6 +130,14 @@ const FACE_OUT = WORKERS.map((w) => Math.PI / 2 - Math.atan2(w.z, w.x));
  * 210° for lon 150.
  */
 const WORKER_ANCHOR = WORKERS.find((w) => w.orch === 3 && w.slot === 6)!;
+/**
+ * The dive target: beat iii faces lon 150, so this worker near 210°
+ * (orchestrator 2, slot 0) faces the camera when the plate's last slot
+ * begins. Its screen shows the page and the card grows as the camera comes.
+ */
+const DIVE_I = WORKERS.findIndex((w) => w.orch === 2 && w.slot === 0);
+const DIVE_GROW = 2.5;
+const EISEN_CHAPTER = chapters.find((c) => c.instrument === "network")!;
 const PILLAR_ANCHOR = 7;
 const ANCHORS: (Vector3 | null)[] = [
   new Vector3(ORCHS[0].x, ORCHS[0].y + 0.06, ORCHS[0].z),
@@ -238,6 +248,7 @@ export function Network({ mech }: { mech: RefObject<Group | null> }) {
       card: new BoxGeometry(CARD.w, CARD.h, CARD.d),
       screen,
       screenState: sa.state,
+      screenOrigin: sa.origin,
       status,
       statusOrigin: st.origin,
       pillar,
@@ -308,6 +319,7 @@ export function Network({ mech }: { mech: RefObject<Group | null> }) {
   }, []);
   const tmpColour = useMemo(() => new Color(), []);
   const tmpVec = useMemo(() => new Vector3(), []);
+  const tmpVec2 = useMemo(() => new Vector3(), []);
   const orchs = useRef<InstancedMesh>(null);
   const eyes = useRef<InstancedMesh>(null);
   const statuses = useRef<InstancedMesh>(null);
@@ -333,6 +345,8 @@ export function Network({ mech }: { mech: RefObject<Group | null> }) {
     const { reducedMotion } = useLabStore.getState();
     const active = plateState.instrument === "network";
     const { beat, t, expand } = plateState;
+    // The plate's last slot, past its beats, is the dive.
+    const diving = active && beat >= eisenBeats.length;
     const time = reducedMotion ? STILL_TIME : clock.elapsedTime;
     // In the band the factory leans toward the reader so its floor reads as
     // a floor; the plate levels it and lets the camera do the looking.
@@ -362,14 +376,35 @@ export function Network({ mech }: { mech: RefObject<Group | null> }) {
         const draw = edgeDraw(active, beat, t, w.rank, N);
         const { generation, f } = cycleAt(time, w.phase);
         const ok = passes(w.seed, generation);
-        const s = workerScale(f) * draw;
-        const glowV = verdictGlow(f);
+        // The dive target holds through the plate's last slot: it never
+        // tears down, its screen is the page, and it grows to meet the camera.
+        const isDive = diving && i === DIVE_I;
+        const s = isDive
+          ? draw * lerp(1, DIVE_GROW, smooth(0, 0.6, t))
+          : workerScale(f) * draw;
+        const glowV = isDive ? 0 : verdictGlow(f);
         dummy.position.set(w.x, w.y, w.z);
         dummy.rotation.set(CARD.tilt, FACE_OUT[i], 0);
         dummy.scale.setScalar(Math.max(1e-4, s));
         dummy.updateMatrix();
         cards.current.setMatrixAt(i, dummy.matrix);
         screens.current.setMatrixAt(i, dummy.matrix);
+        if (i === DIVE_I) {
+          if (isDive) setPage(g.screenOrigin, i);
+          else setTemplate(g.screenOrigin, i, TASK_OF[i]);
+          // Publish the screen for the camera: its centre, outward normal
+          // and half extents in world units (one frame behind the mech).
+          const { pos, normal } = plateState.dive;
+          tmpVec2.set(0, 0, CARD.d / 2 + 0.002).applyMatrix4(dummy.matrix);
+          screens.current.localToWorld(pos.copy(tmpVec2));
+          normal
+            .set(0, 0, 1)
+            .applyQuaternion(dummy.quaternion)
+            .transformDirection(screens.current.matrixWorld);
+          const ws = screens.current.getWorldScale(tmpVec2).x * s;
+          plateState.dive.halfHeight = (SCREEN_H / 2) * ws;
+          plateState.dive.halfWidth = (SCREEN_W / 2) * ws;
+        }
         // The slab: a cool white while it runs; green or red at the verdict,
         // brighter in beat 1 where the criteria are the story.
         tmpColour
@@ -383,16 +418,20 @@ export function Network({ mech }: { mech: RefObject<Group | null> }) {
         cards.current.setColorAt(i, tmpColour);
         // The screen: the log streams in, the verdict row prints, then it
         // goes dark through teardown.
-        const printed = printedLines(f);
+        const printed = isDive ? 99 : printedLines(f);
         g.screenState.setXYZ(
           i,
-          screenScroll(printed),
+          isDive ? 0 : screenScroll(printed),
           printed,
-          verdictCode(f, ok),
+          isDive ? 0 : verdictCode(f, ok),
         );
+        // The page is drawn at exactly its paper colour, so the cut behind
+        // the filled screen lands on the same paper.
         screens.current.setColorAt(
           i,
-          tmpColour.setScalar(screenDim(f) * (1.1 + 0.5 * e.orchestrators)),
+          tmpColour.setScalar(
+            isDive ? 1 : screenDim(f) * (1.1 + 0.5 * e.orchestrators),
+          ),
         );
         // The edge from the orchestrator draws out to the slot with the wave.
         edgePos.setXYZ(i * 2, o.x, o.y, o.z);
@@ -445,6 +484,7 @@ export function Network({ mech }: { mech: RefObject<Group | null> }) {
       if (screens.current.instanceColor)
         screens.current.instanceColor.needsUpdate = true;
       g.screenState.needsUpdate = true;
+      g.screenOrigin.needsUpdate = true;
       edgePos.needsUpdate = true;
       pktPos.needsUpdate = true;
       pktCol.needsUpdate = true;
@@ -604,6 +644,7 @@ export function Network({ mech }: { mech: RefObject<Group | null> }) {
             beats={eisenBeats}
             anchors={ANCHORS}
             sectionIndex={EISEN_PLATE}
+            slots={plateSlots(EISEN_CHAPTER)}
             palette={EISEN_PALETTE}
           />
         </group>

@@ -16,7 +16,12 @@ export type Chapter = {
   note: string;
   spin: number;
   palette: { paper: string; ink: string; accent: string };
-  plate?: { beats: PlateBeat[] };
+  /**
+   * A plate scrubs beats; with `exit: "dive"` it gains one more slot in which
+   * the camera flies into the hero (a screen showing the next page) and the
+   * next section is cut to behind the fill instead of shrinking back.
+   */
+  plate?: { beats: PlateBeat[]; exit?: "dive" };
   /** A full-screen scene instead of a text chapter: the chapter is its plate. */
   scene?: "desk";
   /** Presented as a screen (the desktop inside the intro's monitor): drawn raw, never engraved. */
@@ -148,7 +153,7 @@ export const chapters: Chapter[] = [
     // Eisen is the desktop inside the intro's monitor: a screen, not a page.
     palette: { paper: "#14161c", ink: "#e6e9ef", accent: "#7fb0ff" },
     screen: true,
-    plate: { beats: eisenBeats },
+    plate: { beats: eisenBeats, exit: "dive" },
   },
   {
     id: "meta",
@@ -187,14 +192,26 @@ export type Section = {
   id: string;
   chapter: number;
   kind: "chapter" | "plate";
+  dive?: boolean;
 };
-export const sections: Section[] = chapters.flatMap((c, i) =>
+export const sections: Section[] = chapters.flatMap((c, i): Section[] =>
   c.scene
     ? [{ id: `${c.id}-plate`, chapter: i, kind: "plate" as const }]
     : c.plate
       ? [
           { id: c.id, chapter: i, kind: "chapter" as const },
-          { id: `${c.id}-plate`, chapter: i, kind: "plate" as const },
+          {
+            id: `${c.id}-plate`,
+            chapter: i,
+            kind: "plate" as const,
+            dive: c.plate.exit === "dive",
+          },
         ]
       : [{ id: c.id, chapter: i, kind: "chapter" as const }],
 );
+
+/** Scroll slots in a chapter's plate: its beats, plus one for a dive. */
+export function plateSlots(c: Chapter): number {
+  if (!c.plate) return 0;
+  return c.plate.beats.length + (c.plate.exit === "dive" ? 1 : 0);
+}

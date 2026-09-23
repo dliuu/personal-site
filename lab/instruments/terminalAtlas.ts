@@ -14,6 +14,7 @@ import {
   header,
   LINE_H,
   logLines,
+  PAGE_Y,
   STATUS_STRIPS,
   STATUS_Y,
   statusText,
@@ -21,7 +22,10 @@ import {
   taskTemplates,
   templateOrigin,
   VERDICT_Y,
+  VIEW_LINES,
 } from "@/lib/terminal";
+import { chapters } from "./chapters";
+import { roomFonts } from "./roomTextures";
 
 /**
  * The worker screens: one canvas atlas of every task's terminal column, the
@@ -37,7 +41,10 @@ const TEXT = "#c9d3e0";
 const FONT = "600 17px ui-monospace, Menlo, Consolas, monospace";
 const PAD = 10;
 
-export function paintTerminalAtlas(ctx: CanvasRenderingContext2D): void {
+export function paintTerminalAtlas(
+  ctx: CanvasRenderingContext2D,
+  codexFont = "Georgia, serif",
+): void {
   ctx.fillStyle = SCREEN_BG;
   ctx.fillRect(0, 0, ATLAS_W, ATLAS_H);
   ctx.font = FONT;
@@ -89,13 +96,31 @@ export function paintTerminalAtlas(ctx: CanvasRenderingContext2D): void {
     ctx.fillStyle = s === STATUS_STRIPS - 1 ? "#ff6b5e" : "#9cc0ff";
     ctx.fillText(statusText(s), COL_W / 2, y);
   }
+
+  // The page: the codex's next chapter on its own paper, in its own face,
+  // so the screen the plate dives into matches the band it cuts to.
+  const pageH = VIEW_LINES * LINE_H;
+  ctx.fillStyle = PAGE.palette.paper;
+  ctx.fillRect(0, PAGE_Y, COL_W, pageH);
+  ctx.textAlign = "left";
+  ctx.fillStyle = PAGE.palette.accent;
+  ctx.font = `20px ${codexFont}`;
+  ctx.fillText(`Chapter ${PAGE.numeral}`, 24, PAGE_Y + 52);
+  ctx.fillStyle = PAGE.palette.ink;
+  ctx.font = `72px ${codexFont}`;
+  ctx.fillText(PAGE.title, 22, PAGE_Y + 128);
+  ctx.fillStyle = PAGE.palette.accent;
+  ctx.fillRect(24, PAGE_Y + 146, 96, 2);
 }
+
+/** The chapter the Eisen plate's page shows: the one after it. */
+const PAGE = chapters[chapters.findIndex((c) => c.id === "eisen") + 1];
 
 export function terminalAtlas(): CanvasTexture {
   const c = document.createElement("canvas");
   c.width = ATLAS_W;
   c.height = ATLAS_H;
-  paintTerminalAtlas(c.getContext("2d")!);
+  paintTerminalAtlas(c.getContext("2d")!, roomFonts().fell);
   const t = new CanvasTexture(c);
   t.colorSpace = SRGBColorSpace;
   t.anisotropy = 8;
@@ -122,6 +147,11 @@ export function setTemplate(
 ): void {
   const o = templateOrigin(t);
   origin.setXY(i, o.x / ATLAS_W, 1 - o.y / ATLAS_H);
+}
+
+/** Point instance i's window at the page. */
+export function setPage(origin: InstancedBufferAttribute, i: number): void {
+  origin.setXY(i, 0, 1 - PAGE_Y / ATLAS_H);
 }
 
 /** Point instance i's one-line window at status strip `s`. */

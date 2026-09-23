@@ -185,5 +185,6 @@ export function pillarRise(
   count: number,
 ): number {
   if (!active || beat < 2) return PILLAR_REST;
+  if (beat > 2) return 1;
   return PILLAR_REST + (1 - PILLAR_REST) * stagger(t, i, count, 0.5);
 }
