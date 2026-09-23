@@ -382,8 +382,15 @@ wn = world.node_tree
 env = wn.nodes.new("ShaderNodeTexEnvironment")
 env.image = load_image(hdri_path)
 bg = wn.nodes["Background"]
-bg.inputs["Strength"].default_value = 1.3
-wn.links.new(env.outputs["Color"], bg.inputs["Color"])
+# Pass 1 is night: the sky is almost nothing, deep and blue.
+bg.inputs["Strength"].default_value = 0.02
+night_tint = wn.nodes.new("ShaderNodeMix")
+night_tint.data_type = "RGBA"
+night_tint.blend_type = "MULTIPLY"
+night_tint.inputs["Factor"].default_value = 1.0
+night_tint.inputs[7].default_value = (0.35, 0.5, 1.0, 1)
+wn.links.new(env.outputs["Color"], night_tint.inputs[6])
+wn.links.new(night_tint.outputs[2], bg.inputs["Color"])
 # Turn the HDRI so its brighter half sits beyond the glass wall (-z in three = +y here).
 wmap = wn.nodes.new("ShaderNodeMapping")
 wmap.inputs["Rotation"].default_value = (0, 0, math.radians(90))
@@ -413,8 +420,41 @@ garden.save_render(str(OUT / "garden.jpg"), scene=scene)
 print("garden", (OUT / "garden.jpg").stat().st_size, c1 - c0, r1 - r0)
 bpy.data.images.remove(big)
 
+# The practicals, lit in both moods: the desk lamp, the monitor, and the
+# string bulbs along the glass header.
+lamp_data = bpy.data.lights.new("lamp", "SPOT")
+lamp_data.energy = 28
+lamp_data.color = (1.0, 0.7, 0.42)
+lamp_data.spot_size = math.radians(95)
+lamp_data.spot_blend = 0.8
+lamp_data.shadow_soft_size = 0.05
+lamp = bpy.data.objects.new("lamp", lamp_data)
+scene.collection.objects.link(lamp)
+lamp.location = V(-0.47, 1.22, -0.46)
+_ld = mathutils.Vector(V(0, 0.77, -0.15)) - mathutils.Vector(V(-0.47, 1.22, -0.46))
+
+mon_data = bpy.data.lights.new("monitor", "AREA")
+mon_data.energy = 5
+mon_data.color = (0.62, 0.76, 1.0)
+mon_data.shape = "RECTANGLE"
+mon_data.size = 0.58
+mon_data.size_y = 0.33
+mon = bpy.data.objects.new("monitor", mon_data)
+scene.collection.objects.link(mon)
+mon.location = V(0, 1.05, -0.43)
+mon.rotation_euler = (-math.pi / 2, 0, 0)
+
+for i in range(6):
+    b = bpy.data.lights.new(f"bulb{i}", "POINT")
+    b.energy = 1.6
+    b.color = (1.0, 0.76, 0.5)
+    b.shadow_soft_size = 0.02
+    bo = bpy.data.objects.new(f"bulb{i}", b)
+    scene.collection.objects.link(bo)
+    bo.location = V(-2.0 + i * 0.8, 2.44, -1.1)
+
 sun_data = bpy.data.lights.new("sun", "SUN")
-sun_data.energy = 4.0
+sun_data.energy = 0.0
 sun_data.angle = math.radians(2.5)
 sun_data.color = (1.0, 0.9, 0.76)
 sun = bpy.data.objects.new("sun", sun_data)
@@ -423,6 +463,7 @@ sun.location = V(1.6, 3.2, -4.5)
 # Aim at the code's target (0, 0.6, 0.4).
 import mathutils
 
+lamp.rotation_euler = _ld.to_track_quat("-Z", "Y").to_euler()
 direction = mathutils.Vector(V(0, 0.6, 0.4)) - mathutils.Vector(V(1.6, 3.2, -4.5))
 sun.rotation_euler = direction.to_track_quat("-Z", "Y").to_euler()
 
@@ -480,51 +521,24 @@ for mat in bpy.data.materials:
 # ---------------------------------------------------------------- evening: the lamp toggle's second lightmap
 # Dusk outside, the desk lamp and the monitor lighting the room. Baked into a
 # second atlas the runtime blends toward when the lamp is switched on.
-LIGHTMAP2 = bpy.data.images.new("lightmap_evening_bake", LIGHTMAP_SIZE, LIGHTMAP_SIZE, float_buffer=True)
+LIGHTMAP2 = bpy.data.images.new("lightmap_dusk_bake", LIGHTMAP_SIZE, LIGHTMAP_SIZE, float_buffer=True)
 LIGHTMAP2.colorspace_settings.name = "Non-Color"
 for mat in bpy.data.materials:
     if mat.use_nodes and mat.node_tree.nodes.get("LIGHTMAP"):
         mat.node_tree.nodes["LIGHTMAP"].image = LIGHTMAP2
-bg.inputs["Strength"].default_value = 0.09
-dusk = wn.nodes.new("ShaderNodeMix")
-dusk.data_type = "RGBA"
-dusk.blend_type = "MULTIPLY"
-dusk.inputs["Factor"].default_value = 1.0
-wn.links.new(env.outputs["Color"], dusk.inputs[6])
-dusk.inputs[7].default_value = (1.0, 0.55, 0.38, 1)
-wn.links.new(dusk.outputs[2], bg.inputs["Color"])
-sun_data.energy = 1.1
+bg.inputs["Strength"].default_value = 0.5
+night_tint.inputs[7].default_value = (1.0, 0.62, 0.42, 1)
+sun_data.energy = 1.6
 sun_data.color = (1.0, 0.5, 0.25)
 sun.location = V(3.2, 0.7, -4.5)
 direction = mathutils.Vector(V(0, 0.6, 0.4)) - mathutils.Vector(V(3.2, 0.7, -4.5))
 sun.rotation_euler = direction.to_track_quat("-Z", "Y").to_euler()
-lamp_data = bpy.data.lights.new("lamp", "SPOT")
-lamp_data.energy = 28
-lamp_data.color = (1.0, 0.7, 0.42)
-lamp_data.spot_size = math.radians(95)
-lamp_data.spot_blend = 0.8
-lamp_data.shadow_soft_size = 0.05
-lamp = bpy.data.objects.new("lamp", lamp_data)
-scene.collection.objects.link(lamp)
-lamp.location = V(-0.47, 1.22, -0.46)
-ld = mathutils.Vector(V(0, 0.77, -0.15)) - mathutils.Vector(V(-0.47, 1.22, -0.46))
-lamp.rotation_euler = ld.to_track_quat("-Z", "Y").to_euler()
-mon_data = bpy.data.lights.new("monitor", "AREA")
-mon_data.energy = 5
-mon_data.color = (0.62, 0.76, 1.0)
-mon_data.shape = "RECTANGLE"
-mon_data.size = 0.58
-mon_data.size_y = 0.33
-mon = bpy.data.objects.new("monitor", mon_data)
-scene.collection.objects.link(mon)
-mon.location = V(0, 1.05, -0.43)
-mon.rotation_euler = (-math.pi / 2, 0, 0)
 bpy.ops.object.select_all(action="DESELECT")
 for obj in STATIC:
     obj.select_set(True)
 bpy.context.view_layer.objects.active = STATIC[0]
 bpy.ops.object.bake(type="DIFFUSE", pass_filter={"DIRECT", "INDIRECT"}, uv_layer="lightmap", margin=6, use_clear=True)
-print("baked evening")
+print("baked dusk")
 px = np.array(LIGHTMAP2.pixels[:], dtype=np.float32).reshape(-1, 4)
 px[:, :3] = np.clip(px[:, :3] * 0.35, 0, 1)
 px[:, 3] = 1
@@ -532,19 +546,19 @@ LIGHTMAP2.pixels.foreach_set(px.ravel())
 LIGHTMAP2.update()
 scene.render.image_settings.file_format = "JPEG"
 scene.render.image_settings.quality = 90
-lm2_path = OUT / "lightmap_evening.jpg"
+lm2_path = OUT / "lightmap_dusk.jpg"
 LIGHTMAP2.save_render(str(lm2_path), scene=scene)
-print("lightmap evening", lm2_path.stat().st_size)
+print("lightmap dusk", lm2_path.stat().st_size)
 lm2_img = bpy.data.images.load(str(lm2_path))
-lm2_img.name = "lightmap_evening"
+lm2_img.name = "lightmap_dusk"
 for mat in bpy.data.materials:
     if mat.use_nodes and mat.node_tree.nodes.get("LIGHTMAP"):
         mat.node_tree.nodes["LIGHTMAP"].image = lm_img
 # A one-quad carrier so the exporter embeds the evening atlas as an emissive texture.
 bpy.ops.mesh.primitive_plane_add(size=0.01, location=V(0, -5, 0))
 carrier = bpy.context.active_object
-carrier.name = "lightmap_evening_carrier"
-cm = bpy.data.materials.new("lightmap_evening_carrier")
+carrier.name = "lightmap_dusk_carrier"
+cm = bpy.data.materials.new("lightmap_dusk_carrier")
 cm.use_nodes = True
 cb = cm.node_tree.nodes["Principled BSDF"]
 ct = cm.node_tree.nodes.new("ShaderNodeTexImage")
@@ -567,24 +581,18 @@ if PREVIEW:
     scene.render.resolution_y = 900
     scene.cycles.samples = 96
     scene.render.image_settings.file_format = "PNG"
-    scene.render.filepath = str(OUT / "preview_evening.png")
+    scene.render.filepath = str(OUT / "preview_dusk.png")
     bpy.ops.render.render(write_still=True)
-    print("preview evening")
+    print("preview dusk")
     # Back to day for the main preview.
-    bpy.data.objects.remove(lamp)
-    bpy.data.objects.remove(mon)
-    wn.links.new(env.outputs["Color"], bg.inputs["Color"])
-    bg.inputs["Strength"].default_value = 1.3
-    sun_data.energy = 4.0
-    sun_data.color = (1.0, 0.9, 0.76)
-    sun.location = V(1.6, 3.2, -4.5)
-    direction = mathutils.Vector(V(0, 0.6, 0.4)) - mathutils.Vector(V(1.6, 3.2, -4.5))
-    sun.rotation_euler = direction.to_track_quat("-Z", "Y").to_euler()
+    bg.inputs["Strength"].default_value = 0.02
+    night_tint.inputs[7].default_value = (0.35, 0.5, 1.0, 1)
+    sun_data.energy = 0.0
 
 # ---------------------------------------------------------------- preview from the code's resting camera
 if PREVIEW:
     scene.render.image_settings.file_format = "PNG"
-    scene.render.filepath = str(OUT / "preview.png")
+    scene.render.filepath = str(OUT / "preview_night.png")
     bpy.ops.render.render(write_still=True)
     print("preview", scene.render.filepath)
 

@@ -16,11 +16,5 @@
     "position": [-0.55, 0.805, -0.52],
     "rotationY": 3.7,
     "scale": 0.55
-  },
-  {
-    "file": "dev_figure/dev_figure.gltf",
-    "position": [0.12, 0, 0.46],
-    "rotationY": 3.1416,
-    "scale": 1.2
   }
 ]

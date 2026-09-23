@@ -24,16 +24,15 @@ import { buildCurves, sampleAt, type Keyframe } from "@/lib/cameraPath";
 import { frameLerp } from "@/lib/drawIn";
 import {
   cameraU,
-  pose,
+  isTyping,
   screenDistance,
   screenFade,
-  STAND,
 } from "@/lib/introTimeline";
 import { lerp } from "@/lib/progress";
 import { useLabStore } from "@/store/useLabStore";
 import { useSectionsStore } from "@/store/useSectionsStore";
-import { Avatar, type AvatarHandle } from "./Avatar";
 import { BakedRoom } from "./BakedRoom";
+import { DevFigure } from "./DevFigure";
 import { chapters, sections } from "./chapters";
 import { Plant } from "./Plant";
 import { plateState } from "./plateState";
@@ -52,10 +51,10 @@ const SCREEN_C = new Vector3(0, 1.05, -0.44);
 const EISEN_PAPER =
   chapters.find((c) => c.id === "eisen")?.palette.paper ?? "#14161c";
 const INTRO_CHAPTER = chapters.findIndex((c) => c.scene === "desk");
-const FOG = new Fog("#e9dcc4", 9, 22);
-const FOG_DAY = new Color("#e9dcc4");
-const FOG_DUSK = new Color("#5a4a4a");
-const SUN_DAY = new Color("#ffe4c0");
+const FOG = new Fog("#141a28", 8, 20);
+const FOG_NIGHT = new Color("#141a28");
+const FOG_DUSK = new Color("#5a4437");
+const SUN_NIGHT = new Color("#6f86c4");
 const SUN_DUSK = new Color("#ff9a60");
 const ESTABLISH_SECONDS = 2.5;
 const ESTABLISH_OFFSET = new Vector3(-0.7, 0.35, 1.3);
@@ -85,7 +84,6 @@ function useStagedMount(stages: number): number {
 
 export function DeskScene() {
   const root = useRef<Group>(null);
-  const avatar = useRef<AvatarHandle>(null);
   const lamp = useRef<SpotLight>(null);
   const lampTarget = useRef<Group>(null);
   const windowLight = useRef<DirectionalLight>(null);
@@ -103,7 +101,6 @@ export function DeskScene() {
   const fonts = useMemo(() => roomFonts(), []);
   const typing = useRef(0);
   const lampLevel = useRef(1);
-  const headLook = useRef(0);
   const establish = useRef(-1);
   const audio = useRef<RoomAudio | null>(null);
   const ptr = useRef(new Vector3());
@@ -183,6 +180,7 @@ export function DeskScene() {
 
   // Sound: built on the first toggle (a user gesture), never before.
   const soundOn = useRoomStore((s) => s.soundOn);
+  const duskMode = useRoomStore((s) => s.duskMode);
   const curtainsOpen = useRoomStore((s) => s.curtainsOpen);
   const catAwakeUntil = useRoomStore((s) => s.catAwakeUntil);
   const baked = useRoomStore((s) => s.baked);
@@ -203,12 +201,16 @@ export function DeskScene() {
     audio.current?.setRain(curtainsOpen);
   }, [curtainsOpen]);
   useEffect(() => {
+    // Rain is a night thing; dusk is dry.
+    audio.current?.setRain(!duskMode);
+  }, [duskMode]);
+  useEffect(() => {
     if (catAwakeUntil) audio.current?.purr();
   }, [catAwakeUntil]);
   useEffect(() => () => audio.current?.dispose(), []);
 
-  const toggleLamp = useRoomStore((s) => s.toggleLamp);
-  const lampThing = useThing("the lamp", "click to switch", toggleLamp);
+  const toggleDusk = useRoomStore((s) => s.toggleDusk);
+  const lampThing = useThing("the lamp", "click for dusk", toggleDusk);
   const puff = useRoomStore((s) => s.puff);
   const mugThing = useThing("the mug", "click for steam", puff);
 
@@ -230,21 +232,12 @@ export function DeskScene() {
     const t = clock.elapsedTime;
     const k = frameLerp(0.08, delta);
 
-    // The figure, with the head drawn toward the pointer.
-    const po = pose(p, t, reducedMotion);
-    headLook.current = lerp(
-      headLook.current,
-      reducedMotion ? 0 : -pointer.x * 0.35,
-      k,
-    );
-    po.headYaw += headLook.current * (1 - po.armRaiseR * 0.5);
-    avatar.current?.apply(po);
-    typing.current = p < STAND[0] ? 1 : 0;
+    typing.current = isTyping(p) ? 1 : 0;
 
     // The screen types at rest (4 Hz redraw), freezes while scrolling, and
     // gives way to Eisen's colour at the seam.
     const fade = screenFade(p);
-    const resting = p < STAND[0];
+    const resting = isTyping(p);
     if (t - lastDraw.current > (resting ? 0.25 : 0.1) || fade > 0) {
       lastDraw.current = t;
       screen.draw(
@@ -257,31 +250,32 @@ export function DeskScene() {
     }
 
     // Lamp: on/off with a filament flicker; the gobo shapes the pool.
-    lampLevel.current = lerp(lampLevel.current, room.lampOn ? 1 : 0, k);
+    // 1 = night (lamp is the room), 0 = dusk.
+    lampLevel.current = lerp(lampLevel.current, room.duskMode ? 0 : 1, k);
     const lit = lampLevel.current;
     if (lamp.current) {
-      lamp.current.intensity = 14 * lit * (reducedMotion ? 1 : flicker(t));
+      lamp.current.intensity = (9 + 7 * lit) * (reducedMotion ? 1 : flicker(t));
       if (lampTarget.current) lamp.current.target = lampTarget.current;
       if (high && lamp.current.map !== goboTex) lamp.current.map = goboTex;
     }
-    m.bulb.emissiveIntensity = 3 * lit;
+    m.bulb.emissiveIntensity = 2 + 1.5 * lit;
     if (glow.current)
       glow.current.intensity =
         1.2 * (1 + (reducedMotion ? 0 : 0.04 * Math.sin(t * 11)));
     // With the baked room in, sun and sky are already in the lightmap; the
     // real-time copies drop so dynamic things still get lit and shadowed
     // without doubling the room.
-    // Lamp on = evening: the sun drops low and warm, the sky dims, the fog
-    // darkens; the baked atlases crossfade in BakedRoom.
-    const ev = lit;
+    // Night by default, dusk on the toggle. The lamp and monitor carry the
+    // room in both; the sky and the sun outside are what change.
+    const ev = 1 - lampLevel.current;
     const bakedK = room.baked ? 0.5 : 1;
     if (hemi.current)
-      hemi.current.intensity = (room.baked ? 0.25 : 0.6) * (1 - 0.7 * ev);
-    FOG.color.copy(FOG_DAY).lerp(FOG_DUSK, ev);
+      hemi.current.intensity = (room.baked ? 0.07 : 0.3) * (1 + 3 * ev);
+    FOG.color.copy(FOG_NIGHT).lerp(FOG_DUSK, ev);
     if (windowLight.current) {
-      windowLight.current.color.copy(SUN_DAY).lerp(SUN_DUSK, ev);
+      windowLight.current.color.copy(SUN_NIGHT).lerp(SUN_DUSK, ev);
       windowLight.current.intensity =
-        (room.curtainsOpen ? 2.4 : 1.2) * bakedK * (1 - 0.8 * ev);
+        (room.curtainsOpen ? 0.35 : 0.15) * bakedK * (1 + 5 * ev);
       if (windowTarget.current)
         windowLight.current.target = windowTarget.current;
     }
@@ -294,7 +288,7 @@ export function DeskScene() {
       plateState.introCam.pos,
       plateState.introCam.tgt,
     );
-    const rest = Math.max(0, 1 - p / STAND[0]);
+    const rest = Math.max(0, 1 - p / 0.08);
     if (!reducedMotion && rest > 0) {
       const [px, py] = parallax(pointer.x, pointer.y, size.width <= 720);
       ptr.current.set(
@@ -519,11 +513,7 @@ export function DeskScene() {
         castShadow
       />
 
-      {/* The placeholder only stands in until the baked room brings the
-          seated figure with it. */}
-      <group visible={!baked}>
-        <Avatar ref={avatar} />
-      </group>
+      <DevFigure />
     </group>
   );
 }

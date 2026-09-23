@@ -1,34 +1,43 @@
 import { smooth } from "./beats";
-import { lerp } from "./progress";
 
 /**
  * The intro plate on one scroll: rest (seated, typing) → stand and step beside
  * the desk → wave → the camera goes into the monitor. All pure functions of
  * plate progress p (0..1) so the scene can be scrubbed both ways.
  */
-export const STAND = [0.04, 0.32] as const;
-export const WAVE = [0.32, 0.58] as const;
-/** Camera keyframes sit at these progress values (rest, stood, over the desk, screen). */
+/** The greeting: the chair turns toward you, holds, then turns back. */
+export const SWIVEL = [0.08, 0.3] as const;
+export const SWIVEL_BACK = [0.55, 0.7] as const;
+/** How far the chair turns from facing the desk, in radians. */
+export const SWIVEL_TURN = -2.6;
+/** Camera keyframes sit at these progress values (rest, greeted, over the desk, screen). */
 export const CAMERA_KEYS = [0, 0.32, 0.7, 1] as const;
 
-/** 0 seated → 1 standing. */
-export function standAmount(p: number): number {
-  return smooth(STAND[0], STAND[1], p);
-}
-/** 0 at the chair → 1 beside the desk, during the second half of standing. */
-export function stepAside(p: number): number {
-  return smooth(0.2, 0.42, p);
-}
-/** Envelope of the wave: up quickly, held, down before the camera leaves. */
-export function waveAmount(p: number): number {
+/** 0 facing the desk, 1 turned to the camera. */
+export function swivelAmount(p: number): number {
   return (
-    smooth(WAVE[0], WAVE[0] + 0.08, p) *
-    (1 - smooth(WAVE[1] - 0.06, WAVE[1], p))
+    smooth(SWIVEL[0], SWIVEL[1], p) *
+    (1 - smooth(SWIVEL_BACK[0], SWIVEL_BACK[1], p))
   );
 }
-/** Phase of the wave's back-and-forth, three swings across the beat. */
-export function wavePhase(p: number): number {
-  return ((p - WAVE[0]) / (WAVE[1] - WAVE[0])) * Math.PI * 2 * 3;
+/** A small bob and wobble while the greeting is held, so it is not a turntable. */
+export function greetBob(
+  p: number,
+  time: number,
+): { lift: number; tilt: number } {
+  const a = swivelAmount(p);
+  return {
+    lift: a * 0.012 * Math.sin(time * 3.1),
+    tilt: a * 0.05 * Math.sin(time * 2.3 + 0.7),
+  };
+}
+/** Idle breathing sway while he is working, in radians. */
+export function idleSway(time: number): number {
+  return 0.02 * Math.sin(time * 0.6);
+}
+/** He is typing while he still faces the desk. */
+export function isTyping(p: number): boolean {
+  return p < SWIVEL[0];
 }
 /** The name and line fade as he stands. */
 export function overlayOpacity(p: number): number {
@@ -57,45 +66,4 @@ export function screenDistance(
 ): number {
   const t = Math.tan((fovDeg * Math.PI) / 360);
   return Math.min(h / (2 * t), w / (2 * t * aspect));
-}
-
-export type Pose = {
-  rootX: number;
-  rootY: number;
-  rootZ: number;
-  rootYaw: number;
-  torsoPitch: number;
-  thigh: number;
-  shin: number;
-  upperArmL: number;
-  foreArmL: number;
-  upperArmR: number;
-  foreArmR: number;
-  armRaiseR: number;
-  waveR: number;
-  headYaw: number;
-};
-
-/** Joint targets for the placeholder figure at progress p; `time` drives the idle typing. */
-export function pose(p: number, time: number, reduced: boolean): Pose {
-  const s = standAmount(p);
-  const aside = stepAside(p);
-  const w = waveAmount(p);
-  const typing = reduced || p > STAND[0] ? 0 : Math.sin(time * 2 * Math.PI * 3);
-  return {
-    rootX: lerp(0, 1.05, aside),
-    rootY: lerp(0.47, 0.93, s),
-    rootZ: lerp(0.42, 0.75, aside),
-    rootYaw: lerp(0, Math.PI * 0.8, aside),
-    torsoPitch: lerp(0.12, 0, s),
-    thigh: lerp(Math.PI / 2, 0, s),
-    shin: lerp(-Math.PI / 2, 0, s),
-    upperArmL: lerp(0.35, 0.1, s),
-    foreArmL: lerp(1.2 + 0.05 * typing, 0.3, s),
-    upperArmR: lerp(0.35, 0.1, s),
-    foreArmR: lerp(1.2 - 0.05 * typing, 0.3, s),
-    armRaiseR: w,
-    waveR: w * 0.45 * Math.sin(wavePhase(p)),
-    headYaw: lerp(0, 0.35, w),
-  };
 }

@@ -28,3 +28,41 @@ export function crackleTimes(seed: number, span: number): number[] {
   }
   return out;
 }
+
+/** 72 BPM, two bars per chord, sixteen steps to the bar. */
+export const BPM = 72;
+export const STEPS_PER_BAR = 16;
+export const SECONDS_PER_STEP = 60 / BPM / 4;
+/** How far the off-eighths are pushed late, as a fraction of a step. */
+export const SWING = 0.16;
+
+/** Timing offset in seconds for a step, so the groove is not machine-straight. */
+export function swingOffset(step: number): number {
+  return step % 2 === 1 ? SECONDS_PER_STEP * SWING : 0;
+}
+
+export type Hit = { kick: boolean; snare: boolean; hat: number };
+
+/**
+ * One bar of a slow lofi groove: kick on 1 and the "and" of 3, snare on 2 and
+ * 4, hats on the eighths with a dropped one so it breathes. `bar` varies the
+ * fills without a second pattern.
+ */
+export function drumHits(step: number, bar = 0): Hit {
+  const s = ((step % STEPS_PER_BAR) + STEPS_PER_BAR) % STEPS_PER_BAR;
+  const kick = s === 0 || s === 10 || (bar % 4 === 3 && s === 14);
+  const snare = s === 4 || s === 12;
+  const hat =
+    s % 2 === 0 && !(s === 6 && bar % 2 === 1) ? (s % 4 === 0 ? 1 : 0.55) : 0;
+  return { kick, snare, hat };
+}
+
+/** The bass follows the chord root, an octave down, on the first and third beat. */
+export function bassNoteAt(chordIndex: number, step: number): number | null {
+  const s = ((step % STEPS_PER_BAR) + STEPS_PER_BAR) % STEPS_PER_BAR;
+  if (s !== 0 && s !== 8) return null;
+  const roots = [63, 68, 61, 58];
+  return (
+    roots[((chordIndex % roots.length) + roots.length) % roots.length] - 24
+  );
+}

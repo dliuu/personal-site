@@ -1,10 +1,15 @@
 "use client";
 
 import {
+  bassNoteAt,
   CHORD_SECONDS,
   chordAt,
   crackleTimes,
+  drumHits,
   midiToHz,
+  SECONDS_PER_STEP,
+  STEPS_PER_BAR,
+  swingOffset,
 } from "@/lib/roomAudio";
 
 /**
@@ -26,7 +31,16 @@ export function createRoomAudio(): RoomAudio {
   const ctx = new AudioContext();
   const master = ctx.createGain();
   master.gain.value = 0;
-  master.connect(ctx.destination);
+  // Tape: everything above 6 kHz rolled off, then squeezed a little.
+  const tone = ctx.createBiquadFilter();
+  tone.type = "lowpass";
+  tone.frequency.value = 6000;
+  const squash = ctx.createDynamicsCompressor();
+  squash.threshold.value = -18;
+  squash.ratio.value = 3;
+  squash.attack.value = 0.005;
+  squash.release.value = 0.25;
+  master.connect(tone).connect(squash).connect(ctx.destination);
 
   // Rain: noise → band-pass → slow swell.
   const noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
@@ -91,8 +105,103 @@ export function createRoomAudio(): RoomAudio {
     return pair;
   });
 
+  // ---- drums, bass and tape wobble, all synthesised ----
+  const kit = ctx.createGain();
+  kit.gain.value = 0.5;
+  kit.connect(master);
+  const noiseBuf2 = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+  const nd = noiseBuf2.getChannelData(0);
+  for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+
+  const kick = (at: number) => {
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.frequency.setValueAtTime(120, at);
+    o.frequency.exponentialRampToValueAtTime(45, at + 0.09);
+    g.gain.setValueAtTime(0.9, at);
+    g.gain.exponentialRampToValueAtTime(0.001, at + 0.32);
+    o.connect(g).connect(kit);
+    o.start(at);
+    o.stop(at + 0.34);
+  };
+  const snare = (at: number) => {
+    const s = ctx.createBufferSource();
+    s.buffer = noiseBuf2;
+    const bp = ctx.createBiquadFilter();
+    bp.type = "bandpass";
+    bp.frequency.value = 1900;
+    bp.Q.value = 0.8;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.32, at);
+    g.gain.exponentialRampToValueAtTime(0.001, at + 0.16);
+    s.connect(bp).connect(g).connect(kit);
+    s.start(at);
+    s.stop(at + 0.2);
+  };
+  const hat = (at: number, v: number) => {
+    const s = ctx.createBufferSource();
+    s.buffer = noiseBuf2;
+    const hp = ctx.createBiquadFilter();
+    hp.type = "highpass";
+    hp.frequency.value = 7000;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.1 * v, at);
+    g.gain.exponentialRampToValueAtTime(0.001, at + 0.05);
+    s.connect(hp).connect(g).connect(kit);
+    s.start(at);
+    s.stop(at + 0.07);
+  };
+  const bassGain = ctx.createGain();
+  bassGain.gain.value = 0.22;
+  const bassTone = ctx.createBiquadFilter();
+  bassTone.type = "lowpass";
+  bassTone.frequency.value = 400;
+  bassGain.connect(bassTone).connect(master);
+  const bass = (at: number, note: number) => {
+    const o = ctx.createOscillator();
+    o.type = "sine";
+    o.frequency.setValueAtTime(midiToHz(note), at);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, at);
+    g.gain.exponentialRampToValueAtTime(1, at + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.001, at + 0.9);
+    o.connect(g).connect(bassGain);
+    o.start(at);
+    o.stop(at + 1);
+  };
+  // Tape wobble: a slow drift on a short delay the pad and bass pass through.
+  const wobble = ctx.createDelay(0.05);
+  wobble.delayTime.value = 0.012;
+  const wobbleLfo = ctx.createOscillator();
+  wobbleLfo.frequency.value = 0.35;
+  const wobbleAmt = ctx.createGain();
+  wobbleAmt.gain.value = 0.004;
+  wobbleLfo.connect(wobbleAmt).connect(wobble.delayTime);
+  wobble.connect(master);
+  padGain.connect(wobble);
+
+  let step = 0;
+  let nextStepTime = 0;
+  let scheduler: number | null = null;
+  const SCHEDULE_AHEAD = 0.12;
+  const tick = () => {
+    while (nextStepTime < ctx.currentTime + SCHEDULE_AHEAD) {
+      const bar = Math.floor(step / STEPS_PER_BAR);
+      const at = nextStepTime + swingOffset(step);
+      const h = drumHits(step, bar);
+      if (h.kick) kick(at);
+      if (h.snare) snare(at);
+      if (h.hat > 0) hat(at, h.hat);
+      const n = bassNoteAt(Math.floor(bar / 2), step);
+      if (n !== null) bass(at, n);
+      step++;
+      nextStepTime += SECONDS_PER_STEP;
+    }
+  };
+
   let running = false;
   let started = false;
+  let wobbleStarted = false;
   let chordTimer: number | null = null;
   let crackleTimer: number | null = null;
   let t0 = 0;
@@ -133,6 +242,14 @@ export function createRoomAudio(): RoomAudio {
       );
       scheduleCrackle();
       crackleTimer = window.setInterval(scheduleCrackle, 4000);
+      if (!wobbleStarted) {
+        wobbleLfo.start();
+        wobbleStarted = true;
+      }
+      step = 0;
+      nextStepTime = ctx.currentTime + 0.1;
+      tick();
+      scheduler = window.setInterval(tick, 25);
       master.gain.setTargetAtTime(1, ctx.currentTime, 0.6);
       running = true;
     },
@@ -140,7 +257,8 @@ export function createRoomAudio(): RoomAudio {
       master.gain.setTargetAtTime(0, ctx.currentTime, 0.4);
       if (chordTimer) window.clearInterval(chordTimer);
       if (crackleTimer) window.clearInterval(crackleTimer);
-      chordTimer = crackleTimer = null;
+      if (scheduler) window.clearInterval(scheduler);
+      chordTimer = crackleTimer = scheduler = null;
       running = false;
     },
     setLevel(v) {

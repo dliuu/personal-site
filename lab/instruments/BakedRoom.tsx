@@ -110,12 +110,12 @@ export function BakedRoom() {
       window.clearTimeout(id);
     };
   }, []);
-  const lampOn = useRoomStore((s) => s.lampOn);
+  const duskMode = useRoomStore((s) => s.duskMode);
   useFrame((_, delta) => {
-    // Lamp on = evening: the room's baked light crossfades to the dusk atlas.
+    // Night is the default atlas; the toggle crossfades to dusk.
     lightMix.value = lerp(
       lightMix.value,
-      lampOn ? 1 : 0,
+      duskMode ? 1 : 0,
       frameLerp(0.06, delta),
     );
     if (!room || fade.current >= 1) return;

@@ -49,9 +49,22 @@ const paneShader = {
     uniform sampler2D city;
     uniform float bright;
     uniform vec3 tint;
+    uniform float time;
+    uniform float rain;
     varying vec2 vUv;
+    float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
     void main() {
-      vec3 c = texture2D(city, vUv).rgb * bright * tint;
+      vec2 uv = vUv;
+      // Rain on the glass: per-column streaks at their own speeds, with the
+      // occasional heavier run that bends the view behind it.
+      float col = floor(uv.x * 90.0);
+      float speed = 0.12 + 0.3 * hash(vec2(col, 1.0));
+      float y = fract(uv.y * 2.5 + time * speed + hash(vec2(col, 2.0)));
+      float streak = smoothstep(0.0, 0.06, y) * smoothstep(0.3, 0.06, y) * step(0.5, hash(vec2(col, 3.0)));
+      float drop = pow(1.0 - fract(uv.y * 7.0 - time * (0.35 + 0.35 * hash(vec2(col, 4.0)))), 14.0) * step(0.88, hash(vec2(col, 5.0)));
+      vec2 off = vec2(0.0, streak * 0.016 + drop * 0.026) * rain;
+      vec3 c = texture2D(city, uv + off).rgb * bright * tint;
+      c += vec3(0.18, 0.22, 0.3) * (streak * 0.3 + drop * 0.55) * rain;
       gl_FragColor = vec4(c, 1.0);
     }
   `,
@@ -87,6 +100,8 @@ export function RoomLife({
           city: { value: null },
           bright: { value: 1 },
           tint: { value: new Color("#ffffff") },
+          time: { value: 0 },
+          rain: { value: 1 },
         },
         vertexShader: paneShader.vertex,
         fragmentShader: paneShader.fragment,
@@ -109,7 +124,7 @@ export function RoomLife({
       on = false;
     };
   }, [pane, natureTex]);
-  const dayTint = useMemo(() => new Color("#ffffff"), []);
+  const nightTint = useMemo(() => new Color("#3d5170"), []);
   const duskTint = useMemo(() => new Color("#ffa478"), []);
   const glassMat = useMemo(
     () =>
@@ -344,10 +359,12 @@ export function RoomLife({
       c.position.x = side * (2.4 - spread / 2);
       c.rotation.y = side * 0.06 * open;
     }
-    // Outside: bright by day, dim and warm as the lamp comes on (evening).
-    const ev = lampLevel.current;
-    pane.uniforms.bright.value = (0.85 + 0.15 * open) * (1 - 0.72 * ev);
-    (pane.uniforms.tint.value as Color).copy(dayTint).lerp(duskTint, ev);
+    // Outside: dark and blue at night with rain on the glass, warm at dusk.
+    const ev = 1 - lampLevel.current;
+    pane.uniforms.time.value = reducedMotion ? 0 : t;
+    pane.uniforms.rain.value = high ? 1 - ev : 0.4 * (1 - ev);
+    pane.uniforms.bright.value = (0.85 + 0.15 * open) * (0.14 + 0.86 * ev);
+    (pane.uniforms.tint.value as Color).copy(nightTint).lerp(duskTint, ev);
 
     // String lights: laid out each frame (24 is nothing), twinkling by
     // instance colour.

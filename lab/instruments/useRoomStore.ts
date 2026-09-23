@@ -4,7 +4,7 @@ import { persist } from "zustand/middleware";
 export type Hover = { label: string; note?: string } | null;
 
 type RoomState = {
-  lampOn: boolean;
+  duskMode: boolean;
   soundOn: boolean;
   curtainsOpen: boolean;
   /** Seconds (performance.now based) until which the cat stays awake; 0 = asleep. */
@@ -14,7 +14,7 @@ type RoomState = {
   steamPuff: number;
   /** The baked room has faded in; the procedural shell can hide. */
   baked: boolean;
-  toggleLamp: () => void;
+  toggleDusk: () => void;
   toggleSound: () => void;
   toggleCurtains: () => void;
   wakeCat: () => void;
@@ -27,7 +27,7 @@ type RoomState = {
 export const useRoomStore = create<RoomState>()(
   persist(
     (set) => ({
-      lampOn: true,
+      duskMode: false,
       soundOn: false,
       curtainsOpen: true,
       catAwakeUntil: 0,
@@ -35,7 +35,7 @@ export const useRoomStore = create<RoomState>()(
       pinned: null,
       steamPuff: 0,
       baked: false,
-      toggleLamp: () => set((s) => ({ lampOn: !s.lampOn })),
+      toggleDusk: () => set((s) => ({ duskMode: !s.duskMode })),
       toggleSound: () => set((s) => ({ soundOn: !s.soundOn })),
       toggleCurtains: () => set((s) => ({ curtainsOpen: !s.curtainsOpen })),
       wakeCat: () => set({ catAwakeUntil: performance.now() / 1000 + 8 }),
@@ -45,9 +45,9 @@ export const useRoomStore = create<RoomState>()(
       setBaked: (baked) => set({ baked }),
     }),
     {
-      name: "instruments-room-4",
+      name: "instruments-room-5",
       partialize: (s) => ({
-        lampOn: s.lampOn,
+        duskMode: s.duskMode,
         soundOn: s.soundOn,
         curtainsOpen: s.curtainsOpen,
       }),

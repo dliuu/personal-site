@@ -27,6 +27,7 @@ import { Hotspots, useHotspotDismiss } from "./Hotspots";
 import { INK, PARCHMENT } from "./palette";
 import { plateState } from "./plateState";
 import { useExploreStore } from "./useExploreStore";
+import { useRoomStore } from "./useRoomStore";
 import {
   Armillary,
   Balance,
@@ -240,9 +241,14 @@ export function HeroObjects() {
     // A scene chapter is drawn real from its first frame; plates reveal.
     const isScene = Boolean(chapter.scene);
     plateState.reveal = isScene || chapter.screen ? 1 : revealAmount(expand);
-    // The studio environment only lights the revealed globe (and, faintly, the room).
+    // The studio environment lights the revealed globe, and the room only at
+    // dusk: at night the lamp and the monitor are meant to be the sources.
     // eslint-disable-next-line react-hooks/immutability -- r3f pattern: scene setting driven in useFrame
-    scene.environmentIntensity = isScene ? 0.35 : plateState.reveal;
+    scene.environmentIntensity = isScene
+      ? useRoomStore.getState().duskMode
+        ? 0.3
+        : 0.07
+      : plateState.reveal;
 
     const parent = parentRef.current;
     if (parent) {

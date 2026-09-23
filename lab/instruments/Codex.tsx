@@ -125,16 +125,16 @@ function PlateCaptions({
 }
 
 function RoomControls() {
-  const lampOn = useRoomStore((s) => s.lampOn);
+  const duskMode = useRoomStore((s) => s.duskMode);
   const soundOn = useRoomStore((s) => s.soundOn);
   const curtainsOpen = useRoomStore((s) => s.curtainsOpen);
-  const toggleLamp = useRoomStore((s) => s.toggleLamp);
+  const toggleDusk = useRoomStore((s) => s.toggleDusk);
   const toggleSound = useRoomStore((s) => s.toggleSound);
   const toggleCurtains = useRoomStore((s) => s.toggleCurtains);
   return (
     <div className="instruments-room-controls" role="group" aria-label="Room">
-      <button type="button" aria-pressed={lampOn} onClick={toggleLamp}>
-        Lamp
+      <button type="button" aria-pressed={duskMode} onClick={toggleDusk}>
+        Dusk
       </button>
       <button type="button" aria-pressed={soundOn} onClick={toggleSound}>
         {soundOn ? "♪ Sound" : "Sound"}

@@ -24,6 +24,7 @@ import { useSectionsStore } from "@/store/useSectionsStore";
 import { chapters, sections } from "./chapters";
 import { INK, PARCHMENT } from "./palette";
 import { plateState } from "./plateState";
+import { ToonGradeImpl } from "./toonGrade";
 
 const fragment = /* glsl */ `
 uniform vec3 ink;
@@ -81,6 +82,7 @@ class EngravingImpl extends Effect {
 }
 
 const Engraving = wrapEffect(EngravingImpl);
+const ToonGrade = wrapEffect(ToonGradeImpl);
 
 export function Effects() {
   const tier = useLabStore((s) => s.tier);
@@ -91,6 +93,7 @@ export function Effects() {
   const effectRef = useRef<EngravingImpl | null>(null);
   const bloomRef = useRef<BloomEffect | null>(null);
   const dofRef = useRef<DepthOfFieldEffect | null>(null);
+  const toonRef = useRef<ToonGradeImpl | null>(null);
   const cur = useMemo(
     () => ({ ink: new Color(INK), paper: new Color(PARCHMENT) }),
     [],
@@ -124,6 +127,13 @@ export function Effects() {
     }
     if (scene.background instanceof Color) scene.background.copy(cur.paper);
     // Bloom only exists for the revealed globe's emissives; chapters get none.
+    // The illustrated look belongs to the room; chapters keep their engraving.
+    if (toonRef.current) {
+      const inScene = Boolean(chapters[sections[active]?.chapter ?? 0].scene);
+      toonRef.current.uniforms.get("strength")!.value = inScene ? 1 : 0;
+      toonRef.current.uniforms.get("grain")!.value = high ? 0.016 : 0.01;
+      toonRef.current.uniforms.get("time")!.value = performance.now() / 1000;
+    }
     // The room gets a lens: focus follows the camera's target (the figure at
     // rest, the screen on the way in), so the garden and foreground soften.
     if (dofRef.current) {
@@ -169,6 +179,7 @@ export function Effects() {
         <></>
       )}
       <Engraving ref={effectRef} ink={INK} paper={PARCHMENT} pitch={pitch} />
+      <ToonGrade ref={toonRef} />
       {high ? <Vignette eskil={false} offset={0.2} darkness={0.3} /> : <></>}
     </EffectComposer>
   );
