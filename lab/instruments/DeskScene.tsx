@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import {
   BoxGeometry,
@@ -11,14 +11,15 @@ import {
   MeshStandardMaterial,
   PlaneGeometry,
   PointLight,
-  Shape,
-  ShapeGeometry,
   SphereGeometry,
   SpotLight,
   Vector3,
+  type DirectionalLight,
   type PerspectiveCamera,
 } from "three";
+import { flicker, parallax } from "@/lib/ambient";
 import { buildCurves, sampleAt, type Keyframe } from "@/lib/cameraPath";
+import { frameLerp } from "@/lib/drawIn";
 import {
   cameraU,
   pose,
@@ -26,12 +27,19 @@ import {
   screenFade,
   STAND,
 } from "@/lib/introTimeline";
+import { lerp } from "@/lib/progress";
 import { useLabStore } from "@/store/useLabStore";
 import { useSectionsStore } from "@/store/useSectionsStore";
 import { Avatar, type AvatarHandle } from "./Avatar";
 import { chapters, sections } from "./chapters";
+import { Plant } from "./Plant";
 import { plateState } from "./plateState";
+import { createRoomAudio, type RoomAudio } from "./roomAudio";
+import { RoomLife } from "./RoomLife";
+import { RoomSet, useThing } from "./RoomSet";
+import { gobo, roomFonts, wood } from "./roomTextures";
 import { makeScreen } from "./screenTexture";
+import { useRoomStore } from "./useRoomStore";
 
 // Metres. The desk's front edge is at z = 0, the man sits at +z facing −z,
 // the monitor faces him (+z), the camera comes from his side.
@@ -42,100 +50,30 @@ const EISEN_PAPER =
   chapters.find((c) => c.id === "eisen")?.palette.paper ?? "#14161c";
 const INTRO_CHAPTER = chapters.findIndex((c) => c.scene === "desk");
 const FOG = new Fog("#1c1a24", 7, 14);
+const ESTABLISH_SECONDS = 2.5;
+const ESTABLISH_OFFSET = new Vector3(-0.7, 0.35, 1.3);
 
 const mat = (color: string, roughness = 0.8, metalness = 0) =>
   new MeshStandardMaterial({ color, roughness, metalness });
 
-/** A leaf outline for ShapeGeometry: a pointed ellipse, tip along +y. */
-function leafShape(w: number, l: number): Shape {
-  const s = new Shape();
-  s.moveTo(0, 0);
-  s.bezierCurveTo(w, l * 0.3, w, l * 0.75, 0, l);
-  s.bezierCurveTo(-w, l * 0.75, -w, l * 0.3, 0, 0);
-  return s;
-}
-
-function Plant({
-  position,
-  leaves,
-  size,
-  color,
-  potColor = "#8a6a55",
-  potH = 0.3,
-  potR = 0.16,
-  droop = 0,
-}: {
-  position: [number, number, number];
-  leaves: number;
-  size: number;
-  color: string;
-  potColor?: string;
-  potH?: number;
-  potR?: number;
-  droop?: number;
-}) {
-  const g = useMemo(
-    () => ({
-      pot: new CylinderGeometry(potR, potR * 0.8, potH, 20),
-      soil: new CylinderGeometry(potR * 0.95, potR * 0.95, 0.02, 20),
-      leaf: new ShapeGeometry(leafShape(size * 0.35, size)),
-      stem: new CylinderGeometry(0.006, 0.008, size * 0.9, 6),
-    }),
-    [potH, potR, size],
-  );
-  const m = useMemo(
-    () => ({
-      pot: mat(potColor, 0.9),
-      soil: mat("#2b1f16", 1),
-      leaf: new MeshStandardMaterial({ color, roughness: 0.7, side: 2 }),
-      stem: mat("#3f6b3a", 0.9),
-    }),
-    [color, potColor],
-  );
-  const sway = useRef<Group>(null);
-  useFrame(({ clock }) => {
-    if (!sway.current) return;
-    const { reducedMotion } = useLabStore.getState();
-    sway.current.rotation.z = reducedMotion
-      ? 0
-      : 0.02 * Math.sin(clock.elapsedTime * 0.9 + position[0]);
-  });
-  return (
-    <group position={position}>
-      <mesh
-        geometry={g.pot}
-        material={m.pot}
-        position={[0, potH / 2, 0]}
-        castShadow
-        receiveShadow
-      />
-      <mesh geometry={g.soil} material={m.soil} position={[0, potH, 0]} />
-      <group ref={sway} position={[0, potH, 0]}>
-        {Array.from({ length: leaves }, (_, i) => {
-          const a = (i / leaves) * Math.PI * 2 + 0.4;
-          const tilt = 0.5 + (0.35 * ((i * 7) % 3)) / 2 + droop;
-          return (
-            <group key={i} rotation={[0, a, 0]}>
-              <group rotation={[tilt, 0, 0]}>
-                <mesh
-                  geometry={g.stem}
-                  material={m.stem}
-                  position={[0, size * 0.45, 0]}
-                />
-                <mesh
-                  geometry={g.leaf}
-                  material={m.leaf}
-                  position={[0, size * 0.8, 0]}
-                  rotation={[-0.2, 0, 0]}
-                  castShadow
-                />
-              </group>
-            </group>
-          );
-        })}
-      </group>
-    </group>
-  );
+/** Advance a stage counter in idle time after the first frame, so detail never delays first paint. */
+function useStagedMount(stages: number): number {
+  const [stage, setStage] = useState(0);
+  useEffect(() => {
+    if (stage >= stages) return;
+    const w = window as Window & {
+      requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number;
+      cancelIdleCallback?: (id: number) => void;
+    };
+    const next = () => setStage((s) => s + 1);
+    if (w.requestIdleCallback) {
+      const id = w.requestIdleCallback(next, { timeout: 800 });
+      return () => w.cancelIdleCallback?.(id);
+    }
+    const id = window.setTimeout(next, 120);
+    return () => window.clearTimeout(id);
+  }, [stage, stages]);
+  return stage;
 }
 
 export function DeskScene() {
@@ -143,27 +81,38 @@ export function DeskScene() {
   const avatar = useRef<AvatarHandle>(null);
   const lamp = useRef<SpotLight>(null);
   const lampTarget = useRef<Group>(null);
+  const windowLight = useRef<DirectionalLight>(null);
+  const windowTarget = useRef<Group>(null);
   const glow = useRef<PointLight>(null);
   const scene = useThree((s) => s.scene);
   const camera = useThree((s) => s.camera) as PerspectiveCamera;
   const size = useThree((s) => s.size);
+  const tier = useLabStore((s) => s.tier);
+  const high = tier === "high";
   const narrow = size.width <= 720;
   const aspect = size.width / size.height;
   const lastDraw = useRef(-1);
+  const stage = useStagedMount(2);
+  const fonts = useMemo(() => roomFonts(), []);
+  const typing = useRef(0);
+  const lampLevel = useRef(1);
+  const headLook = useRef(0);
+  const establish = useRef(-1);
+  const audio = useRef<RoomAudio | null>(null);
+  const ptr = useRef(new Vector3());
 
   const screen = useMemo(() => makeScreen(), []);
+  const goboTex = useMemo(() => gobo(), []);
+  const woodTex = useMemo(() => (stage >= 1 ? wood() : null), [stage]);
   const g = useMemo(
     () => ({
-      floor: new PlaneGeometry(9, 9),
-      wall: new PlaneGeometry(9, 4),
-      rug: new PlaneGeometry(2.6, 1.8),
       deskTop: new BoxGeometry(1.7, 0.035, 0.75),
       deskLeg: new BoxGeometry(0.05, 0.72, 0.7),
       panel: new BoxGeometry(0.63, 0.37, 0.03),
       screen: new PlaneGeometry(SCREEN_W, SCREEN_H),
       stem: new BoxGeometry(0.05, 0.16, 0.04),
       foot: new BoxGeometry(0.28, 0.015, 0.16),
-      keyboard: new BoxGeometry(0.44, 0.015, 0.15),
+      keyboard: new BoxGeometry(0.44, 0.012, 0.15),
       mouse: new BoxGeometry(0.06, 0.025, 0.1),
       mug: new CylinderGeometry(0.045, 0.04, 0.1, 16),
       seat: new BoxGeometry(0.46, 0.06, 0.46),
@@ -174,22 +123,14 @@ export function DeskScene() {
       lampArm: new CylinderGeometry(0.012, 0.012, 0.55, 8),
       lampHead: new CylinderGeometry(0.03, 0.09, 0.12, 20, 1, true),
       bulb: new SphereGeometry(0.03, 12, 10),
-      shelf: new BoxGeometry(0.8, 0.03, 0.26),
-      book: new BoxGeometry(0.035, 0.22, 0.17),
-      window: new PlaneGeometry(0.9, 1.1),
-      frame: new BoxGeometry(0.05, 1.2, 0.03),
-      frameH: new BoxGeometry(1.0, 0.05, 0.03),
-      poster: new PlaneGeometry(0.42, 0.55),
-      posterFrame: new BoxGeometry(0.48, 0.61, 0.025),
     }),
     [],
   );
   const m = useMemo(
     () => ({
-      floor: mat("#2a2320", 0.95),
-      wall: mat("#3a3341", 0.95),
-      rug: mat("#5a3a3a", 1),
-      wood: mat("#5a3d2b", 0.55),
+      wood: woodTex
+        ? new MeshStandardMaterial({ map: woodTex, roughness: 0.55 })
+        : mat("#5a3d2b", 0.55),
       dark: mat("#1e2027", 0.5, 0.2),
       metal: mat("#8c8c94", 0.35, 0.8),
       fabric: mat("#2f3340", 0.95),
@@ -200,20 +141,10 @@ export function DeskScene() {
         emissive: "#ffb36b",
         emissiveIntensity: 3,
       }),
-      pane: new MeshStandardMaterial({
-        color: "#ffd9a3",
-        emissive: "#ffc98a",
-        emissiveIntensity: 0.6,
-      }),
       // Unlit, so the room's lights never glint off the picture.
       screen: new MeshBasicMaterial({ map: screen.texture }),
-      poster: mat("#d8cdb4", 0.9),
-      posterFrame: mat("#24201c", 0.6),
-      books: ["#7a3b3b", "#3b5a7a", "#7a6a3b", "#3b6a4a", "#5a3b7a"].map((c) =>
-        mat(c, 0.9),
-      ),
     }),
-    [screen.texture],
+    [screen.texture, woodTex],
   );
 
   // The camera path, per aspect: rest, stood, over the desk, on the screen.
@@ -239,19 +170,63 @@ export function DeskScene() {
     return buildCurves(keys);
   }, [aspect, narrow, camera.fov]);
 
+  // Sound: built on the first toggle (a user gesture), never before.
+  const soundOn = useRoomStore((s) => s.soundOn);
+  const blindsOpen = useRoomStore((s) => s.blindsOpen);
+  const catAwakeUntil = useRoomStore((s) => s.catAwakeUntil);
+  useEffect(() => {
+    if (soundOn && !audio.current) {
+      try {
+        audio.current = createRoomAudio();
+      } catch {
+        return;
+      }
+    }
+    if (!audio.current) return;
+    if (soundOn) audio.current.start();
+    else audio.current.stop();
+  }, [soundOn]);
+  useEffect(() => {
+    audio.current?.setRain(blindsOpen);
+  }, [blindsOpen]);
+  useEffect(() => {
+    if (catAwakeUntil) audio.current?.purr();
+  }, [catAwakeUntil]);
+  useEffect(() => () => audio.current?.dispose(), []);
+
+  const toggleLamp = useRoomStore((s) => s.toggleLamp);
+  const lampThing = useThing("the lamp", "click to switch", toggleLamp);
+  const puff = useRoomStore((s) => s.puff);
+  const mugThing = useThing("the mug", "click for steam", puff);
+
   /* eslint-disable react-hooks/immutability -- r3f pattern: drive lights, materials, the scene fog and plateState in useFrame */
-  useFrame(({ clock }) => {
+  useFrame(({ clock, pointer }, delta) => {
     const active = plateState.instrument === "desk";
     const sec = sections[useSectionsStore.getState().active];
     const visible = active || sec?.chapter === INTRO_CHAPTER;
     if (root.current) root.current.visible = visible;
     scene.fog = visible ? FOG : null;
-    if (!active) return;
+    if (!active) {
+      audio.current?.setLevel(0);
+      return;
+    }
 
     const p = plateState.p;
     const { reducedMotion } = useLabStore.getState();
+    const room = useRoomStore.getState();
     const t = clock.elapsedTime;
-    avatar.current?.apply(pose(p, t, reducedMotion));
+    const k = frameLerp(0.08, delta);
+
+    // The figure, with the head drawn toward the pointer.
+    const po = pose(p, t, reducedMotion);
+    headLook.current = lerp(
+      headLook.current,
+      reducedMotion ? 0 : -pointer.x * 0.35,
+      k,
+    );
+    po.headYaw += headLook.current * (1 - po.armRaiseR * 0.5);
+    avatar.current?.apply(po);
+    typing.current = p < STAND[0] ? 1 : 0;
 
     // The screen types at rest (4 Hz redraw), freezes while scrolling, and
     // gives way to Eisen's colour at the seam.
@@ -267,17 +242,68 @@ export function DeskScene() {
         EISEN_PAPER,
       );
     }
+
+    // Lamp: on/off with a filament flicker; the gobo shapes the pool.
+    lampLevel.current = lerp(lampLevel.current, room.lampOn ? 1 : 0, k);
+    const lit = lampLevel.current;
+    if (lamp.current) {
+      lamp.current.intensity = 30 * lit * (reducedMotion ? 1 : flicker(t));
+      if (lampTarget.current) lamp.current.target = lampTarget.current;
+      if (high && lamp.current.map !== goboTex) lamp.current.map = goboTex;
+    }
+    m.bulb.emissiveIntensity = 3 * lit;
     if (glow.current)
       glow.current.intensity =
         3 * (1 + (reducedMotion ? 0 : 0.04 * Math.sin(t * 11)));
-    if (lamp.current && lampTarget.current)
-      lamp.current.target = lampTarget.current;
+    if (windowLight.current) {
+      windowLight.current.intensity =
+        0.6 * (0.4 + 0.6 * (room.blindsOpen ? 1 : 0.15));
+      if (windowTarget.current)
+        windowLight.current.target = windowTarget.current;
+    }
 
+    // Camera: the path, plus at rest a breathing sway and pointer parallax,
+    // and once per session an establishing move into the first frame.
     sampleAt(
       curves,
       cameraU(p),
       plateState.introCam.pos,
       plateState.introCam.tgt,
+    );
+    const rest = Math.max(0, 1 - p / STAND[0]);
+    if (!reducedMotion && rest > 0) {
+      const [px, py] = parallax(pointer.x, pointer.y, size.width <= 720);
+      ptr.current.set(
+        px + 0.01 * Math.sin(t * 0.5),
+        py + 0.008 * Math.sin(t * 0.37),
+        0,
+      );
+      plateState.introCam.pos.addScaledVector(ptr.current, rest);
+    }
+    if (establish.current < 0) {
+      establish.current =
+        reducedMotion || sessionStorage.getItem("instruments-establish")
+          ? 1
+          : 0;
+      sessionStorage.setItem("instruments-establish", "1");
+    } else if (establish.current < 1) {
+      establish.current = Math.min(
+        1,
+        establish.current + delta / ESTABLISH_SECONDS,
+      );
+    }
+    if (establish.current < 1) {
+      const e = establish.current;
+      const ease = 1 - Math.pow(1 - e, 3);
+      plateState.introCam.pos.addScaledVector(
+        ESTABLISH_OFFSET,
+        (1 - ease) * rest,
+      );
+    }
+
+    // Sound fades as the story leaves the room.
+    audio.current?.setLevel(
+      room.soundOn ? 1 - Math.min(1, Math.max(0, (p - 0.5) / 0.15)) : 0,
     );
   });
   /* eslint-enable react-hooks/immutability */
@@ -286,10 +312,21 @@ export function DeskScene() {
     <group ref={root} visible={false}>
       <hemisphereLight args={["#3a3f5c", "#2a1e16", 0.35]} />
       <directionalLight
-        color="#ffd9a3"
-        intensity={0.8}
-        position={[1.5, 2.5, -2]}
+        ref={windowLight}
+        color="#ffcf8a"
+        intensity={0.6}
+        position={[2.2, 2.4, -1.0]}
+        castShadow={high}
+        shadow-mapSize={[512, 512]}
+        shadow-camera-left={-2.5}
+        shadow-camera-right={2.5}
+        shadow-camera-top={2.5}
+        shadow-camera-bottom={-2.5}
+        shadow-camera-near={0.5}
+        shadow-camera-far={8}
+        shadow-bias={-0.0008}
       />
+      <group ref={windowTarget} position={[0, 0.7, 0.2]} />
       <spotLight
         ref={lamp}
         color="#ffb36b"
@@ -299,8 +336,9 @@ export function DeskScene() {
         penumbra={0.6}
         decay={2}
         position={[-0.5, 1.25, -0.35]}
-        castShadow
+        castShadow={high}
         shadow-mapSize={[1024, 1024]}
+        shadow-radius={4}
         shadow-bias={-0.0005}
       />
       <group ref={lampTarget} position={[0, 0.75, -0.2]} />
@@ -313,81 +351,8 @@ export function DeskScene() {
         position={[0, 1.05, -0.2]}
       />
 
-      {/* Room */}
-      <mesh
-        geometry={g.floor}
-        material={m.floor}
-        rotation={[-Math.PI / 2, 0, 0]}
-        receiveShadow
-      />
-      <mesh
-        geometry={g.rug}
-        material={m.rug}
-        rotation={[-Math.PI / 2, 0, 0]}
-        position={[0.2, 0.004, 0.5]}
-        receiveShadow
-      />
-      <mesh
-        geometry={g.wall}
-        material={m.wall}
-        position={[0, 2, -1.2]}
-        receiveShadow
-      />
-      <group position={[1.65, 1.75, -1.19]}>
-        <mesh geometry={g.window} material={m.pane} />
-        <mesh
-          geometry={g.frame}
-          material={m.wood}
-          position={[-0.47, 0, 0.01]}
-        />
-        <mesh geometry={g.frame} material={m.wood} position={[0.47, 0, 0.01]} />
-        <mesh
-          geometry={g.frameH}
-          material={m.wood}
-          position={[0, 0.57, 0.01]}
-        />
-        <mesh
-          geometry={g.frameH}
-          material={m.wood}
-          position={[0, -0.57, 0.01]}
-        />
-        <mesh
-          geometry={g.frame}
-          material={m.wood}
-          position={[0, 0, 0.01]}
-          scale={[0.6, 1, 1]}
-        />
-      </group>
-      <group position={[-1.05, 1.75, -1.18]}>
-        <mesh geometry={g.posterFrame} material={m.posterFrame} />
-        <mesh
-          geometry={g.poster}
-          material={m.poster}
-          position={[0, 0, 0.014]}
-        />
-      </group>
-      <group position={[1.75, 1.25, -1.05]}>
-        <mesh geometry={g.shelf} material={m.wood} castShadow receiveShadow />
-        {m.books.map((bm, i) => (
-          <mesh
-            key={i}
-            geometry={g.book}
-            material={bm}
-            position={[-0.25 + i * 0.045, 0.125, 0]}
-            rotation={[0, 0, i === 4 ? -0.15 : 0]}
-            castShadow
-          />
-        ))}
-        <Plant
-          position={[0.22, 0.015, 0]}
-          leaves={9}
-          size={0.16}
-          color="#4f8a4a"
-          potR={0.07}
-          potH={0.09}
-          droop={0.9}
-        />
-      </group>
+      <RoomSet stage={stage} fonts={fonts} />
+      <RoomLife stage={stage} typing={typing} lampLevel={lampLevel} />
 
       {/* Desk and what sits on it */}
       <mesh
@@ -425,7 +390,7 @@ export function DeskScene() {
       <mesh
         geometry={g.keyboard}
         material={m.dark}
-        position={[0, 0.76, -0.15]}
+        position={[0, 0.759, -0.15]}
         castShadow
       />
       <mesh
@@ -439,8 +404,9 @@ export function DeskScene() {
         material={m.mug}
         position={[0.55, 0.8, -0.32]}
         castShadow
+        {...mugThing}
       />
-      <group position={[-0.6, 0.755, -0.5]}>
+      <group position={[-0.6, 0.755, -0.5]} {...lampThing}>
         <mesh geometry={g.lampBase} material={m.brass} />
         <mesh
           geometry={g.lampArm}

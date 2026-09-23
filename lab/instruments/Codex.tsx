@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useSectionProgress } from "@/hooks/useSectionProgress";
 import { useSectionsStore } from "@/store/useSectionsStore";
+import { useRoomStore } from "./useRoomStore";
 import { beatAt } from "@/lib/beats";
 import { overlayOpacity } from "@/lib/introTimeline";
 import { chapters, sections, type Chapter } from "./chapters";
@@ -123,6 +124,65 @@ function PlateCaptions({
   );
 }
 
+function RoomControls() {
+  const lampOn = useRoomStore((s) => s.lampOn);
+  const soundOn = useRoomStore((s) => s.soundOn);
+  const blindsOpen = useRoomStore((s) => s.blindsOpen);
+  const toggleLamp = useRoomStore((s) => s.toggleLamp);
+  const toggleSound = useRoomStore((s) => s.toggleSound);
+  const toggleBlinds = useRoomStore((s) => s.toggleBlinds);
+  return (
+    <div className="instruments-room-controls" role="group" aria-label="Room">
+      <button type="button" aria-pressed={lampOn} onClick={toggleLamp}>
+        Lamp
+      </button>
+      <button type="button" aria-pressed={soundOn} onClick={toggleSound}>
+        {soundOn ? "♪ Sound" : "Sound"}
+      </button>
+      <button type="button" aria-pressed={blindsOpen} onClick={toggleBlinds}>
+        Blinds
+      </button>
+    </div>
+  );
+}
+
+/** Names whatever the pointer is over in the room, following the pointer. */
+function RoomTooltip() {
+  const hover = useRoomStore((s) => s.hover);
+  const pinned = useRoomStore((s) => s.pinned);
+  const el = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const move = (e: PointerEvent) => {
+      if (el.current)
+        el.current.style.transform = `translate(${e.clientX + 14}px, ${e.clientY + 14}px)`;
+    };
+    window.addEventListener("pointermove", move, { passive: true });
+    return () => window.removeEventListener("pointermove", move);
+  }, []);
+  const show = hover ?? (pinned ? { label: "a note", note: pinned } : null);
+  return (
+    <>
+      <div
+        ref={el}
+        className={`instruments-tooltip${show ? " is-shown" : ""}`}
+        aria-hidden
+      >
+        {show ? (
+          <>
+            <span className="instruments-tooltip-label">{show.label}</span>
+            {show.note ? (
+              <span className="instruments-tooltip-note">{show.note}</span>
+            ) : null}
+          </>
+        ) : null}
+      </div>
+      <div className="instruments-sr" aria-live="polite">
+        {show ? `${show.label}${show.note ? `: ${show.note}` : ""}` : ""}
+      </div>
+    </>
+  );
+}
+
 function IntroOverlay({ sectionIndex }: { sectionIndex: number }) {
   // Quantised so the overlay re-renders a handful of times across its fade.
   const opacity = useSectionsStore((s) =>
@@ -137,6 +197,8 @@ function IntroOverlay({ sectionIndex }: { sectionIndex: number }) {
       <h1 className="instruments-title">{profile.name}</h1>
       <p className="instruments-lede">{profile.line}</p>
       <p className="instruments-hint">Scroll</p>
+      <RoomControls />
+      <RoomTooltip />
     </div>
   );
 }

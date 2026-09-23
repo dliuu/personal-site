@@ -118,7 +118,15 @@ export function Effects() {
     }
     if (scene.background instanceof Color) scene.background.copy(cur.paper);
     // Bloom only exists for the revealed globe's emissives; chapters get none.
-    if (bloomRef.current) bloomRef.current.intensity = 0.8 * plateState.reveal;
+    if (bloomRef.current) {
+      bloomRef.current.intensity = 0.8 * plateState.reveal;
+      // A scene (the room) wants its small lights to glow; the globe does not.
+      bloomRef.current.luminanceMaterial.threshold = chapters[
+        sections[active]?.chapter ?? 0
+      ].scene
+        ? 1.0
+        : 1.3;
+    }
   });
 
   return (
