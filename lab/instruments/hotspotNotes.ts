@@ -34,14 +34,14 @@ export const hotspots: Record<InstrumentKind, Hotspot[]> = {
   ],
   network: [
     {
-      position: [0, 0.05, 0],
+      position: [0, 0.1, 0],
       label: "1",
-      note: "The orchestrator: a container agent for every developer task, test run and client feature.",
+      note: "Five orchestrators, each spinning up its own containers for developer tasks, test runs and client features.",
     },
     {
-      position: [-1.22, -0.3, 0],
+      position: [-1.15, -0.42, 0],
       label: "2",
-      note: "The compliance ring: work is stamped before it ships.",
+      note: "A container runs, passes or fails against fixed criteria, and returns its result for the orchestrator to iterate on.",
     },
   ],
   globe: [
