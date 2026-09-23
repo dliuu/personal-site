@@ -28,8 +28,10 @@ node scripts/room/pack.mjs      # Draco + WebP -> public/models/room.glb
 ```
 
 `--preview` also renders `assets/room/out/preview.png` from the resting camera.
-Extra props: drop GLBs into `assets/room/props/` with a `manifest.json` of
-`{ file, position, rotationY, scale }` entries and rebake. The Draco decoder in
+Props: `node scripts/room/fetchProps.mjs <poly-haven-id> …` pulls CC0 models at 1k
+into `assets/room/props/<id>/`; `assets/room/props/manifest.json` places them
+(`{ file, position, rotationY, scale }`, three.js coordinates); rebake to include
+them. Any GLB dropped there works the same way. The Draco decoder in
 `public/draco` is copied from the three.js package.
 
 To add an experiment: create `lab/<slug>/index.tsx` and `README.md`, add an

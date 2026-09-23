@@ -438,15 +438,17 @@ export function DeskScene() {
         {...mugThing}
       />
       <group position={[-0.6, 0.755, -0.5]} {...lampThing}>
-        <mesh geometry={g.lampBase} material={m.brass} />
+        <mesh geometry={g.lampBase} visible={!baked} material={m.brass} />
         <mesh
           geometry={g.lampArm}
+          visible={!baked}
           material={m.brass}
           position={[0.05, 0.27, 0.07]}
           rotation={[0.25, 0, -0.2]}
         />
         <mesh
           geometry={g.lampHead}
+          visible={!baked}
           material={m.brass}
           position={[0.1, 0.5, 0.15]}
           rotation={[0.5, 0, -0.3]}
@@ -465,14 +467,16 @@ export function DeskScene() {
         potR={0.06}
         potH={0.08}
       />
-      <Plant
-        position={[-1.35, 0, -0.5]}
-        leaves={8}
-        size={0.42}
-        color="#3f7a45"
-        potR={0.17}
-        potH={0.36}
-      />
+      <group visible={!baked}>
+        <Plant
+          position={[-1.35, 0, -0.5]}
+          leaves={8}
+          size={0.42}
+          color="#3f7a45"
+          potR={0.17}
+          potH={0.36}
+        />
+      </group>
 
       {/* Chair */}
       <mesh

@@ -542,26 +542,30 @@ export function RoomSet({
               potH={0.12}
             />
           </group>
-          <Plant
-            position={[-1.95, 0, -0.7]}
-            leaves={7}
-            size={0.34}
-            color="#3f7a45"
-            potColor="#e6dccb"
-            potR={0.15}
-            potH={0.3}
-            trunk={0.9}
-          />
-          <Plant
-            position={[2.0, 0, -0.55]}
-            leaves={9}
-            size={0.3}
-            color="#5a8a50"
-            potColor="#c4795a"
-            potR={0.14}
-            potH={0.28}
-            trunk={0.6}
-          />
+          <group visible={!baked}>
+            <Plant
+              position={[-1.95, 0, -0.7]}
+              leaves={7}
+              size={0.34}
+              color="#3f7a45"
+              potColor="#e6dccb"
+              potR={0.15}
+              potH={0.3}
+              trunk={0.9}
+            />
+          </group>
+          <group visible={!baked}>
+            <Plant
+              position={[2.0, 0, -0.55]}
+              leaves={9}
+              size={0.3}
+              color="#5a8a50"
+              potColor="#c4795a"
+              potR={0.14}
+              potH={0.28}
+              trunk={0.6}
+            />
+          </group>
         </>
       ) : null}
       {/* Desk extras */}

@@ -37,3 +37,4 @@ next-env.d.ts
 /shots/
 /assets/room/cache/
 /assets/room/out/
+/assets/room/props/*/

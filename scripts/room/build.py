@@ -238,10 +238,7 @@ box("benchLegR", (0.04, 0.4, 0.3), (1.95, 0.2, -0.95), M["oak"])
 box("deskTop", (1.7, 0.035, 0.75), (0, 0.735, -0.36), M["oak"])
 box("deskLegL", (0.05, 0.72, 0.7), (-0.8, 0.36, -0.36), M["oak"])
 box("deskLegR", (0.05, 0.72, 0.7), (0.8, 0.36, -0.36), M["oak"])
-cyl("chairBase", 0.3, 0.3, 0.03, (0, 0.02, 0.42), M["dark"], segments=5)
-cyl("chairColumn", 0.025, 0.025, 0.36, (0, 0.22, 0.42), M["steel"], segments=12)
-box("chairSeat", (0.46, 0.06, 0.46), (0, 0.43, 0.42), M["sage"], uv_scale=0.5)
-box("chairBack", (0.44, 0.5, 0.05), (0, 0.72, 0.64), M["sage"], uv_scale=0.5)
+# The chair and lamp come from assets/room/props (see the manifest).
 box("monitorFoot", (0.28, 0.015, 0.16), (0, 0.76, -0.5), M["dark"])
 box("monitorStem", (0.05, 0.16, 0.04), (0, 0.84, -0.5), M["dark"])
 box("monitorPanel", (0.63, 0.37, 0.03), (0, 1.05, -0.46), M["dark"])
@@ -252,36 +249,71 @@ cyl("standTop", 0.16, 0.16, 0.02, (-1.9, 0.5, 0.6), M["oak"], segments=20)
 for i in range(3):
     cyl(f"standLeg{i}", 0.01, 0.01, 0.5, (-1.9 + math.cos(i * 2.1) * 0.12, 0.25, 0.6 + math.sin(i * 2.1) * 0.12), M["steel"], segments=6)
 
-# Extra props dropped into assets/room/props/<name>.glb with a manifest are merged here.
+# Extra props dropped into assets/room/props/<name>/ with a manifest are merged
+# here: placed, flattened to world-space meshes, given the lightmap channel and
+# the atlas node, and baked with the room.
 manifest = ROOT / "assets" / "room" / "props" / "manifest.json"
 if manifest.exists():
+    import mathutils
+
     for entry in json.loads(manifest.read_text()):
         before = set(bpy.data.objects)
         bpy.ops.import_scene.gltf(filepath=str(manifest.parent / entry["file"]))
-        for obj in set(bpy.data.objects) - before:
-            if obj.type != "MESH":
-                continue
-            p = entry.get("position", [0, 0, 0])
-            obj.location = V(*p)
-            obj.rotation_euler = (0, 0, entry.get("rotationY", 0))
-            s = entry.get("scale", 1)
-            obj.scale = (s, s, s)
-            if not obj.data.uv_layers.get("lightmap"):
-                obj.data.uv_layers.new(name="lightmap")
-            for slot in obj.material_slots:
-                if slot.material and slot.material.use_nodes and not slot.material.node_tree.nodes.get("LIGHTMAP"):
-                    nt = slot.material.node_tree
-                    lm_uv = nt.nodes.new("ShaderNodeUVMap")
-                    lm_uv.uv_map = "lightmap"
-                    lm = nt.nodes.new("ShaderNodeTexImage")
-                    lm.image = LIGHTMAP
-                    lm.name = "LIGHTMAP"
-                    nt.links.new(lm_uv.outputs["UV"], lm.inputs["Vector"])
-                    grp = nt.nodes.new("ShaderNodeGroup")
-                    grp.node_tree = gltf_out
-                    nt.links.new(lm.outputs["Color"], grp.inputs["Occlusion"])
-                    nt.nodes.active = lm
-            STATIC.append(obj)
+        new = [o for o in bpy.data.objects if o not in before]
+        roots = [o for o in new if o.parent is None or o.parent not in new]
+        p = entry.get("position", [0, 0, 0])
+        place = (
+            mathutils.Matrix.Translation(mathutils.Vector(V(*p)))
+            @ mathutils.Matrix.Rotation(entry.get("rotationY", 0), 4, "Z")
+            @ mathutils.Matrix.Scale(entry.get("scale", 1), 4)
+        )
+        for r in roots:
+            r.matrix_world = place @ r.matrix_world
+        bpy.context.view_layer.update()
+        meshes = [o for o in new if o.type == "MESH"]
+        bpy.ops.object.select_all(action="DESELECT")
+        for o in meshes:
+            o.select_set(True)
+        bpy.context.view_layer.objects.active = meshes[0]
+        bpy.ops.object.parent_clear(type="CLEAR_KEEP_TRANSFORM")
+        bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+        for o in new:
+            if o.type != "MESH":
+                bpy.data.objects.remove(o)
+        # Scanned props arrive at film density; keep about 40k triangles each.
+        for o in meshes:
+            n = len(o.data.polygons)
+            if n > 40000:
+                bpy.context.view_layer.objects.active = o
+                mod = o.modifiers.new("decimate", "DECIMATE")
+                mod.ratio = 40000 / n
+                mod.use_collapse_triangulate = True
+                bpy.ops.object.modifier_apply(modifier=mod.name)
+                print("decimated", o.name, n, "->", len(o.data.polygons))
+        for o in meshes:
+            o.name = entry["file"].split("/")[0] + "_" + o.name
+            if not o.data.uv_layers.get("lightmap"):
+                o.data.uv_layers.new(name="lightmap")
+            for slot in o.material_slots:
+                m = slot.material
+                if not m or not m.use_nodes or m.node_tree.nodes.get("LIGHTMAP"):
+                    continue
+                nt = m.node_tree
+                lm_uv = nt.nodes.new("ShaderNodeUVMap")
+                lm_uv.uv_map = "lightmap"
+                lm = nt.nodes.new("ShaderNodeTexImage")
+                lm.image = LIGHTMAP
+                lm.name = "LIGHTMAP"
+                nt.links.new(lm_uv.outputs["UV"], lm.inputs["Vector"])
+                grp = nt.nodes.new("ShaderNodeGroup")
+                grp.node_tree = gltf_out
+                nt.links.new(lm.outputs["Color"], grp.inputs["Occlusion"])
+                for n in nt.nodes:
+                    n.select = False
+                lm.select = True
+                nt.nodes.active = lm
+            STATIC.append(o)
+        print("prop", entry["file"], len(meshes), "meshes")
 
 # ---------------------------------------------------------------- light
 world = bpy.data.worlds.new("world")
