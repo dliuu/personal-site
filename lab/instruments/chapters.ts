@@ -1,5 +1,11 @@
 export type InstrumentKind =
-  "desk" | "armillary" | "balance" | "globe" | "bridge" | "quadrant";
+  | "desk"
+  | "armillary"
+  | "balance"
+  | "network"
+  | "globe"
+  | "bridge"
+  | "quadrant";
 export type MechKind = "spinY" | "spinZ" | "swing" | "tilt" | "drop";
 export type Chapter = {
   id: "intro" | "eisen" | "meta" | "wcp" | "contact";
@@ -19,10 +25,12 @@ export type Chapter = {
 export type PlateBeat = {
   caption: string;
   sub?: string;
-  /** Locale id, or "nyc", the card and camera anchor on the globe. */
+  /** Locale id, or "nyc", the card and camera anchor on the globe; any other name marks a beat the instrument anchors itself (camera from lon/lat). */
   at?: string;
   /** Longitude to face when there is no anchor. */
   lon?: number;
+  /** Camera elevation in degrees when there is no locale anchor (default 0). */
+  lat?: number;
   zoom: "far" | "full" | "mid" | "close";
   /** Which side of the anchor the card sits on. */
   side?: "left" | "right";
@@ -75,6 +83,44 @@ export const metaBeats: PlateBeat[] = [
   },
 ];
 
+/**
+ * Eisen's plate: one beat per bullet, each anchored on a layer of the
+ * factory. Longitudes are chosen so the anchor faces the camera (Network.tsx
+ * places the gate at −30° and the pillar at 210°).
+ */
+export const eisenBeats: PlateBeat[] = [
+  {
+    caption:
+      "An AI agent orchestration flow: a software factory that spins up a container agent for every developer task, test run and client product feature.",
+    sub: "The orchestrator",
+    at: "core",
+    lon: -90,
+    lat: 22,
+    zoom: "full",
+    side: "right",
+  },
+  {
+    caption:
+      "Financial compliance automation: every piece of work crosses the ring and is stamped before it ships.",
+    sub: "The compliance ring",
+    at: "gate",
+    lon: 30,
+    lat: 8,
+    zoom: "full",
+    side: "left",
+  },
+  {
+    caption:
+      "Backend work: the substrate the factory stands on, for banks, exchanges and financing institutions.",
+    sub: "The substrate",
+    at: "pillar",
+    lon: 150,
+    lat: 38,
+    zoom: "far",
+    side: "right",
+  },
+];
+
 export const chapters: Chapter[] = [
   {
     id: "intro",
@@ -92,13 +138,14 @@ export const chapters: Chapter[] = [
     id: "eisen",
     numeral: "II",
     title: "Eisen",
-    instrument: "balance",
-    mech: "tilt",
-    note: "weigh, then settle",
-    spin: 0,
+    instrument: "network",
+    mech: "spinY",
+    note: "a container for every task",
+    spin: 0.05,
     // Eisen is the desktop inside the intro's monitor: a screen, not a page.
     palette: { paper: "#14161c", ink: "#e6e9ef", accent: "#7fb0ff" },
     screen: true,
+    plate: { beats: eisenBeats },
   },
   {
     id: "meta",
