@@ -17,20 +17,24 @@ import {
   MeshBasicMaterial,
   Object3D,
   OctahedronGeometry,
+  PlaneGeometry,
   Points,
   PointsMaterial,
+  SphereGeometry,
   Vector3,
 } from "three";
 import { frameLerp } from "@/lib/drawIn";
 import {
   cycleAt,
   edgeDraw,
+  hash01,
   iterateFlash,
   layerEmphasis,
   layoutOrchestrators,
   layoutWorkers,
   ORCHESTRATORS,
   passes,
+  PHASE,
   pillarRise,
   resultU,
   taskU,
@@ -38,22 +42,39 @@ import {
   workerScale,
   type Emphasis,
 } from "@/lib/network";
+import {
+  printedLines,
+  screenDim,
+  screenScroll,
+  statusStrip,
+  taskTemplates,
+  verdictCode,
+  VIEW_LINES,
+} from "@/lib/terminal";
 import { lerp } from "@/lib/progress";
 import { useLabStore } from "@/store/useLabStore";
 import { Callouts } from "./Callouts";
 import { chapters, eisenBeats, sections } from "./chapters";
 import { EdgedModeContext } from "./Instruments";
 import { plateState } from "./plateState";
+import {
+  screenAttributes,
+  screenMaterial,
+  setStatus,
+  setTemplate,
+  terminalAtlas,
+} from "./terminalAtlas";
 
 /**
- * SKELETON of the Eisen hero: the software factory as an orchestrator-worker
- * network on the screen inside the intro's monitor. A group of orchestrator
- * agents each spin up their own worker containers; a task packet goes down
- * the edge, the worker runs, a deterministic verdict lights it green or red,
- * the result packet comes back up, and a failure flashes the orchestrator,
- * which spins up the next container in that slot. It all stands on a backend
- * substrate. Each plate beat lifts one layer and the camera turns to its
- * anchor. Drawn raw (the chapter is a screen); solid mode only.
+ * The Eisen hero: the software factory as an orchestrator-worker network on
+ * the screen inside the intro's monitor. A group of orchestrator agents each
+ * spin up their own worker containers; each container is a terminal card
+ * whose screen streams the task's log, a task packet goes down the edge, a
+ * deterministic verdict prints PASS or FAIL, the result packet comes back up,
+ * and a failure flashes the orchestrator, which spins up the next container
+ * in that slot. It all stands on a backend substrate. Each plate beat lifts
+ * one layer and the camera turns to its anchor. Drawn raw (the chapter is a
+ * screen); solid mode only.
  */
 
 const ORCHS = layoutOrchestrators();
@@ -76,6 +97,16 @@ const EMPH_LERP = 0.08;
 const NETWORK_SCALE = 1.15;
 /** The pause the whole factory sits at under reduced motion: mid-run. */
 const STILL_TIME = 4.5;
+/** A terminal card: a slab with a screen on its outward face, tilted up toward the camera. */
+const CARD = { w: 0.15, h: 0.11, d: 0.026, tilt: -0.22 };
+const SCREEN_W = 0.14;
+const SCREEN_H = (SCREEN_W * 3) / 4;
+/** One atlas strip (256×24) at a size that stays legible from the plate camera. */
+const STATUS_W = 0.36;
+const STATUS_H = (STATUS_W * 24) / 256;
+const STATUS_LIFT = 0.19;
+const EYE_R = 0.13;
+const TURN_LERP = 0.1;
 
 const EISEN_PLATE = sections.findIndex(
   (s) => s.kind === "plate" && chapters[s.chapter].instrument === "network",
@@ -83,6 +114,12 @@ const EISEN_PLATE = sections.findIndex(
 const EISEN_PALETTE = chapters.find((c) => c.instrument === "network")!.palette;
 
 const pillarAngle = (i: number) => (i / PILLARS) * Math.PI * 2;
+/** Each worker's task, spread over the templates by seed. */
+const TASK_OF = WORKERS.map((w) =>
+  Math.floor(hash01(w.seed + 9) * taskTemplates.length),
+);
+/** Yaw that points a card's +z (its screen) radially outward. */
+const FACE_OUT = WORKERS.map((w) => Math.PI / 2 - Math.atan2(w.z, w.x));
 /**
  * Callout anchors, one per beat: orchestrator 0, one of orchestrator 3's
  * workers, a pillar top. A local point at xz-angle α faces the camera when
@@ -169,14 +206,40 @@ function glow(colour: string): MeshBasicMaterial {
   return new MeshBasicMaterial({ color: colour, toneMapped: false });
 }
 
+/** Shortest-arc step from angle a toward b. */
+function turnToward(a: number, b: number, k: number): number {
+  let d = b - a;
+  while (d > Math.PI) d -= 2 * Math.PI;
+  while (d < -Math.PI) d += 2 * Math.PI;
+  return a + d * k;
+}
+
 export function Network({ mech }: { mech: RefObject<Group | null> }) {
   const { mode } = useContext(EdgedModeContext);
+  const solid = mode === "solid";
   const g = useMemo(() => {
     const pillar = new CylinderGeometry(0.028, 0.028, 1, 8);
     pillar.translate(0, 0.5, 0);
+    // The screen sits just proud of the slab's outward face; both share a matrix.
+    const screen = new PlaneGeometry(SCREEN_W, SCREEN_H);
+    screen.translate(0, 0, CARD.d / 2 + 0.002);
+    const sa = screenAttributes(N);
+    screen.setAttribute("aOrigin", sa.origin);
+    screen.setAttribute("aState", sa.state);
+    WORKERS.forEach((_, i) => setTemplate(sa.origin, i, TASK_OF[i]));
+    const status = new PlaneGeometry(STATUS_W, STATUS_H);
+    const st = screenAttributes(ORCHESTRATORS);
+    status.setAttribute("aOrigin", st.origin);
+    status.setAttribute("aState", st.state);
+    for (let i = 0; i < ORCHESTRATORS; i++) st.state.setXYZ(i, 0, 1, 0);
     return {
       orch: new OctahedronGeometry(0.11, 0),
-      worker: new BoxGeometry(0.085, 0.085, 0.085),
+      eye: new SphereGeometry(0.02, 8, 6),
+      card: new BoxGeometry(CARD.w, CARD.h, CARD.d),
+      screen,
+      screenState: sa.state,
+      status,
+      statusOrigin: st.origin,
       pillar,
       grid: gridGeometry(),
       mesh: meshGeometry(),
@@ -186,15 +249,20 @@ export function Network({ mech }: { mech: RefObject<Group | null> }) {
       packets: dynamicGeometry(N * 2, true),
     };
   }, []);
+  // The atlas is one canvas and one GPU texture; only the solid twin needs it.
+  const atlas = useMemo(() => (solid ? terminalAtlas() : null), [solid]);
   const m = useMemo(
     () => ({
       orch: glow(ORCH_COLOUR),
+      eye: glow("#ffffff"),
       mesh: new LineBasicMaterial({
         color: MESH_COLOUR,
         transparent: true,
         opacity: 0.5,
       }),
-      worker: glow("#ffffff"),
+      card: glow("#ffffff"),
+      screen: atlas ? screenMaterial(atlas, VIEW_LINES) : null,
+      status: atlas ? screenMaterial(atlas, 1, true) : null,
       edge: new LineBasicMaterial({
         color: ORCH_COLOUR,
         transparent: true,
@@ -218,7 +286,7 @@ export function Network({ mech }: { mech: RefObject<Group | null> }) {
       }),
       pillar: glow(SUBSTRATE),
     }),
-    [],
+    [atlas],
   );
   const colours = useMemo(
     () => ({
@@ -231,10 +299,20 @@ export function Network({ mech }: { mech: RefObject<Group | null> }) {
     }),
     [],
   );
-  const dummy = useMemo(() => new Object3D(), []);
+  const dummy = useMemo(() => {
+    const d = new Object3D();
+    // Yaw first, then the tilt about the card's own x, so screens lean back
+    // toward an elevated camera whichever way they face.
+    d.rotation.order = "YXZ";
+    return d;
+  }, []);
   const tmpColour = useMemo(() => new Color(), []);
+  const tmpVec = useMemo(() => new Vector3(), []);
   const orchs = useRef<InstancedMesh>(null);
-  const workers = useRef<InstancedMesh>(null);
+  const eyes = useRef<InstancedMesh>(null);
+  const statuses = useRef<InstancedMesh>(null);
+  const cards = useRef<InstancedMesh>(null);
+  const screens = useRef<InstancedMesh>(null);
   const pillars = useRef<InstancedMesh>(null);
   const packets = useRef<Points>(null);
   const tilt = useRef<Group>(null);
@@ -244,9 +322,14 @@ export function Network({ mech }: { mech: RefObject<Group | null> }) {
     substrate: 0.3,
   });
   const flash = useRef<number[]>(ORCHS.map(() => 0));
+  const running = useRef<number[]>(ORCHS.map(() => 0));
+  /** Per orchestrator: the worker it last dispatched to, and its current yaw. */
+  const dispatch = useRef<number[]>(ORCHS.map(() => -1));
+  const dispatchF = useRef<number[]>(ORCHS.map(() => 2));
+  const yaw = useRef<number[]>(ORCHS.map((o) => o.angle));
 
   /* eslint-disable react-hooks/immutability -- r3f pattern: mutate memoized materials, buffers and ref object3Ds in useFrame */
-  useFrame(({ clock }, delta) => {
+  useFrame(({ clock, camera }, delta) => {
     const { reducedMotion } = useLabStore.getState();
     const active = plateState.instrument === "network";
     const { beat, t, expand } = plateState;
@@ -260,7 +343,11 @@ export function Network({ mech }: { mech: RefObject<Group | null> }) {
     e.orchestrators = lerp(e.orchestrators, target.orchestrators, k);
     e.verdicts = lerp(e.verdicts, target.verdicts, k);
     e.substrate = lerp(e.substrate, target.substrate, k);
-    for (let i = 0; i < ORCHESTRATORS; i++) flash.current[i] = 0;
+    for (let i = 0; i < ORCHESTRATORS; i++) {
+      flash.current[i] = 0;
+      running.current[i] = 0;
+      dispatchF.current[i] = 2;
+    }
 
     // Workers: each container lives its own cycle in its orchestrator's slot.
     // In beat 0 the wave out from the orchestrators gates them, so the floor
@@ -268,7 +355,7 @@ export function Network({ mech }: { mech: RefObject<Group | null> }) {
     const edgePos = g.edges.getAttribute("position") as Float32BufferAttribute;
     const pktPos = g.packets.getAttribute("position") as Float32BufferAttribute;
     const pktCol = g.packets.getAttribute("color") as Float32BufferAttribute;
-    if (workers.current) {
+    if (cards.current && screens.current) {
       for (let i = 0; i < N; i++) {
         const w = WORKERS[i];
         const o = ORCHS[w.orch];
@@ -278,21 +365,35 @@ export function Network({ mech }: { mech: RefObject<Group | null> }) {
         const s = workerScale(f) * draw;
         const glowV = verdictGlow(f);
         dummy.position.set(w.x, w.y, w.z);
-        dummy.rotation.set(0, time * 0.25 + w.phase, 0);
+        dummy.rotation.set(CARD.tilt, FACE_OUT[i], 0);
         dummy.scale.setScalar(Math.max(1e-4, s));
         dummy.updateMatrix();
-        workers.current.setMatrixAt(i, dummy.matrix);
-        // Running: a cool white. At the verdict: green or red, brighter in
-        // beat 1 where the criteria are the story.
+        cards.current.setMatrixAt(i, dummy.matrix);
+        screens.current.setMatrixAt(i, dummy.matrix);
+        // The slab: a cool white while it runs; green or red at the verdict,
+        // brighter in beat 1 where the criteria are the story.
         tmpColour
           .copy(colours.run)
-          .multiplyScalar(0.9 + 0.6 * e.orchestrators)
+          .multiplyScalar(0.7 + 0.5 * e.orchestrators)
           .lerp(
             ok ? colours.pass : colours.fail,
             glowV * (0.6 + 0.4 * e.verdicts),
           );
         if (glowV > 0) tmpColour.multiplyScalar(1 + 1.6 * glowV * e.verdicts);
-        workers.current.setColorAt(i, tmpColour);
+        cards.current.setColorAt(i, tmpColour);
+        // The screen: the log streams in, the verdict row prints, then it
+        // goes dark through teardown.
+        const printed = printedLines(f);
+        g.screenState.setXYZ(
+          i,
+          screenScroll(printed),
+          printed,
+          verdictCode(f, ok),
+        );
+        screens.current.setColorAt(
+          i,
+          tmpColour.setScalar(screenDim(f) * (1.1 + 0.5 * e.orchestrators)),
+        );
         // The edge from the orchestrator draws out to the slot with the wave.
         edgePos.setXYZ(i * 2, o.x, o.y, o.z);
         edgePos.setXYZ(
@@ -325,15 +426,25 @@ export function Network({ mech }: { mech: RefObject<Group | null> }) {
           .copy(ok ? colours.pass : colours.fail)
           .multiplyScalar(ru === null ? 0 : 1.6 + 1.2 * e.verdicts);
         pktCol.setXYZ(i * 2 + 1, tmpColour.r, tmpColour.g, tmpColour.b);
-        // A failed result lands: the orchestrator flashes and iterates.
+        // What the orchestrator knows: how many of its containers run, which
+        // one it dispatched to most recently, and a failed result landing.
+        if (f >= PHASE.up && f < PHASE.verdict) running.current[w.orch]++;
+        if (f >= PHASE.up && f < dispatchF.current[w.orch]) {
+          dispatchF.current[w.orch] = f;
+          dispatch.current[w.orch] = i;
+        }
         flash.current[w.orch] = Math.max(
           flash.current[w.orch],
           iterateFlash(f, !ok) * draw,
         );
       }
-      workers.current.instanceMatrix.needsUpdate = true;
-      if (workers.current.instanceColor)
-        workers.current.instanceColor.needsUpdate = true;
+      cards.current.instanceMatrix.needsUpdate = true;
+      screens.current.instanceMatrix.needsUpdate = true;
+      if (cards.current.instanceColor)
+        cards.current.instanceColor.needsUpdate = true;
+      if (screens.current.instanceColor)
+        screens.current.instanceColor.needsUpdate = true;
+      g.screenState.needsUpdate = true;
       edgePos.needsUpdate = true;
       pktPos.needsUpdate = true;
       pktCol.needsUpdate = true;
@@ -341,15 +452,25 @@ export function Network({ mech }: { mech: RefObject<Group | null> }) {
     m.edge.opacity = 0.15 + 0.4 * e.orchestrators;
     m.mesh.opacity = 0.25 + 0.5 * e.orchestrators;
 
-    // Orchestrators: bright, breathing out of step, flashing red when they
-    // have to iterate.
-    if (orchs.current) {
+    // Orchestrators: bright, breathing out of step, turning to face the
+    // worker they last dispatched to (an eye marks the facing), flashing red
+    // when they have to iterate; a status strip above each faces the camera.
+    if (orchs.current && eyes.current && statuses.current && mech.current) {
+      const camLocal = mech.current.worldToLocal(tmpVec.copy(camera.position));
       for (let i = 0; i < ORCHESTRATORS; i++) {
         const o = ORCHS[i];
         const breathe = 0.5 + 0.5 * Math.sin(time * 1.6 + i * 1.3);
         const fl = flash.current[i];
+        const d = dispatch.current[i];
+        if (d >= 0) {
+          const w = WORKERS[d];
+          const goal = Math.atan2(w.x - o.x, w.z - o.z);
+          yaw.current[i] = reducedMotion
+            ? goal
+            : turnToward(yaw.current[i], goal, frameLerp(TURN_LERP, delta));
+        }
         dummy.position.set(o.x, o.y, o.z);
-        dummy.rotation.set(0, time * 0.4 + i, 0);
+        dummy.rotation.set(0, yaw.current[i], 0);
         dummy.scale.setScalar(1 + 0.08 * breathe + 0.35 * fl);
         dummy.updateMatrix();
         orchs.current.setMatrixAt(i, dummy.matrix);
@@ -361,10 +482,47 @@ export function Network({ mech }: { mech: RefObject<Group | null> }) {
             .lerp(colours.fail, fl)
             .multiplyScalar(1 + 1.5 * fl),
         );
+        dummy.position.set(
+          o.x + Math.sin(yaw.current[i]) * EYE_R,
+          o.y,
+          o.z + Math.cos(yaw.current[i]) * EYE_R,
+        );
+        dummy.scale.setScalar(1 + 0.6 * fl);
+        dummy.updateMatrix();
+        eyes.current.setMatrixAt(i, dummy.matrix);
+        eyes.current.setColorAt(i, tmpColour.setScalar(1.6 + 1.2 * fl));
+        // The status strip billboards toward the camera in the mech's frame.
+        dummy.position.set(o.x, o.y + STATUS_LIFT, o.z);
+        dummy.rotation.set(
+          0,
+          Math.atan2(camLocal.x - o.x, camLocal.z - o.z),
+          0,
+        );
+        dummy.scale.setScalar(1);
+        dummy.updateMatrix();
+        statuses.current.setMatrixAt(i, dummy.matrix);
+        setStatus(
+          g.statusOrigin,
+          i,
+          statusStrip(running.current[i], fl > 0.05),
+        );
+        // Kept under the bloom threshold: small bright text blooms into a
+        // speckled halo.
+        statuses.current.setColorAt(
+          i,
+          tmpColour.setScalar(0.7 + 0.3 * e.orchestrators),
+        );
       }
       orchs.current.instanceMatrix.needsUpdate = true;
+      eyes.current.instanceMatrix.needsUpdate = true;
+      statuses.current.instanceMatrix.needsUpdate = true;
       if (orchs.current.instanceColor)
         orchs.current.instanceColor.needsUpdate = true;
+      if (eyes.current.instanceColor)
+        eyes.current.instanceColor.needsUpdate = true;
+      if (statuses.current.instanceColor)
+        statuses.current.instanceColor.needsUpdate = true;
+      g.statusOrigin.needsUpdate = true;
     }
 
     // Substrate: the grid the factory stands on and the pillars that carry it.
@@ -397,7 +555,7 @@ export function Network({ mech }: { mech: RefObject<Group | null> }) {
   /* eslint-enable react-hooks/immutability */
 
   // The screen chapter is drawn raw: no engraved twin, so the lines root is empty.
-  if (mode !== "solid") return <group ref={mech} />;
+  if (!solid || !m.screen || !m.status) return <group ref={mech} />;
 
   return (
     <group position={[0, -0.3, 0]} scale={NETWORK_SCALE}>
@@ -408,10 +566,25 @@ export function Network({ mech }: { mech: RefObject<Group | null> }) {
             args={[g.orch, m.orch, ORCHESTRATORS]}
             frustumCulled={false}
           />
+          <instancedMesh
+            ref={eyes}
+            args={[g.eye, m.eye, ORCHESTRATORS]}
+            frustumCulled={false}
+          />
+          <instancedMesh
+            ref={statuses}
+            args={[g.status, m.status, ORCHESTRATORS]}
+            frustumCulled={false}
+          />
           <lineSegments geometry={g.mesh} material={m.mesh} />
           <instancedMesh
-            ref={workers}
-            args={[g.worker, m.worker, N]}
+            ref={cards}
+            args={[g.card, m.card, N]}
+            frustumCulled={false}
+          />
+          <instancedMesh
+            ref={screens}
+            args={[g.screen, m.screen, N]}
             frustumCulled={false}
           />
           <lineSegments geometry={g.edges} material={m.edge} />
