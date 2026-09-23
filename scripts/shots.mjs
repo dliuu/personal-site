@@ -27,6 +27,17 @@ const VIEWPORTS = [
   { width: 390, height: 844, isMobile: true, hasTouch: true },
 ];
 
+// Software WebGL can run at a frame a second; a fixed wait may capture the
+// previous scroll position. Wait for two real frames after each move.
+async function settle(page) {
+  await page.evaluate(
+    () =>
+      new Promise((r) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => r())),
+      ),
+  );
+}
+
 async function ensureServer() {
   try {
     const res = await fetch(url, { redirect: "manual" });
@@ -135,6 +146,7 @@ async function main() {
                 [ids[i], f],
               );
               await page.waitForTimeout(700);
+              await settle(page);
               const file = path.join(
                 dir,
                 `${String(i).padStart(2, "0")}-${ids[i]}-${label(f, j)}.png`,
@@ -155,6 +167,7 @@ async function main() {
               });
             }, ids[i]);
             await page.waitForTimeout(600);
+            await settle(page);
             const file = path.join(
               dir,
               `${String(i).padStart(2, "0")}-${ids[i]}.png`,
