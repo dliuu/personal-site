@@ -1,41 +1,25 @@
 [
   {
     "file": "potted_plant_01/potted_plant_01.gltf",
-    "position": [
-      -1.35,
-      0,
-      -0.5
-    ],
+    "position": [-1.35, 0, -0.5],
     "rotationY": 0.4,
     "scale": 1
   },
   {
     "file": "potted_plant_02/potted_plant_02.gltf",
-    "position": [
-      2.0,
-      0,
-      -0.55
-    ],
+    "position": [2.0, 0, -0.55],
     "rotationY": -0.6,
     "scale": 1
   },
   {
     "file": "desk_lamp_arm_01/desk_lamp_arm_01.gltf",
-    "position": [
-      -0.55,
-      0.805,
-      -0.52
-    ],
+    "position": [-0.55, 0.805, -0.52],
     "rotationY": 3.7,
     "scale": 0.55
   },
   {
     "file": "dev_figure/dev_figure.gltf",
-    "position": [
-      0.12,
-      0,
-      0.46
-    ],
+    "position": [0.12, 0, 0.46],
     "rotationY": 3.1416,
     "scale": 1.2
   }
