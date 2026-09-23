@@ -22,6 +22,7 @@ import {
 } from "./chapters";
 import { locales, NYC } from "./locales";
 import { DeskScene } from "./DeskScene";
+import { Network } from "./Network";
 import { Hotspots, useHotspotDismiss } from "./Hotspots";
 import { INK, PARCHMENT } from "./palette";
 import { plateState } from "./plateState";
@@ -54,7 +55,9 @@ function beatKeys(beats: PlateBeat[], closeK: number): CameraKey[] {
     const k = b.zoom === "close" ? closeK : ZOOM_K[b.zoom];
     if (b.at === "nyc") return { lon: NYC.lon, lat: NYC.lat, k };
     const l = b.at ? locales.find((x) => x.id === b.at) : undefined;
-    return l ? { lon: l.lon, lat: l.lat, k } : { lon: b.lon ?? 0, lat: 0, k };
+    return l
+      ? { lon: l.lon, lat: l.lat, k }
+      : { lon: b.lon ?? 0, lat: b.lat ?? 0, k };
   });
 }
 // Key light at rest, and raking low from camera-left during the beat-1 push-in.
@@ -68,6 +71,7 @@ const KIND: Record<
   desk: () => <></>,
   armillary: Armillary,
   balance: Balance,
+  network: Network,
   globe: Globe,
   bridge: Bridge,
   quadrant: Quadrant,
@@ -79,6 +83,7 @@ const FIT: Record<InstrumentKind, number> = {
   desk: 1,
   armillary: 1.75 / 1.9,
   balance: 1.75 / 1.5,
+  network: 1.75 / 1.3,
   globe: 1.75 / 1.5,
   bridge: 1.75 / 2.1,
   quadrant: 1.75 / 1.45,
@@ -358,8 +363,9 @@ export function HeroObjects() {
     } else if (parent && plateState.instrument) {
       // Orbit the sphere's centre: rise to the anchor's latitude, sit k radii
       // out, and look at the centre; blended in by expand so entry is smooth.
+      // From the chapter's own root: odd chapters sit 0.6 behind the parent.
       tmp.current.set(0, -PLATE_LIFT, 0);
-      parent.localToWorld(tmp.current);
+      (refs.current[sec.chapter].root ?? parent).localToWorld(tmp.current);
       const R = 1.05 * parent.scale.x;
       const { el, k } = plateState.cam;
       plateGoal.current
