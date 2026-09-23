@@ -83,7 +83,7 @@ const FIT: Record<InstrumentKind, number> = {
   desk: 1,
   armillary: 1.75 / 1.9,
   balance: 1.75 / 1.5,
-  network: 1.75 / 1.3,
+  network: 1.75 / 1.6,
   globe: 1.75 / 1.5,
   bridge: 1.75 / 2.1,
   quadrant: 1.75 / 1.45,

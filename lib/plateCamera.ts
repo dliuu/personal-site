@@ -2,7 +2,13 @@ import { smooth } from "./beats";
 import { lerp } from "./progress";
 
 /** Camera distance as a multiple of the sphere radius, per zoom name. */
-export const ZOOM_K = { far: 3.5, full: 3.1, mid: 2.2, close: 1.85 } as const;
+export const ZOOM_K = {
+  far: 3.5,
+  full: 3.1,
+  near: 2.6,
+  mid: 2.2,
+  close: 1.85,
+} as const;
 export type Zoom = keyof typeof ZOOM_K;
 
 export type CameraKey = { lon: number; lat: number; k: number };

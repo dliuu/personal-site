@@ -31,7 +31,7 @@ export type PlateBeat = {
   lon?: number;
   /** Camera elevation in degrees when there is no locale anchor (default 0). */
   lat?: number;
-  zoom: "far" | "full" | "mid" | "close";
+  zoom: "far" | "full" | "near" | "mid" | "close";
   /** Which side of the anchor the card sits on. */
   side?: "left" | "right";
 };
@@ -98,8 +98,8 @@ export const eisenBeats: PlateBeat[] = [
     lon: -90,
     // High enough that the near orchestrator projects below centre, so its
     // card has room above it.
-    lat: 34,
-    zoom: "full",
+    lat: 42,
+    zoom: "near",
     side: "right",
   },
   {
@@ -108,8 +108,8 @@ export const eisenBeats: PlateBeat[] = [
     sub: "Pass or fail",
     at: "worker",
     lon: 30,
-    lat: 14,
-    zoom: "full",
+    lat: 10,
+    zoom: "near",
     side: "left",
   },
   {
@@ -119,7 +119,7 @@ export const eisenBeats: PlateBeat[] = [
     at: "pillar",
     lon: 150,
     lat: 38,
-    zoom: "far",
+    zoom: "full",
     side: "right",
   },
 ];

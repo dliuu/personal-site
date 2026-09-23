@@ -72,6 +72,8 @@ const PILLAR_H = 0.83;
 const GRID_HALF = 1.6;
 const GRID_N = 12;
 const EMPH_LERP = 0.08;
+/** The factory at radius ~1.25 fills its band region and the plate frame at this scale. */
+const NETWORK_SCALE = 1.15;
 /** The pause the whole factory sits at under reduced motion: mid-run. */
 const STILL_TIME = 4.5;
 
@@ -398,7 +400,7 @@ export function Network({ mech }: { mech: RefObject<Group | null> }) {
   if (mode !== "solid") return <group ref={mech} />;
 
   return (
-    <group position={[0, -0.3, 0]}>
+    <group position={[0, -0.3, 0]} scale={NETWORK_SCALE}>
       <group ref={tilt}>
         <group ref={mech}>
           <instancedMesh
