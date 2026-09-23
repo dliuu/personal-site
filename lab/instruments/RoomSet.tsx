@@ -9,27 +9,27 @@ import {
   SphereGeometry,
   TorusGeometry,
 } from "three";
-import { neon, note, photo, rug, spine, wood } from "./roomTextures";
-import { useRoomStore } from "./useRoomStore";
 import { Plant } from "./Plant";
+import { note, photo, rug, spine, wood } from "./roomTextures";
+import { useRoomStore } from "./useRoomStore";
 
 const mat = (color: string, roughness = 0.85, metalness = 0) =>
   new MeshStandardMaterial({ color, roughness, metalness });
 
 /** PLACEHOLDER titles and notes until the owner supplies theirs. */
 const BOOKS = [
-  ["Data-Intensive Apps", "#7a3b3b"],
-  ["Gödel, Escher, Bach", "#3b5a7a"],
-  ["Pragmatic Programmer", "#7a6a3b"],
-  ["SICP", "#3b6a4a"],
-  ["Dune", "#5a3b7a"],
-  ["Sapiens", "#8a5a2b"],
-  ["Norwegian Wood", "#2b5a5a"],
-  ["Zero to One", "#6a6a6a"],
-  ["Deep Learning", "#3b3b7a"],
-  ["Snow Crash", "#8a2b4a"],
-  ["Thinking, Fast and Slow", "#4a6a2b"],
-  ["Designing Design", "#2b2b2b"],
+  ["Data-Intensive Apps", "#8a6a55"],
+  ["Gödel, Escher, Bach", "#6b7a5a"],
+  ["Pragmatic Programmer", "#b58a5a"],
+  ["SICP", "#5a6b5a"],
+  ["Dune", "#c4795a"],
+  ["Sapiens", "#a3906a"],
+  ["Norwegian Wood", "#7a8b6a"],
+  ["Zero to One", "#8c8c84"],
+  ["Deep Learning", "#5a6a7a"],
+  ["Snow Crash", "#9a5a4a"],
+  ["Thinking, Fast and Slow", "#7a8a5a"],
+  ["Designing Design", "#3a3128"],
 ] as const;
 const NOTES = [
   ["ship the globe by friday", "#c9b04a", [0.345, 1.16, -0.44]],
@@ -89,10 +89,10 @@ function Note({
 }
 
 /**
- * The static set: walls and ceiling, the window bay, the shelf wall, the
- * left wall, the floor and the desk's extras. Stage 0 is the shell, stage 1
- * adds textures and the shelf wall, stage 2 the rest, so the room settles in
- * after first paint instead of delaying it.
+ * The static set: a modern room in plaster and pale oak. The back wall is
+ * glass from floor to ceiling (the panes and curtains live in RoomLife); the
+ * side walls carry the print and the shelves. Stage 0 is the shell, stage 1
+ * adds textures, the shelf wall and the desk extras, stage 2 the rest.
  */
 export function RoomSet({
   stage,
@@ -104,21 +104,18 @@ export function RoomSet({
   const g = useMemo(
     () => ({
       floor: new PlaneGeometry(9, 9),
-      wallBack: new PlaneGeometry(4.8, 2.6),
       wallSide: new PlaneGeometry(6, 2.6),
       ceiling: new PlaneGeometry(4.8, 6),
-      baseboard: new BoxGeometry(4.8, 0.08, 0.02),
-      rug: new PlaneGeometry(2.6, 1.8),
+      slat: new BoxGeometry(4.8, 0.03, 0.06),
+      baseboard: new BoxGeometry(6, 0.06, 0.02),
+      mullion: new BoxGeometry(0.05, 2.6, 0.05),
+      header: new BoxGeometry(4.9, 0.06, 0.08),
+      threshold: new BoxGeometry(4.9, 0.02, 0.1),
+      rug: new PlaneGeometry(2.8, 2.0),
       door: new BoxGeometry(0.02, 2.05, 0.85),
       doorFrame: new BoxGeometry(0.04, 2.12, 0.95),
       handle: new SphereGeometry(0.025, 10, 8),
-      radiator: new BoxGeometry(0.7, 0.5, 0.08),
-      fin: new BoxGeometry(0.03, 0.46, 0.1),
-      sill: new BoxGeometry(1.1, 0.04, 0.22),
-      cushion: new BoxGeometry(0.9, 0.06, 0.18),
-      frame: new BoxGeometry(0.05, 1.2, 0.03),
-      frameH: new BoxGeometry(1.0, 0.05, 0.03),
-      shelf: new BoxGeometry(0.9, 0.03, 0.26),
+      shelf: new BoxGeometry(1.0, 0.03, 0.26),
       book: new BoxGeometry(0.035, 0.22, 0.17),
       plinth: new BoxGeometry(0.34, 0.06, 0.28),
       sleeve: new BoxGeometry(0.3, 0.3, 0.01),
@@ -128,11 +125,14 @@ export function RoomSet({
       photo: new PlaneGeometry(0.128, 0.096),
       poster: new PlaneGeometry(0.42, 0.55),
       posterFrame: new BoxGeometry(0.48, 0.61, 0.025),
-      neon: new PlaneGeometry(0.9, 0.225),
       cork: new BoxGeometry(0.6, 0.45, 0.02),
       card: new PlaneGeometry(0.11, 0.08),
       floorCushion: new CylinderGeometry(0.28, 0.3, 0.12, 24),
       stackBook: new BoxGeometry(0.2, 0.03, 0.14),
+      standTop: new CylinderGeometry(0.16, 0.16, 0.02, 20),
+      standLeg: new CylinderGeometry(0.01, 0.01, 0.5, 6),
+      bench: new BoxGeometry(1.2, 0.05, 0.35),
+      benchLeg: new BoxGeometry(0.04, 0.4, 0.3),
       monitor2: new BoxGeometry(0.5, 0.3, 0.025),
       stem2: new BoxGeometry(0.04, 0.12, 0.04),
       penCup: new CylinderGeometry(0.035, 0.03, 0.09, 12),
@@ -141,51 +141,52 @@ export function RoomSet({
       cup: new CylinderGeometry(0.035, 0.03, 0.03, 12),
       wrist: new BoxGeometry(0.44, 0.02, 0.06),
       cable: new CylinderGeometry(0.004, 0.004, 0.6, 6),
+      hangerCord: new CylinderGeometry(0.003, 0.003, 0.7, 5),
     }),
     [],
   );
   const woodTex = useMemo(() => (stage >= 1 ? wood() : null), [stage]);
   const rugTex = useMemo(() => (stage >= 1 ? rug() : null), [stage]);
   const photoTex = useMemo(() => (stage >= 1 ? photo() : null), [stage]);
-  const neonTex = useMemo(() => {
-    return stage >= 2 ? neon("stay curious", "#ff8fb1", fonts.script) : null;
-  }, [stage, fonts.script]);
   const spines = useMemo(
     () => (stage >= 1 ? BOOKS.map(([t, c]) => spine(t, c, fonts.fell)) : null),
     [stage, fonts.fell],
   );
   const m = useMemo(
     () => ({
-      floor: mat("#2a2320", 0.95),
-      wall: mat("#3a3341", 0.95),
-      wallSide: mat("#332d3a", 0.95),
-      ceiling: mat("#2b2630", 1),
-      trim: mat("#4a3a30", 0.7),
+      floor: mat("#c9b08a", 0.7),
+      wall: mat("#e8e0d4", 0.95),
+      ceiling: mat("#efe8df", 1),
+      slat: mat("#b89b74", 0.75),
+      trim: mat("#d9d0c2", 0.8),
+      black: mat("#2a2724", 0.5, 0.2),
       rug: rugTex
-        ? new MeshStandardMaterial({ map: rugTex, roughness: 1 })
-        : mat("#5a3a3a", 1),
-      wood: woodTex
-        ? new MeshStandardMaterial({ map: woodTex, roughness: 0.55 })
-        : mat("#5a3d2b", 0.55),
-      door: mat("#4a3b33", 0.8),
-      brass: mat("#b08d4f", 0.3, 0.9),
-      radiator: mat("#c9c3b8", 0.6, 0.3),
-      cushion: mat("#7a5a4a", 1),
-      dark: mat("#1e2027", 0.5, 0.2),
-      black: mat("#0c0d10", 0.35, 0.3),
-      sleeve: mat("#d8cdb4", 0.9),
-      posterFrame: mat("#24201c", 0.6),
-      poster: mat("#d8cdb4", 0.9),
-      cork: mat("#b58b5a", 1),
-      card: mat("#efe4cc", 0.9),
-      neon: neonTex
         ? new MeshStandardMaterial({
-            color: "#000000",
-            emissive: "#ffffff",
-            emissiveMap: neonTex,
-            emissiveIntensity: 2.2,
+            map: rugTex,
+            roughness: 1,
+            color: "#e6dccb",
           })
-        : null,
+        : mat("#d9cdb8", 1),
+      wood: woodTex
+        ? new MeshStandardMaterial({
+            map: woodTex,
+            roughness: 0.6,
+            color: "#e0c9a6",
+          })
+        : mat("#b89b74", 0.6),
+      oak: mat("#b89b74", 0.6),
+      door: mat("#d2c4b0", 0.8),
+      brass: mat("#b08d4f", 0.3, 0.9),
+      cushion: mat("#c4795a", 1),
+      linen: mat("#e6dccb", 1),
+      sage: mat("#7a8b6a", 0.95),
+      dark: mat("#3a3128", 0.6),
+      sleeve: mat("#efe6d8", 0.9),
+      posterFrame: mat("#3a3128", 0.6),
+      poster: mat("#efe4cc", 0.9),
+      cork: mat("#c9a77a", 1),
+      card: mat("#efe4cc", 0.9),
+      terracotta: mat("#b86a4a", 0.9),
       photo: photoTex
         ? new MeshStandardMaterial({ map: photoTex, roughness: 0.6 })
         : mat("#8899aa"),
@@ -200,24 +201,18 @@ export function RoomSet({
         emissiveIntensity: 0.4,
       }),
     }),
-    [woodTex, rugTex, neonTex, spines, photoTex],
+    [woodTex, rugTex, spines, photoTex],
   );
-  const toggleBlinds = useRoomStore((s) => s.toggleBlinds);
   const posterThing = useThing(
     "the codex",
     "chapters II–V; click to turn the page",
     () =>
       document.getElementById("eisen")?.scrollIntoView({ behavior: "smooth" }),
   );
-  const sillThing = useThing(
-    "the window",
-    "click the cord to work the blinds",
-    toggleBlinds,
-  );
 
   return (
     <group>
-      {/* Shell */}
+      {/* Shell: floor, two plaster walls, a slatted ceiling; the back is glass. */}
       <mesh
         geometry={g.floor}
         material={m.floor}
@@ -225,21 +220,15 @@ export function RoomSet({
         receiveShadow
       />
       <mesh
-        geometry={g.wallBack}
-        material={m.wall}
-        position={[0, 1.3, -1.2]}
-        receiveShadow
-      />
-      <mesh
         geometry={g.wallSide}
-        material={m.wallSide}
+        material={m.wall}
         position={[-2.4, 1.3, 1.8]}
         rotation={[0, Math.PI / 2, 0]}
         receiveShadow
       />
       <mesh
         geometry={g.wallSide}
-        material={m.wallSide}
+        material={m.wall}
         position={[2.4, 1.3, 1.8]}
         rotation={[0, -Math.PI / 2, 0]}
         receiveShadow
@@ -250,16 +239,49 @@ export function RoomSet({
         position={[0, 2.6, 1.8]}
         rotation={[Math.PI / 2, 0, 0]}
       />
+      {stage >= 1
+        ? Array.from({ length: 9 }, (_, i) => (
+            <mesh
+              key={i}
+              geometry={g.slat}
+              material={m.slat}
+              position={[0, 2.56, -0.9 + i * 0.5]}
+            />
+          ))
+        : null}
       <mesh
         geometry={g.baseboard}
         material={m.trim}
-        position={[0, 0.04, -1.19]}
+        position={[-2.39, 0.03, 1.8]}
+        rotation={[0, Math.PI / 2, 0]}
+      />
+      <mesh
+        geometry={g.baseboard}
+        material={m.trim}
+        position={[2.39, 0.03, 1.8]}
+        rotation={[0, Math.PI / 2, 0]}
+      />
+      {/* Glass wall frame: mullions, header and threshold in black steel. */}
+      {[-2.4, -0.8, 0.8, 2.4].map((x) => (
+        <mesh
+          key={x}
+          geometry={g.mullion}
+          material={m.black}
+          position={[x, 1.3, -1.2]}
+          castShadow
+        />
+      ))}
+      <mesh geometry={g.header} material={m.black} position={[0, 2.57, -1.2]} />
+      <mesh
+        geometry={g.threshold}
+        material={m.black}
+        position={[0, 0.01, -1.2]}
       />
       <mesh
         geometry={g.rug}
         material={m.rug}
         rotation={[-Math.PI / 2, 0, 0]}
-        position={[0.2, 0.004, 0.5]}
+        position={[0.2, 0.004, 0.55]}
         receiveShadow
       />
       {/* Door on the right wall */}
@@ -272,50 +294,8 @@ export function RoomSet({
           position={[-0.04, 0, -0.32]}
         />
       </group>
-      {/* Window bay (the pane and blinds live in RoomLife) */}
-      <group position={[1.65, 1.75, -1.19]}>
-        <mesh
-          geometry={g.frame}
-          material={m.wood}
-          position={[-0.47, 0, 0.01]}
-        />
-        <mesh geometry={g.frame} material={m.wood} position={[0.47, 0, 0.01]} />
-        <mesh
-          geometry={g.frameH}
-          material={m.wood}
-          position={[0, 0.57, 0.01]}
-        />
-        <mesh
-          geometry={g.frameH}
-          material={m.wood}
-          position={[0, -0.57, 0.01]}
-        />
-        <mesh
-          geometry={g.sill}
-          material={m.wood}
-          position={[0, -0.61, 0.1]}
-          castShadow
-          {...sillThing}
-        />
-        <mesh
-          geometry={g.cushion}
-          material={m.cushion}
-          position={[0, -0.56, 0.1]}
-        />
-        <group position={[0, -1.35, 0.08]}>
-          <mesh geometry={g.radiator} material={m.radiator} />
-          {Array.from({ length: 9 }, (_, i) => (
-            <mesh
-              key={i}
-              geometry={g.fin}
-              material={m.radiator}
-              position={[-0.3 + i * 0.075, 0, 0.02]}
-            />
-          ))}
-        </group>
-      </group>
-      {/* Left wall: the print, the neon, the cork board */}
-      <group position={[-1.05, 1.75, -1.18]}>
+      {/* Left wall: the print, the cork board, a hanging pothos */}
+      <group position={[-2.38, 1.75, -0.2]} rotation={[0, Math.PI / 2, 0]}>
         <mesh
           geometry={g.posterFrame}
           material={m.posterFrame}
@@ -327,22 +307,16 @@ export function RoomSet({
           position={[0, 0, 0.014]}
         />
       </group>
-      {stage >= 2 && m.neon ? (
-        <mesh
-          geometry={g.neon}
-          material={m.neon}
-          position={[2.38, 2.08, -0.3]}
-          rotation={[0, -Math.PI / 2, 0]}
-        />
-      ) : null}
       {stage >= 2 ? (
-        <group position={[-1.85, 1.35, -1.18]}>
+        <group position={[-2.38, 1.35, 1.0]} rotation={[0, Math.PI / 2, 0]}>
           <mesh geometry={g.cork} material={m.cork} />
-          {[
-            [-0.18, 0.1, 0.08],
-            [0.1, 0.05, -0.05],
-            [-0.05, -0.12, 0.03],
-          ].map(([x, y, r], i) => (
+          {(
+            [
+              [-0.18, 0.1, 0.08],
+              [0.1, 0.05, -0.05],
+              [-0.05, -0.12, 0.03],
+            ] as const
+          ).map(([x, y, r], i) => (
             <mesh
               key={i}
               geometry={g.card}
@@ -353,13 +327,32 @@ export function RoomSet({
           ))}
         </group>
       ) : null}
-      {/* Shelf wall (right) */}
+      {stage >= 2 ? (
+        <group position={[-1.6, 2.58, 0.4]}>
+          <mesh
+            geometry={g.hangerCord}
+            material={m.dark}
+            position={[0, -0.35, 0]}
+          />
+          <Plant
+            position={[0, -0.78, 0]}
+            leaves={12}
+            size={0.2}
+            color="#5f8a55"
+            potColor="#e6dccb"
+            potR={0.09}
+            potH={0.1}
+            droop={1.2}
+          />
+        </group>
+      ) : null}
+      {/* Shelf wall (right): two oak shelves, books, record player, deck, photo */}
       {stage >= 1 ? (
         <group position={[2.27, 1.25, -0.3]} rotation={[0, Math.PI / 2, 0]}>
-          <mesh geometry={g.shelf} material={m.wood} castShadow receiveShadow />
+          <mesh geometry={g.shelf} material={m.oak} castShadow receiveShadow />
           <mesh
             geometry={g.shelf}
-            material={m.wood}
+            material={m.oak}
             position={[0, 0.5, 0]}
             castShadow
             receiveShadow
@@ -369,13 +362,13 @@ export function RoomSet({
               key={i}
               geometry={g.book}
               material={sm}
-              position={[-0.4 + i * 0.038, 0.125, 0.02]}
+              position={[-0.45 + i * 0.038, 0.125, 0.02]}
               rotation={[0, 0, i === 11 ? -0.18 : 0]}
               castShadow
             />
           ))}
-          <group position={[0.22, 0.515, -0.02]}>
-            <mesh geometry={g.plinth} material={m.wood} castShadow />
+          <group position={[0.27, 0.515, -0.02]}>
+            <mesh geometry={g.plinth} material={m.oak} castShadow />
             <mesh
               geometry={g.sleeve}
               material={m.sleeve}
@@ -400,23 +393,33 @@ export function RoomSet({
             />
           </group>
           <Plant
-            position={[-0.38, 0.515, 0.02]}
+            position={[-0.42, 0.515, 0.02]}
             leaves={9}
             size={0.16}
             color="#4f8a4a"
+            potColor="#e6dccb"
             potR={0.07}
             potH={0.09}
             droop={0.9}
           />
+          <Plant
+            position={[0.42, 0.015, 0.02]}
+            leaves={7}
+            size={0.12}
+            color="#6f9a5a"
+            potColor="#c4795a"
+            potR={0.06}
+            potH={0.08}
+          />
         </group>
       ) : null}
-      {/* Floor: cushion, a stack of books */}
+      {/* Floor: cushion, a stack of books, a plant stand, a bench under the glass with pots */}
       {stage >= 2 ? (
         <>
           <mesh
             geometry={g.floorCushion}
             material={m.cushion}
-            position={[1.3, 0.06, 0.9]}
+            position={[1.75, 0.06, 0.25]}
             castShadow
           />
           {[0, 1, 2].map((i) => (
@@ -424,11 +427,106 @@ export function RoomSet({
               key={i}
               geometry={g.stackBook}
               material={m.spines?.[(i * 5) % 12] ?? m.sleeve}
-              position={[1.0, 0.015 + i * 0.03, 0.3]}
+              position={[1.8, 0.015 + i * 0.03, 0.7]}
               rotation={[0, i * 0.25, 0]}
               castShadow
             />
           ))}
+          <group position={[-1.9, 0, 0.6]}>
+            {[0, 1, 2].map((i) => (
+              <mesh
+                key={i}
+                geometry={g.standLeg}
+                material={m.black}
+                position={[
+                  Math.cos(i * 2.1) * 0.12,
+                  0.25,
+                  Math.sin(i * 2.1) * 0.12,
+                ]}
+              />
+            ))}
+            <mesh
+              geometry={g.standTop}
+              material={m.oak}
+              position={[0, 0.5, 0]}
+            />
+            <Plant
+              position={[0, 0.51, 0]}
+              leaves={10}
+              size={0.2}
+              color="#6a9a60"
+              potColor="#e6dccb"
+              potR={0.09}
+              potH={0.12}
+            />
+          </group>
+          <group position={[1.4, 0, -0.95]}>
+            <mesh
+              geometry={g.bench}
+              material={m.oak}
+              position={[0, 0.42, 0]}
+              castShadow
+              receiveShadow
+            />
+            <mesh
+              geometry={g.benchLeg}
+              material={m.oak}
+              position={[-0.55, 0.2, 0]}
+            />
+            <mesh
+              geometry={g.benchLeg}
+              material={m.oak}
+              position={[0.55, 0.2, 0]}
+            />
+            <Plant
+              position={[-0.4, 0.445, 0]}
+              leaves={8}
+              size={0.18}
+              color="#7aa065"
+              potColor="#c4795a"
+              potR={0.08}
+              potH={0.12}
+            />
+            <Plant
+              position={[0.05, 0.445, 0.02]}
+              leaves={11}
+              size={0.13}
+              color="#5a8a5a"
+              potColor="#e6dccb"
+              potR={0.07}
+              potH={0.1}
+              droop={0.6}
+            />
+            <Plant
+              position={[0.45, 0.445, -0.02]}
+              leaves={6}
+              size={0.22}
+              color="#4f7a4a"
+              potColor="#3a3128"
+              potR={0.08}
+              potH={0.12}
+            />
+          </group>
+          <Plant
+            position={[-1.95, 0, -0.7]}
+            leaves={7}
+            size={0.34}
+            color="#3f7a45"
+            potColor="#e6dccb"
+            potR={0.15}
+            potH={0.3}
+            trunk={0.9}
+          />
+          <Plant
+            position={[2.0, 0, -0.55]}
+            leaves={9}
+            size={0.3}
+            color="#5a8a50"
+            potColor="#c4795a"
+            potR={0.14}
+            potH={0.28}
+            trunk={0.6}
+          />
         </>
       ) : null}
       {/* Desk extras */}
@@ -437,13 +535,13 @@ export function RoomSet({
           <group position={[-0.55, 0.9, -0.55]} rotation={[0, 0.35, 0]}>
             <mesh
               geometry={g.stem2}
-              material={m.dark}
+              material={m.black}
               position={[0, -0.09, 0]}
             />
             <mesh geometry={g.monitor2} material={m.black} castShadow />
           </group>
           <group position={[0.45, 0.8, -0.55]}>
-            <mesh geometry={g.penCup} material={m.dark} />
+            <mesh geometry={g.penCup} material={m.terracotta} />
             {[-0.01, 0.008, 0.0].map((x, i) => (
               <mesh
                 key={i}
@@ -471,7 +569,7 @@ export function RoomSet({
           </group>
           <mesh
             geometry={g.wrist}
-            material={m.cushion}
+            material={m.linen}
             position={[0, 0.762, -0.05]}
           />
           <mesh

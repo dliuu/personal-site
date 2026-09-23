@@ -4,6 +4,7 @@ import { CanvasTexture, RepeatWrapping, SRGBColorSpace } from "three";
 import {
   paintCity,
   paintGobo,
+  paintNature,
   paintNeon,
   paintNote,
   paintPhoto,
@@ -50,6 +51,7 @@ export const wood = () =>
   make(256, 256, (c) => paintWood(c), { repeat: [2, 1] });
 export const rug = () => make(512, 512, (c) => paintRug(c));
 export const city = () => make(512, 256, (c) => paintCity(c));
+export const nature = () => make(1024, 512, (c) => paintNature(c));
 export const gobo = () => make(128, 128, paintGobo, { srgb: false });
 export const sprite = (softness = 0.4) =>
   make(64, 64, (c) => paintSprite(c, softness), { srgb: false });

@@ -84,7 +84,7 @@ export const chapters: Chapter[] = [
     mech: "spinY",
     note: "a room, then the screen",
     spin: 0,
-    palette: { paper: "#1a1720", ink: "#efe4cc", accent: "#c49a3c" },
+    palette: { paper: "#efe7da", ink: "#3a3128", accent: "#7a8b6a" },
     scene: "desk",
     plate: { beats: [] },
   },

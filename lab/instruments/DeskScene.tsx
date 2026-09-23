@@ -49,7 +49,7 @@ const SCREEN_C = new Vector3(0, 1.05, -0.44);
 const EISEN_PAPER =
   chapters.find((c) => c.id === "eisen")?.palette.paper ?? "#14161c";
 const INTRO_CHAPTER = chapters.findIndex((c) => c.scene === "desk");
-const FOG = new Fog("#1c1a24", 7, 14);
+const FOG = new Fog("#e9dcc4", 9, 22);
 const ESTABLISH_SECONDS = 2.5;
 const ESTABLISH_OFFSET = new Vector3(-0.7, 0.35, 1.3);
 
@@ -129,12 +129,16 @@ export function DeskScene() {
   const m = useMemo(
     () => ({
       wood: woodTex
-        ? new MeshStandardMaterial({ map: woodTex, roughness: 0.55 })
-        : mat("#5a3d2b", 0.55),
-      dark: mat("#1e2027", 0.5, 0.2),
+        ? new MeshStandardMaterial({
+            map: woodTex,
+            roughness: 0.6,
+            color: "#e0c9a6",
+          })
+        : mat("#b89b74", 0.6),
+      dark: mat("#2a2724", 0.5, 0.2),
       metal: mat("#8c8c94", 0.35, 0.8),
-      fabric: mat("#2f3340", 0.95),
-      mug: mat("#a89a86", 0.5),
+      fabric: mat("#7a8b6a", 0.95),
+      mug: mat("#d9cdb8", 0.5),
       brass: mat("#b08d4f", 0.3, 0.9),
       bulb: new MeshStandardMaterial({
         color: "#ffd9a3",
@@ -172,7 +176,7 @@ export function DeskScene() {
 
   // Sound: built on the first toggle (a user gesture), never before.
   const soundOn = useRoomStore((s) => s.soundOn);
-  const blindsOpen = useRoomStore((s) => s.blindsOpen);
+  const curtainsOpen = useRoomStore((s) => s.curtainsOpen);
   const catAwakeUntil = useRoomStore((s) => s.catAwakeUntil);
   useEffect(() => {
     if (soundOn && !audio.current) {
@@ -187,8 +191,8 @@ export function DeskScene() {
     else audio.current.stop();
   }, [soundOn]);
   useEffect(() => {
-    audio.current?.setRain(blindsOpen);
-  }, [blindsOpen]);
+    audio.current?.setRain(curtainsOpen);
+  }, [curtainsOpen]);
   useEffect(() => {
     if (catAwakeUntil) audio.current?.purr();
   }, [catAwakeUntil]);
@@ -247,17 +251,16 @@ export function DeskScene() {
     lampLevel.current = lerp(lampLevel.current, room.lampOn ? 1 : 0, k);
     const lit = lampLevel.current;
     if (lamp.current) {
-      lamp.current.intensity = 30 * lit * (reducedMotion ? 1 : flicker(t));
+      lamp.current.intensity = 14 * lit * (reducedMotion ? 1 : flicker(t));
       if (lampTarget.current) lamp.current.target = lampTarget.current;
       if (high && lamp.current.map !== goboTex) lamp.current.map = goboTex;
     }
     m.bulb.emissiveIntensity = 3 * lit;
     if (glow.current)
       glow.current.intensity =
-        3 * (1 + (reducedMotion ? 0 : 0.04 * Math.sin(t * 11)));
+        1.2 * (1 + (reducedMotion ? 0 : 0.04 * Math.sin(t * 11)));
     if (windowLight.current) {
-      windowLight.current.intensity =
-        0.6 * (0.4 + 0.6 * (room.blindsOpen ? 1 : 0.15));
+      windowLight.current.intensity = room.curtainsOpen ? 2.4 : 1.2;
       if (windowTarget.current)
         windowLight.current.target = windowTarget.current;
     }
@@ -310,23 +313,25 @@ export function DeskScene() {
 
   return (
     <group ref={root} visible={false}>
-      <hemisphereLight args={["#3a3f5c", "#2a1e16", 0.35]} />
+      <hemisphereLight args={["#cfe0f0", "#b8a58a", 0.6]} />
+      {/* The sun, low through the glass wall from the garden side. */}
       <directionalLight
         ref={windowLight}
-        color="#ffcf8a"
-        intensity={0.6}
-        position={[2.2, 2.4, -1.0]}
+        color="#ffe4c0"
+        intensity={2.4}
+        position={[1.6, 3.2, -4.5]}
         castShadow={high}
-        shadow-mapSize={[512, 512]}
-        shadow-camera-left={-2.5}
-        shadow-camera-right={2.5}
-        shadow-camera-top={2.5}
-        shadow-camera-bottom={-2.5}
+        shadow-mapSize={[1024, 1024]}
+        shadow-camera-left={-3.5}
+        shadow-camera-right={3.5}
+        shadow-camera-top={3.5}
+        shadow-camera-bottom={-3.5}
         shadow-camera-near={0.5}
-        shadow-camera-far={8}
-        shadow-bias={-0.0008}
+        shadow-camera-far={12}
+        shadow-bias={-0.0006}
+        shadow-radius={3}
       />
-      <group ref={windowTarget} position={[0, 0.7, 0.2]} />
+      <group ref={windowTarget} position={[0, 0.6, 0.4]} />
       <spotLight
         ref={lamp}
         color="#ffb36b"
@@ -345,7 +350,7 @@ export function DeskScene() {
       <pointLight
         ref={glow}
         color="#9fc3ff"
-        intensity={3}
+        intensity={1.2}
         distance={2.5}
         decay={2}
         position={[0, 1.05, -0.2]}

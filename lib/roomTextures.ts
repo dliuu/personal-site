@@ -40,22 +40,22 @@ export function paintWood(ctx: Ctx, seed = 1): void {
   }
 }
 
-/** A woven rug: two-colour stripes, a border, and noise. */
+/** A woven linen rug: soft stripes, a sage border, and noise. */
 export function paintRug(ctx: Ctx, seed = 2): void {
   const { width: w, height: h } = ctx.canvas;
   const r = rng(seed);
-  ctx.fillStyle = "#5a3a3a";
+  ctx.fillStyle = "#d9cdb8";
   ctx.fillRect(0, 0, w, h);
   const stripes = 14;
   for (let i = 0; i < stripes; i++) {
-    ctx.fillStyle = i % 2 ? "#6b4646" : "#4e3232";
+    ctx.fillStyle = i % 2 ? "#e3d8c4" : "#cfc2ab";
     ctx.fillRect(0, (i / stripes) * h, w, h / stripes);
   }
-  ctx.strokeStyle = "#c49a3c";
+  ctx.strokeStyle = "#7a8b6a";
   ctx.lineWidth = Math.max(2, w * 0.012);
   ctx.strokeRect(w * 0.04, h * 0.04, w * 0.92, h * 0.92);
   for (let i = 0; i < w * h * 0.03; i++) {
-    ctx.fillStyle = `rgba(255,255,255,${r() * 0.05})`;
+    ctx.fillStyle = `rgba(0,0,0,${r() * 0.05})`;
     ctx.fillRect(r() * w, r() * h, 1, 1);
   }
 }
@@ -203,4 +203,60 @@ export function paintPhoto(ctx: Ctx, seed = 4): void {
   ctx.fillStyle = "rgba(255,255,255,0.85)";
   ctx.fillRect(0, 0, w, h * 0.06);
   ctx.fillRect(0, h * 0.94, w, h * 0.06);
+}
+
+/** A garden at golden hour: sky, far hills, a tree line, grass. For the glass wall. */
+export function paintNature(ctx: Ctx, seed = 5): void {
+  const { width: w, height: h } = ctx.canvas;
+  const r = rng(seed);
+  const sky = ctx.createLinearGradient(0, 0, 0, h * 0.62);
+  sky.addColorStop(0, "#bcd3e6");
+  sky.addColorStop(0.7, "#e9dcc4");
+  sky.addColorStop(1, "#f3d9b0");
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, w, h);
+  // Far hills, two bands, softer the further back.
+  for (const [y0, amp, color] of [
+    [0.36, 0.04, "#b7c1a4"],
+    [0.4, 0.03, "#94a883"],
+  ] as const) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(0, h);
+    for (let x = 0; x <= w; x += 8) {
+      const y =
+        h *
+        (y0 +
+          amp * Math.sin(x / (w * 0.13) + r() * 0.2) +
+          amp * 0.5 * Math.sin(x / (w * 0.05)));
+      ctx.lineTo(x, y);
+    }
+    ctx.lineTo(w, h);
+    ctx.closePath();
+    ctx.fill();
+  }
+  // Tree line: rounded canopies on short trunks.
+  for (let x = -20; x < w + 20; x += 8 + r() * 14) {
+    const th = h * (0.06 + r() * 0.1);
+    const base = h * 0.46;
+    const g = 60 + r() * 40;
+    ctx.fillStyle = `rgb(${40 + r() * 20}, ${g}, ${35 + r() * 15})`;
+    ctx.fillRect(x - 2, base - th * 0.5, 4, th * 0.5);
+    ctx.beginPath();
+    ctx.arc(x, base - th * 0.6, th * 0.45, 0, Math.PI * 2);
+    ctx.arc(x - th * 0.25, base - th * 0.45, th * 0.32, 0, Math.PI * 2);
+    ctx.arc(x + th * 0.25, base - th * 0.45, th * 0.32, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // Grass to the bottom, warmer near the house.
+  const grass = ctx.createLinearGradient(0, h * 0.45, 0, h);
+  grass.addColorStop(0, "#7f9a68");
+  grass.addColorStop(0.85, "#a3a874");
+  grass.addColorStop(1, "#b9a98a");
+  ctx.fillStyle = grass;
+  ctx.fillRect(0, h * 0.45, w, h * 0.55);
+  for (let i = 0; i < w * 0.8; i++) {
+    ctx.fillStyle = `rgba(255,255,255,${r() * 0.06})`;
+    ctx.fillRect(r() * w, h * 0.45 + r() * h * 0.55, 2, 1);
+  }
 }

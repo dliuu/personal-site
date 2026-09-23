@@ -428,6 +428,15 @@ body:has(.instruments) {
   margin-left: max(16px, calc((100vw - 540px) / 3));
   width: min(480px, 84vw);
   transition: opacity 120ms linear;
+  /* A cartouche, as the plate captions have, so the name reads over the garden. */
+  padding: 20px 24px;
+  margin-top: -20px;
+  margin-left: calc(max(16px, (100vw - 540px) / 3) - 24px);
+  width: min(520px, 84vw);
+  box-sizing: border-box;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--paper, #efe7da) 78%, transparent);
+  backdrop-filter: blur(6px);
 }
 .instruments-intro .instruments-title {
   margin: 0;

@@ -6,7 +6,7 @@ export type Hover = { label: string; note?: string } | null;
 type RoomState = {
   lampOn: boolean;
   soundOn: boolean;
-  blindsOpen: boolean;
+  curtainsOpen: boolean;
   /** Seconds (performance.now based) until which the cat stays awake; 0 = asleep. */
   catAwakeUntil: number;
   hover: Hover;
@@ -14,7 +14,7 @@ type RoomState = {
   steamPuff: number;
   toggleLamp: () => void;
   toggleSound: () => void;
-  toggleBlinds: () => void;
+  toggleCurtains: () => void;
   wakeCat: () => void;
   setHover: (h: Hover) => void;
   pin: (note: string | null) => void;
@@ -26,25 +26,25 @@ export const useRoomStore = create<RoomState>()(
     (set) => ({
       lampOn: true,
       soundOn: false,
-      blindsOpen: true,
+      curtainsOpen: true,
       catAwakeUntil: 0,
       hover: null,
       pinned: null,
       steamPuff: 0,
       toggleLamp: () => set((s) => ({ lampOn: !s.lampOn })),
       toggleSound: () => set((s) => ({ soundOn: !s.soundOn })),
-      toggleBlinds: () => set((s) => ({ blindsOpen: !s.blindsOpen })),
+      toggleCurtains: () => set((s) => ({ curtainsOpen: !s.curtainsOpen })),
       wakeCat: () => set({ catAwakeUntil: performance.now() / 1000 + 8 }),
       setHover: (hover) => set({ hover }),
       pin: (pinned) => set({ pinned }),
       puff: () => set({ steamPuff: performance.now() / 1000 }),
     }),
     {
-      name: "instruments-room",
+      name: "instruments-room-2",
       partialize: (s) => ({
         lampOn: s.lampOn,
         soundOn: s.soundOn,
-        blindsOpen: s.blindsOpen,
+        curtainsOpen: s.curtainsOpen,
       }),
     },
   ),

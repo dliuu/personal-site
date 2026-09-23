@@ -32,6 +32,7 @@ export function Plant({
   potH = 0.3,
   potR = 0.16,
   droop = 0,
+  trunk = 0,
 }: {
   position: [number, number, number];
   leaves: number;
@@ -41,6 +42,8 @@ export function Plant({
   potH?: number;
   potR?: number;
   droop?: number;
+  /** Height of a woody trunk under the leaves, for tall plants. */
+  trunk?: number;
 }) {
   const g = useMemo(
     () => ({
@@ -48,8 +51,9 @@ export function Plant({
       soil: new CylinderGeometry(potR * 0.95, potR * 0.95, 0.02, 20),
       leaf: new ShapeGeometry(leafShape(size * 0.35, size)),
       stem: new CylinderGeometry(0.006, 0.008, size * 0.9, 6),
+      trunk: new CylinderGeometry(0.012, 0.02, Math.max(trunk, 0.01), 8),
     }),
-    [potH, potR, size],
+    [potH, potR, size, trunk],
   );
   const m = useMemo(
     () => ({
@@ -57,6 +61,7 @@ export function Plant({
       soil: mat("#2b1f16", 1),
       leaf: new MeshStandardMaterial({ color, roughness: 0.7, side: 2 }),
       stem: mat("#3f6b3a", 0.9),
+      trunk: mat("#6b5238", 0.9),
     }),
     [color, potColor],
   );
@@ -78,7 +83,15 @@ export function Plant({
         receiveShadow
       />
       <mesh geometry={g.soil} material={m.soil} position={[0, potH, 0]} />
-      <group ref={sway} position={[0, potH, 0]}>
+      {trunk > 0 ? (
+        <mesh
+          geometry={g.trunk}
+          material={m.trunk}
+          position={[0, potH + trunk / 2, 0]}
+          castShadow
+        />
+      ) : null}
+      <group ref={sway} position={[0, potH + trunk, 0]}>
         {Array.from({ length: leaves }, (_, i) => {
           const a = (i / leaves) * Math.PI * 2 + 0.4;
           const tilt = 0.5 + (0.35 * ((i * 7) % 3)) / 2 + droop;
