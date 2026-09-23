@@ -86,26 +86,29 @@ export const metaBeats: PlateBeat[] = [
 /**
  * Eisen's plate: one beat per bullet, each anchored on a layer of the
  * factory. Longitudes are chosen so the anchor faces the camera (Network.tsx
- * places the gate at −30° and the pillar at 210°).
+ * places orchestrator 0 at 90°, the anchored worker near −30° and the pillar
+ * at 210°).
  */
 export const eisenBeats: PlateBeat[] = [
   {
     caption:
-      "An AI agent orchestration flow: a software factory that spins up a container agent for every developer task, test run and client product feature.",
-    sub: "The orchestrator",
-    at: "core",
+      "An AI agent orchestration flow: a software factory where orchestrator agents spin up their own containers for every developer task, test run and client product feature.",
+    sub: "The orchestrators",
+    at: "orchestrator",
     lon: -90,
-    lat: 22,
+    // High enough that the near orchestrator projects below centre, so its
+    // card has room above it.
+    lat: 34,
     zoom: "full",
     side: "right",
   },
   {
     caption:
-      "Financial compliance automation: every piece of work crosses the ring and is stamped before it ships.",
-    sub: "The compliance ring",
-    at: "gate",
+      "Financial compliance automation: every container runs against deterministic success and failure criteria, and returns its result for the orchestrator to iterate on.",
+    sub: "Pass or fail",
+    at: "worker",
     lon: 30,
-    lat: 8,
+    lat: 14,
     zoom: "full",
     side: "left",
   },

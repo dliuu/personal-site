@@ -12,27 +12,30 @@ import {
   DynamicDrawUsage,
   Float32BufferAttribute,
   Group,
-  IcosahedronGeometry,
   InstancedMesh,
   LineBasicMaterial,
-  LineSegments,
   MeshBasicMaterial,
   Object3D,
+  OctahedronGeometry,
   Points,
   PointsMaterial,
-  TorusGeometry,
   Vector3,
 } from "three";
 import { frameLerp } from "@/lib/drawIn";
 import {
+  cycleAt,
   edgeDraw,
-  gatePulse,
-  hash01,
+  iterateFlash,
   layerEmphasis,
-  layoutNodes,
-  nodeLife,
-  packetU,
+  layoutOrchestrators,
+  layoutWorkers,
+  ORCHESTRATORS,
+  passes,
   pillarRise,
+  resultU,
+  taskU,
+  verdictGlow,
+  workerScale,
   type Emphasis,
 } from "@/lib/network";
 import { lerp } from "@/lib/progress";
@@ -43,36 +46,33 @@ import { EdgedModeContext } from "./Instruments";
 import { plateState } from "./plateState";
 
 /**
- * SKELETON of the Eisen hero: the software factory as a live orchestration
- * network on the screen inside the intro's monitor. A core spins up container
- * agents on three tier rings (developer tasks, test runs, client features),
- * packets travel the edges, a compliance ring stamps them, and the whole thing
- * stands on a backend substrate. Each plate beat lifts one layer and the
- * camera turns to its anchor. Drawn raw (the chapter is a screen); solid mode
- * only, there is no engraved twin.
+ * SKELETON of the Eisen hero: the software factory as an orchestrator-worker
+ * network on the screen inside the intro's monitor. A group of orchestrator
+ * agents each spin up their own worker containers; a task packet goes down
+ * the edge, the worker runs, a deterministic verdict lights it green or red,
+ * the result packet comes back up, and a failure flashes the orchestrator,
+ * which spins up the next container in that slot. It all stands on a backend
+ * substrate. Each plate beat lifts one layer and the camera turns to its
+ * anchor. Drawn raw (the chapter is a screen); solid mode only.
  */
 
-const NODES = layoutNodes();
-const N = NODES.length;
-/** dev, test, feature */
-const TIER_COLOURS = ["#7fb0ff", "#7fe0c8", "#ffc46b"];
-const CORE = "#dff0ff";
-const STAMP = "#8ef0a0";
+const ORCHS = layoutOrchestrators();
+const WORKERS = layoutWorkers();
+const N = WORKERS.length;
+const ORCH_COLOUR = "#7fb0ff";
+const MESH_COLOUR = "#9cc0ff";
+const RUN_COLOUR = "#cfe6ff";
+const PASS = "#8ef0a0";
+const FAIL = "#ff6b5e";
 const SUBSTRATE = "#6f8fc9";
-const GATES = 12;
-const RING_R = 1.22;
-const RING_Y = -0.02;
 const PILLARS = 12;
-const PILLAR_R = 0.72;
+const PILLAR_R = 0.62;
 const GRID_Y = -0.95;
-const PILLAR_H = 0.94;
+const PILLAR_H = 0.83;
 const GRID_HALF = 1.6;
 const GRID_N = 12;
-const PACKETS = 90;
-/** Per tier: inner edges are short, so their packets cycle faster. */
-const PACKET_SPEED = [0.55, 0.42, 0.34];
 const EMPH_LERP = 0.08;
-/** The pause the whole factory sits at under reduced motion: mid-lifecycle. */
+/** The pause the whole factory sits at under reduced motion: mid-run. */
 const STILL_TIME = 4.5;
 
 const EISEN_PLATE = sections.findIndex(
@@ -80,23 +80,19 @@ const EISEN_PLATE = sections.findIndex(
 );
 const EISEN_PALETTE = chapters.find((c) => c.instrument === "network")!.palette;
 
-const gateAngle = (i: number) => (i / GATES) * Math.PI * 2;
 const pillarAngle = (i: number) => (i / PILLARS) * Math.PI * 2;
 /**
- * Callout anchors, one per beat: the core, a compliance gate, a pillar top.
- * A local point at xz-angle α faces the camera when the beat's longitude is
- * −α (see faceYaw), so the gate sits at −30° for lon 30 and the pillar at
+ * Callout anchors, one per beat: orchestrator 0, one of orchestrator 3's
+ * workers, a pillar top. A local point at xz-angle α faces the camera when
+ * the beat's longitude is −α (see faceYaw): orchestrator 0 sits at 90° for
+ * lon −90, orchestrator 3's last slot near −30° for lon 30, pillar 7 at
  * 210° for lon 150.
  */
-const GATE_ANCHOR = 11;
+const WORKER_ANCHOR = WORKERS.find((w) => w.orch === 3 && w.slot === 6)!;
 const PILLAR_ANCHOR = 7;
 const ANCHORS: (Vector3 | null)[] = [
-  new Vector3(0, 0.05, 0),
-  new Vector3(
-    Math.cos(gateAngle(GATE_ANCHOR)) * RING_R,
-    RING_Y,
-    Math.sin(gateAngle(GATE_ANCHOR)) * RING_R,
-  ),
+  new Vector3(ORCHS[0].x, ORCHS[0].y + 0.06, ORCHS[0].z),
+  new Vector3(WORKER_ANCHOR.x, WORKER_ANCHOR.y, WORKER_ANCHOR.z),
   new Vector3(
     Math.cos(pillarAngle(PILLAR_ANCHOR)) * PILLAR_R,
     GRID_Y + PILLAR_H,
@@ -129,6 +125,43 @@ function gridGeometry(): BufferGeometry {
   return g;
 }
 
+/** The orchestration network itself: every orchestrator linked to every other. */
+function meshGeometry(): BufferGeometry {
+  const pts: number[] = [];
+  for (let a = 0; a < ORCHESTRATORS; a++)
+    for (let b = a + 1; b < ORCHESTRATORS; b++)
+      pts.push(
+        ORCHS[a].x,
+        ORCHS[a].y,
+        ORCHS[a].z,
+        ORCHS[b].x,
+        ORCHS[b].y,
+        ORCHS[b].z,
+      );
+  const g = new BufferGeometry();
+  g.setAttribute("position", new Float32BufferAttribute(pts, 3));
+  return g;
+}
+
+/** Dynamic positions, `count` vertices. */
+function dynamicGeometry(count: number, colours = false): BufferGeometry {
+  const g = new BufferGeometry();
+  g.setAttribute(
+    "position",
+    new Float32BufferAttribute(new Float32Array(count * 3), 3).setUsage(
+      DynamicDrawUsage,
+    ),
+  );
+  if (colours)
+    g.setAttribute(
+      "color",
+      new Float32BufferAttribute(new Float32Array(count * 3), 3).setUsage(
+        DynamicDrawUsage,
+      ),
+    );
+  return g;
+}
+
 /** A material that blooms: unlit, untone-mapped, brightness set per frame. */
 function glow(colour: string): MeshBasicMaterial {
   return new MeshBasicMaterial({ color: colour, toneMapped: false });
@@ -140,76 +173,42 @@ export function Network({ mech }: { mech: RefObject<Group | null> }) {
     const pillar = new CylinderGeometry(0.028, 0.028, 1, 8);
     pillar.translate(0, 0.5, 0);
     return {
-      core: new IcosahedronGeometry(0.17, 2),
-      shell: new IcosahedronGeometry(0.27, 1),
-      node: new BoxGeometry(0.075, 0.075, 0.075),
-      ring: new TorusGeometry(RING_R, 0.012, 8, 128),
-      gate: new BoxGeometry(0.06, 0.16, 0.03),
+      orch: new OctahedronGeometry(0.11, 0),
+      worker: new BoxGeometry(0.085, 0.085, 0.085),
       pillar,
       grid: gridGeometry(),
-      edges: (() => {
-        const geo = new BufferGeometry();
-        const pos = new Float32Array(N * 6);
-        const col = new Float32Array(N * 6);
-        const c = new Color();
-        NODES.forEach((n, i) => {
-          c.set(TIER_COLOURS[n.tier]);
-          for (let k = 0; k < 2; k++) {
-            col[i * 6 + k * 3] = c.r;
-            col[i * 6 + k * 3 + 1] = c.g;
-            col[i * 6 + k * 3 + 2] = c.b;
-          }
-        });
-        geo.setAttribute(
-          "position",
-          new Float32BufferAttribute(pos, 3).setUsage(DynamicDrawUsage),
-        );
-        geo.setAttribute("color", new Float32BufferAttribute(col, 3));
-        return geo;
-      })(),
-      packets: (() => {
-        const geo = new BufferGeometry();
-        geo.setAttribute(
-          "position",
-          new Float32BufferAttribute(new Float32Array(PACKETS * 3), 3).setUsage(
-            DynamicDrawUsage,
-          ),
-        );
-        return geo;
-      })(),
+      mesh: meshGeometry(),
+      // One segment per worker, orchestrator → worker.
+      edges: dynamicGeometry(N * 2),
+      // A task packet and a result packet per worker.
+      packets: dynamicGeometry(N * 2, true),
     };
   }, []);
   const m = useMemo(
     () => ({
-      core: glow(CORE),
-      shell: new LineBasicMaterial({
-        color: CORE,
+      orch: glow(ORCH_COLOUR),
+      mesh: new LineBasicMaterial({
+        color: MESH_COLOUR,
         transparent: true,
         opacity: 0.5,
       }),
-      node: glow("#ffffff"),
+      worker: glow("#ffffff"),
       edge: new LineBasicMaterial({
-        vertexColors: true,
+        color: ORCH_COLOUR,
         transparent: true,
         opacity: 0.4,
         blending: AdditiveBlending,
         depthWrite: false,
       }),
       packet: new PointsMaterial({
-        size: 0.05,
+        size: 0.06,
         map: dotSprite(),
-        color: new Color("#ffffff").multiplyScalar(1.8),
+        vertexColors: true,
         toneMapped: false,
         transparent: true,
         depthWrite: false,
         blending: AdditiveBlending,
       }),
-      ring: new MeshBasicMaterial({
-        color: STAMP,
-        toneMapped: false,
-        transparent: true,
-      }),
-      gate: glow(STAMP),
       grid: new LineBasicMaterial({
         color: SUBSTRATE,
         transparent: true,
@@ -219,33 +218,30 @@ export function Network({ mech }: { mech: RefObject<Group | null> }) {
     }),
     [],
   );
-  const tierColours = useMemo(() => TIER_COLOURS.map((c) => new Color(c)), []);
-  const stamp = useMemo(() => new Color(STAMP), []);
-  const substrate = useMemo(() => new Color(SUBSTRATE), []);
-  const coreColour = useMemo(() => new Color(CORE), []);
-  const packetSeeds = useMemo(
-    () =>
-      Array.from({ length: PACKETS }, (_, i) => ({
-        node: i % N,
-        phase: hash01(500 + i),
-        inbound: i % 3 === 0,
-      })),
+  const colours = useMemo(
+    () => ({
+      orch: new Color(ORCH_COLOUR),
+      run: new Color(RUN_COLOUR),
+      pass: new Color(PASS),
+      fail: new Color(FAIL),
+      substrate: new Color(SUBSTRATE),
+      task: new Color(ORCH_COLOUR).multiplyScalar(1.8),
+    }),
     [],
   );
   const dummy = useMemo(() => new Object3D(), []);
   const tmpColour = useMemo(() => new Color(), []);
-  const nodes = useRef<InstancedMesh>(null);
-  const gates = useRef<InstancedMesh>(null);
+  const orchs = useRef<InstancedMesh>(null);
+  const workers = useRef<InstancedMesh>(null);
   const pillars = useRef<InstancedMesh>(null);
-  const edges = useRef<LineSegments>(null);
   const packets = useRef<Points>(null);
-  const shell = useRef<Group>(null);
   const tilt = useRef<Group>(null);
   const emph = useRef<Emphasis>({
-    agents: 0.6,
-    compliance: 0.3,
+    orchestrators: 0.6,
+    verdicts: 0.4,
     substrate: 0.3,
   });
+  const flash = useRef<number[]>(ORCHS.map(() => 0));
 
   /* eslint-disable react-hooks/immutability -- r3f pattern: mutate memoized materials, buffers and ref object3Ds in useFrame */
   useFrame(({ clock }, delta) => {
@@ -253,93 +249,120 @@ export function Network({ mech }: { mech: RefObject<Group | null> }) {
     const active = plateState.instrument === "network";
     const { beat, t, expand } = plateState;
     const time = reducedMotion ? STILL_TIME : clock.elapsedTime;
-    // In the band the factory leans toward the reader so its rings read as
-    // discs; the plate levels it and lets the camera do the looking.
+    // In the band the factory leans toward the reader so its floor reads as
+    // a floor; the plate levels it and lets the camera do the looking.
     if (tilt.current) tilt.current.rotation.x = 0.42 * (1 - expand);
     const target = layerEmphasis(active, beat);
     const e = emph.current;
     const k = reducedMotion ? 1 : frameLerp(EMPH_LERP, delta);
-    e.agents = lerp(e.agents, target.agents, k);
-    e.compliance = lerp(e.compliance, target.compliance, k);
+    e.orchestrators = lerp(e.orchestrators, target.orchestrators, k);
+    e.verdicts = lerp(e.verdicts, target.verdicts, k);
     e.substrate = lerp(e.substrate, target.substrate, k);
+    for (let i = 0; i < ORCHESTRATORS; i++) flash.current[i] = 0;
 
-    // The orchestrator: a breathing core inside a slowly counter-turning shell.
-    const pulse = 0.5 + 0.5 * Math.sin(time * 2.2);
-    m.core.color.copy(coreColour).multiplyScalar(1.4 + 1.2 * pulse * e.agents);
-    if (shell.current) {
-      shell.current.rotation.y = -time * 0.15;
-      shell.current.rotation.x = time * 0.07;
-    }
-
-    // Agents: each container spins up, runs and retires on its own cycle; in
-    // beat 0 the wave out from the core gates them so the factory fills in order.
+    // Workers: each container lives its own cycle in its orchestrator's slot.
+    // In beat 0 the wave out from the orchestrators gates them, so the floor
+    // fills in sector by sector.
     const edgePos = g.edges.getAttribute("position") as Float32BufferAttribute;
-    const life: number[] = [];
-    if (nodes.current) {
+    const pktPos = g.packets.getAttribute("position") as Float32BufferAttribute;
+    const pktCol = g.packets.getAttribute("color") as Float32BufferAttribute;
+    if (workers.current) {
       for (let i = 0; i < N; i++) {
-        const n = NODES[i];
-        const draw = edgeDraw(active, beat, t, n.rank, N);
-        const s = nodeLife(time, n.phase) * draw;
-        life[i] = s;
-        const bob = 0.03 * Math.sin(time * 0.8 + n.phase * 6.28);
-        dummy.position.set(n.x, n.y + bob, n.z);
-        dummy.rotation.set(time * 0.3 + n.phase, time * 0.2, 0);
-        dummy.scale.setScalar(Math.max(1e-4, s * (0.7 + 0.3 * e.agents)));
+        const w = WORKERS[i];
+        const o = ORCHS[w.orch];
+        const draw = edgeDraw(active, beat, t, w.rank, N);
+        const { generation, f } = cycleAt(time, w.phase);
+        const ok = passes(w.seed, generation);
+        const s = workerScale(f) * draw;
+        const glowV = verdictGlow(f);
+        dummy.position.set(w.x, w.y, w.z);
+        dummy.rotation.set(0, time * 0.25 + w.phase, 0);
+        dummy.scale.setScalar(Math.max(1e-4, s));
         dummy.updateMatrix();
-        nodes.current.setMatrixAt(i, dummy.matrix);
-        nodes.current.setColorAt(
+        workers.current.setMatrixAt(i, dummy.matrix);
+        // Running: a cool white. At the verdict: green or red, brighter in
+        // beat 1 where the criteria are the story.
+        tmpColour
+          .copy(colours.run)
+          .multiplyScalar(0.9 + 0.6 * e.orchestrators)
+          .lerp(
+            ok ? colours.pass : colours.fail,
+            glowV * (0.6 + 0.4 * e.verdicts),
+          );
+        if (glowV > 0) tmpColour.multiplyScalar(1 + 1.6 * glowV * e.verdicts);
+        workers.current.setColorAt(i, tmpColour);
+        // The edge from the orchestrator draws out to the slot with the wave.
+        edgePos.setXYZ(i * 2, o.x, o.y, o.z);
+        edgePos.setXYZ(
+          i * 2 + 1,
+          lerp(o.x, w.x, draw),
+          lerp(o.y, w.y, draw),
+          lerp(o.z, w.z, draw),
+        );
+        // Task packet down, result packet back up; parked inside the
+        // orchestrator when not in flight (the octahedron hides them).
+        const tu = draw > 0.99 ? taskU(f) : null;
+        const ru = draw > 0.99 ? resultU(f) : null;
+        const a = tu ?? 0;
+        pktPos.setXYZ(
+          i * 2,
+          lerp(o.x, w.x, a),
+          lerp(o.y, w.y, a),
+          lerp(o.z, w.z, a),
+        );
+        tmpColour.copy(colours.task).multiplyScalar(tu === null ? 0 : 1);
+        pktCol.setXYZ(i * 2, tmpColour.r, tmpColour.g, tmpColour.b);
+        const b = ru === null ? 0 : 1 - ru;
+        pktPos.setXYZ(
+          i * 2 + 1,
+          lerp(o.x, w.x, b),
+          lerp(o.y, w.y, b),
+          lerp(o.z, w.z, b),
+        );
+        tmpColour
+          .copy(ok ? colours.pass : colours.fail)
+          .multiplyScalar(ru === null ? 0 : 1.6 + 1.2 * e.verdicts);
+        pktCol.setXYZ(i * 2 + 1, tmpColour.r, tmpColour.g, tmpColour.b);
+        // A failed result lands: the orchestrator flashes and iterates.
+        flash.current[w.orch] = Math.max(
+          flash.current[w.orch],
+          iterateFlash(f, !ok) * draw,
+        );
+      }
+      workers.current.instanceMatrix.needsUpdate = true;
+      if (workers.current.instanceColor)
+        workers.current.instanceColor.needsUpdate = true;
+      edgePos.needsUpdate = true;
+      pktPos.needsUpdate = true;
+      pktCol.needsUpdate = true;
+    }
+    m.edge.opacity = 0.15 + 0.4 * e.orchestrators;
+    m.mesh.opacity = 0.25 + 0.5 * e.orchestrators;
+
+    // Orchestrators: bright, breathing out of step, flashing red when they
+    // have to iterate.
+    if (orchs.current) {
+      for (let i = 0; i < ORCHESTRATORS; i++) {
+        const o = ORCHS[i];
+        const breathe = 0.5 + 0.5 * Math.sin(time * 1.6 + i * 1.3);
+        const fl = flash.current[i];
+        dummy.position.set(o.x, o.y, o.z);
+        dummy.rotation.set(0, time * 0.4 + i, 0);
+        dummy.scale.setScalar(1 + 0.08 * breathe + 0.35 * fl);
+        dummy.updateMatrix();
+        orchs.current.setMatrixAt(i, dummy.matrix);
+        orchs.current.setColorAt(
           i,
           tmpColour
-            .copy(tierColours[n.tier])
-            .multiplyScalar(1.0 + 1.8 * e.agents),
-        );
-        // The edge ends at the node once it exists; it draws in with the wave.
-        edgePos.setXYZ(i * 2, 0, 0, 0);
-        edgePos.setXYZ(i * 2 + 1, n.x * draw, (n.y + bob) * draw, n.z * draw);
-      }
-      nodes.current.instanceMatrix.needsUpdate = true;
-      if (nodes.current.instanceColor)
-        nodes.current.instanceColor.needsUpdate = true;
-      edgePos.needsUpdate = true;
-    }
-    m.edge.opacity = 0.18 + 0.4 * e.agents;
-
-    // Packets: work leaving the core and results coming back, along live edges.
-    if (packets.current) {
-      const pos = g.packets.getAttribute("position") as Float32BufferAttribute;
-      for (let i = 0; i < PACKETS; i++) {
-        const p = packetSeeds[i];
-        const n = NODES[p.node];
-        const alive = (life[p.node] ?? 0) > 0.25;
-        let u = packetU(time, p.phase, PACKET_SPEED[n.tier]);
-        if (p.inbound) u = 1 - u;
-        const s = alive ? u : 0;
-        pos.setXYZ(i, n.x * s, n.y * s, n.z * s);
-      }
-      pos.needsUpdate = true;
-      m.packet.opacity = 0.5 + 0.5 * e.agents;
-    }
-
-    // Compliance: a ring the traffic must cross; its gates stamp in turn.
-    m.ring.color.copy(stamp).multiplyScalar(0.5 + 1.4 * e.compliance);
-    m.ring.opacity = 0.3 + 0.7 * e.compliance;
-    if (gates.current) {
-      for (let i = 0; i < GATES; i++) {
-        const a = gateAngle(i);
-        const flash = gatePulse(time, i, GATES) * e.compliance;
-        dummy.position.set(Math.cos(a) * RING_R, RING_Y, Math.sin(a) * RING_R);
-        dummy.rotation.set(0, -a, 0);
-        dummy.scale.set(1, 1 + 1.2 * flash, 1);
-        dummy.updateMatrix();
-        gates.current.setMatrixAt(i, dummy.matrix);
-        gates.current.setColorAt(
-          i,
-          tmpColour.setScalar(0.5 + 0.8 * e.compliance + 2.4 * flash),
+            .copy(colours.orch)
+            .multiplyScalar(1.3 + 1.2 * e.orchestrators + 0.6 * breathe)
+            .lerp(colours.fail, fl)
+            .multiplyScalar(1 + 1.5 * fl),
         );
       }
-      gates.current.instanceMatrix.needsUpdate = true;
-      if (gates.current.instanceColor)
-        gates.current.instanceColor.needsUpdate = true;
+      orchs.current.instanceMatrix.needsUpdate = true;
+      if (orchs.current.instanceColor)
+        orchs.current.instanceColor.needsUpdate = true;
     }
 
     // Substrate: the grid the factory stands on and the pillars that carry it.
@@ -359,7 +382,9 @@ export function Network({ mech }: { mech: RefObject<Group | null> }) {
         pillars.current.setMatrixAt(i, dummy.matrix);
         pillars.current.setColorAt(
           i,
-          tmpColour.copy(substrate).multiplyScalar(0.7 + 1.6 * e.substrate),
+          tmpColour
+            .copy(colours.substrate)
+            .multiplyScalar(0.7 + 1.6 * e.substrate),
         );
       }
       pillars.current.instanceMatrix.needsUpdate = true;
@@ -376,33 +401,22 @@ export function Network({ mech }: { mech: RefObject<Group | null> }) {
     <group position={[0, -0.3, 0]}>
       <group ref={tilt}>
         <group ref={mech}>
-          <mesh geometry={g.core} material={m.core} />
-          <group ref={shell}>
-            <lineSegments material={m.shell}>
-              <edgesGeometry args={[g.shell, 1]} />
-            </lineSegments>
-          </group>
           <instancedMesh
-            ref={nodes}
-            args={[g.node, m.node, N]}
+            ref={orchs}
+            args={[g.orch, m.orch, ORCHESTRATORS]}
             frustumCulled={false}
           />
-          <lineSegments ref={edges} geometry={g.edges} material={m.edge} />
+          <lineSegments geometry={g.mesh} material={m.mesh} />
+          <instancedMesh
+            ref={workers}
+            args={[g.worker, m.worker, N]}
+            frustumCulled={false}
+          />
+          <lineSegments geometry={g.edges} material={m.edge} />
           <points
             ref={packets}
             geometry={g.packets}
             material={m.packet}
-            frustumCulled={false}
-          />
-          <mesh
-            geometry={g.ring}
-            material={m.ring}
-            position={[0, RING_Y, 0]}
-            rotation={[Math.PI / 2, 0, 0]}
-          />
-          <instancedMesh
-            ref={gates}
-            args={[g.gate, m.gate, GATES]}
             frustumCulled={false}
           />
           <lineSegments geometry={g.grid} material={m.grid} />
