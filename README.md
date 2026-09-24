@@ -26,7 +26,7 @@ fetched into `assets/room/cache`), then packed for the web:
 ```bash
 brew install --cask blender     # once
 blender -b --python scripts/room/build.py -- --samples 256 --preview
-node scripts/room/pack.mjs      # Draco + WebP -> public/models/room.glb
+npm run assets                  # Draco + WebP -> public/models/room.glb
 ```
 
 `--preview` also renders `assets/room/out/preview.png` from the resting camera.
@@ -35,6 +35,12 @@ into `assets/room/props/<id>/`; `assets/room/props/manifest.json` places them
 (`{ file, position, rotationY, scale }`, three.js coordinates); rebake to include
 them. Any GLB dropped there works the same way. The Draco decoder in
 `public/draco` is copied from the three.js package.
+
+`npm run assets` is the only way models are built, and `lib/loadModel.ts` is the
+only place they are loaded. It holds every model to **2 MiB** (8 MiB for all of
+them) and exits non-zero if one is over; `npm run assets:check` checks the
+committed files without needing Blender. See `assets/MANIFEST.md` for the
+inventory, the source chain and how to add an asset.
 
 Deploy: `vercel.json` pins the framework because the Vercel project was
 linked before the app existed.
