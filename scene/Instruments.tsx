@@ -32,7 +32,6 @@ import {
   TubeGeometry,
   Vector3,
 } from "three";
-import { archVoussoirs } from "@/lib/arch";
 import { smooth, stagger, tickAlive } from "@/lib/beats";
 import { frameLerp } from "@/lib/drawIn";
 import { latLonToVec3, rankByLongitude } from "@/lib/geo";
@@ -788,61 +787,6 @@ export function Globe({ mech }: { mech: RefObject<Group | null> }) {
           ))}
         </group>
       </group>
-    </group>
-  );
-}
-
-const VOUSSOIRS = archVoussoirs(13, 1.3);
-const KEYSTONE = 6;
-
-export function Bridge({ mech }: { mech: RefObject<Group | null> }) {
-  const g = useMemo(
-    () => ({
-      block: new BoxGeometry(0.3, 0.26, 0.5),
-      pier: new BoxGeometry(0.34, 2.0, 0.6),
-      deck: new BoxGeometry(3.6, 0.08, 0.6),
-      post: rod(2.4, 0.03),
-      rail: rod(3.8, 0.02),
-    }),
-    [],
-  );
-  const blockEdges = useMemo(() => new EdgesGeometry(g.block, 20), [g.block]);
-  return (
-    <group position={[0, -1.0, 0]}>
-      {[-1.55, 1.55].map((x) => (
-        <Edged key={x} geometry={g.pier} position={[x, 1.0, 0]} />
-      ))}
-      {VOUSSOIRS.map((v, i) =>
-        i === KEYSTONE ? null : (
-          <Edged
-            key={i}
-            geometry={g.block}
-            edges={blockEdges}
-            position={v.position}
-            rotation={[0, 0, v.rotation]}
-          />
-        ),
-      )}
-      <group ref={mech}>
-        <Edged
-          geometry={g.block}
-          edges={blockEdges}
-          position={VOUSSOIRS[KEYSTONE].position}
-          rotation={[0, 0, VOUSSOIRS[KEYSTONE].rotation]}
-        />
-      </group>
-      <Edged geometry={g.deck} position={[0, 2.04, 0]} />
-      {[-1.9, -0.65, 0.65, 1.9].map((x) => (
-        <Edged key={x} geometry={g.post} position={[x, 1.2, 0.45]} />
-      ))}
-      {[0.9, 2.1].map((y) => (
-        <Edged
-          key={y}
-          geometry={g.rail}
-          position={[0, y, 0.45]}
-          rotation={[0, 0, Math.PI / 2]}
-        />
-      ))}
     </group>
   );
 }

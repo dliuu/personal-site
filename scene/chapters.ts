@@ -1,11 +1,5 @@
 export type InstrumentKind =
-  | "desk"
-  | "armillary"
-  | "balance"
-  | "network"
-  | "globe"
-  | "bridge"
-  | "quadrant";
+  "desk" | "armillary" | "balance" | "network" | "globe" | "site" | "quadrant";
 export type MechKind = "spinY" | "spinZ" | "swing" | "tilt" | "drop";
 export type Chapter = {
   id: "intro" | "eisen" | "meta" | "wcp" | "contact";
@@ -26,6 +20,8 @@ export type Chapter = {
   scene?: "desk";
   /** Presented as a screen (the desktop inside the intro's monitor): drawn raw, never engraved. */
   screen?: boolean;
+  /** Hold the engraving at full strength through the plate: this chapter is a drawing, and never dissolves to a real render. */
+  engraved?: boolean;
 };
 export type PlateBeat = {
   caption: string;
@@ -129,6 +125,55 @@ export const eisenBeats: PlateBeat[] = [
   },
 ];
 
+/**
+ * Washington Capital's plate: the drawing builds itself, one beat per bullet.
+ * Longitudes put each anchor in front of the camera; beat i's 72° is a
+ * near-plan view, deliberately not 90° — at true overhead a hinging wall only
+ * foreshortens and reads as shrinking.
+ */
+export const wcpBeats: PlateBeat[] = [
+  {
+    caption:
+      "Led an 8-engineer team to build and deploy a stateless backend for FISH, a white-label lending platform; institutional onboarding contributed $1.3M ARR.",
+    sub: "The slab",
+    at: "stakes",
+    lon: -90,
+    lat: 72,
+    zoom: "full",
+    side: "right",
+  },
+  {
+    caption:
+      "A multi-client backend for DSCR, hard-money, refinance and bridge loans, with live admin customization for 12+ lending institutions.",
+    sub: "One frame, twelve faces",
+    at: "frame",
+    lon: 30,
+    lat: 18,
+    zoom: "near",
+    side: "left",
+  },
+  {
+    caption:
+      "Configurable loan calculations and guidelines across regions; the fleet scaled on traffic data, response times 56% faster year over year.",
+    sub: "56%",
+    at: "dimension",
+    lon: 0,
+    lat: 4,
+    zoom: "mid",
+    side: "left",
+  },
+  {
+    caption:
+      "Live pipelines ingesting payment, disbursement and lending data into production Postgres.",
+    sub: "The draw schedule",
+    at: "vault",
+    lon: 150,
+    lat: 30,
+    zoom: "full",
+    side: "right",
+  },
+];
+
 export const chapters: Chapter[] = [
   {
     id: "intro",
@@ -170,11 +215,16 @@ export const chapters: Chapter[] = [
     id: "wcp",
     numeral: "IV",
     title: "Washington Capital",
-    instrument: "bridge",
-    mech: "drop",
-    note: "the keystone last",
+    instrument: "site",
+    // spinY, not drop: `case "drop"` never reaches the default branch that
+    // applies the plate yaw, so a drop chapter cannot orbit in its plate. The
+    // topping-out beam is driven inside Site instead.
+    mech: "spinY",
+    note: "the last beam",
     spin: 0,
     palette: { paper: "#efe0cc", ink: "#3d2418", accent: "#c49a3c" },
+    engraved: true,
+    plate: { beats: wcpBeats },
   },
   {
     id: "contact",

@@ -33,11 +33,11 @@ import { Network } from "./Network";
 import { Hotspots, useHotspotDismiss } from "./Hotspots";
 import { INK, PARCHMENT } from "./palette";
 import { plateState } from "./plateState";
+import { Site } from "./Site";
 import { useExploreStore } from "./useExploreStore";
 import {
   Armillary,
   Balance,
-  Bridge,
   EdgedModeContext,
   Globe,
   Quadrant,
@@ -83,7 +83,7 @@ const KIND: Record<
   balance: Balance,
   network: Network,
   globe: Globe,
-  bridge: Bridge,
+  site: Site,
   quadrant: Quadrant,
 };
 
@@ -95,7 +95,7 @@ const FIT: Record<InstrumentKind, number> = {
   balance: 1.75 / 1.5,
   network: 1.75 / 1.6,
   globe: 1.75 / 1.5,
-  bridge: 1.75 / 2.1,
+  site: 1.75 / 1.6,
   quadrant: 1.75 / 1.45,
 };
 
@@ -264,7 +264,12 @@ export function HeroObjects() {
     }
     // A scene chapter is drawn real from its first frame; plates reveal.
     const isScene = Boolean(chapter.scene);
-    plateState.reveal = isScene || chapter.screen ? 1 : revealAmount(expand);
+    plateState.reveal =
+      isScene || chapter.screen
+        ? 1
+        : chapter.engraved
+          ? 0
+          : revealAmount(expand);
     // The studio environment only lights the revealed globe (and, faintly, the room).
     // eslint-disable-next-line react-hooks/immutability -- r3f pattern: scene setting driven in useFrame
     scene.environmentIntensity = isScene ? 0.35 : plateState.reveal;
