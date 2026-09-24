@@ -39,7 +39,6 @@ import { plateState } from "./plateState";
 import { createRoomAudio, type RoomAudio } from "./roomAudio";
 import { RoomLife } from "./RoomLife";
 import { RoomSet, useThing } from "./RoomSet";
-import { ShelfWall } from "./ShelfWall";
 import { gobo, roomFonts, wood } from "./roomTextures";
 import { makeScreen } from "./screenTexture";
 import { useRoomStore } from "./useRoomStore";
@@ -374,7 +373,6 @@ export function DeskScene() {
 
       <BakedRoom />
       <RoomSet stage={stage} fonts={fonts} />
-      <ShelfWall />
       <RoomLife stage={stage} typing={typing} lampLevel={lampLevel} />
 
       {/* Desk and what sits on it */}
