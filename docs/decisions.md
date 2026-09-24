@@ -1,12 +1,12 @@
 # Decisions
 
-One line per decision, newest last. Experiments record their own verdicts in
-their README; this file records what changed the project's direction.
+One line per decision, newest last. This file records what changed the
+project's direction.
 
 ## Budgets
 
-- Initial JS (home and /lab): under 600 KB gzipped.
-- Any experiment route: under 1 MB gzipped first load.
+- Initial JS: under 600 KB gzipped.
+- The scene route: under 1 MB gzipped first load.
 - No single static asset over 1 MB.
 - Check by reading `next build` output until it matters enough to automate.
 - 2026-09-18 measured: `next build` on Next 16 prints no size table; measure first-load JS in browser devtools (Network, JS, gzipped) when it matters.
@@ -43,3 +43,4 @@ their README; this file records what changed the project's direction.
 - 2026-09-23: eisen factory phase 1 (spec superpowers/specs/2026-09-23-eisen-factory-design.md, local): the network is scaled 1.15 and its orchestrator ring widened (0.55) so the factory fills its band region and the plate frame; a `near` zoom step (k 2.6) sits between full and mid because mid put the near orchestrator across a third of the frame. Beats: i near at 42°, ii near at 10°, iii full at 38°. Phases 2 (terminal cards) and 3 (dive into the Meta page) are specified there.
 - 2026-09-23: eisen factory phase 2: every worker is a terminal card. One canvas atlas holds twelve task columns (DEV/TEST/FEAT, placeholder names), two verdict strips and nine orchestrator status strips; a basic material patched with per-instance `aOrigin`/`aState` attributes windows eight rows of the atlas per screen (unprinted rows blank, verdict strip over the bottom row), so 35 screens stay one draw call. Strips sit on a two-line stride so mipmaps do not bleed neighbours. Orchestrator status labels are cutouts (dark ground discarded) and kept under the bloom threshold: in the headless capture a boxed label bloomed into a speckled band. Orchestrators turn to face their last dispatch; an eye marks the facing.
 - 2026-09-23: eisen factory phase 3: a plate may end with `exit: "dive"`. It gains one scroll slot past its beats (no caption, no card), never shrinks back (`expandAmount(p, dive)`), and holds its hero to the end (`heroContinuous`). The instrument publishes the target screen to `plateState.dive` (centre, normal, half extents, world space); over the slot the camera blends from its orbit to the screen at the distance that covers the viewport in both axes, overfilled 10% because the smoothed camera trails the goal. Leaving a dive plate for another chapter is a cut: the camera, hero expansion, the old hero's weight and the engraving's paper and ink snap that frame. The page is a region of the terminal atlas painted in the next chapter's paper and codex face. `scripts/shots.mjs` reads `data-dive` and adds two fly-in frames.
+- 2026-09-23: the lab is gone. The direction is committed: one scene at `/` — the studio room, the dive into Eisen's factory, the Meta globe. `lab/instruments` moved to `scene/`; the five other experiments (hello-cube, scroll-path, lighting-bench, chapters, studio-room), the registry, the loaders, the `/lab` routes and `docs/skeleton.md` are deleted, along with what only they used (`components/ScrollTrack`, `hooks/useScrollProgress`, `hooks/useInvalidateOnScroll`, `lib/roomMotion`, the chapters CSS block). Internal names (`useLabStore`, the `.instruments` classes) are left alone on purpose: renaming them is churn in files that work. `scripts/shots.mjs` defaults to `/`.

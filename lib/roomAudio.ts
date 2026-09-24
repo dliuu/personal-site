@@ -1,4 +1,4 @@
-/** The schedule of the room's procedural sound; the Web Audio graph lives in lab/. */
+/** The schedule of the room's procedural sound; the Web Audio graph lives in scene/. */
 
 /** ii–V–I–vi in D♭ as MIDI note voicings, 8 s per chord. */
 const CHORDS: number[][] = [
