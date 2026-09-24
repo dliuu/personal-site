@@ -14,7 +14,10 @@
     "check": "npm run typecheck && npm run lint && npm run format:check && npm run test",
     "shots": "node scripts/shots.mjs",
     "shots:install": "playwright install chromium",
-    "geo": "node scripts/geo.mjs"
+    "geo": "node scripts/geo.mjs",
+    "assets": "node scripts/assets/build.mjs",
+    "assets:force": "node scripts/assets/build.mjs --force",
+    "assets:check": "node scripts/assets/build.mjs --check"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.8",

@@ -2,10 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
-import { Group, Mesh, MeshStandardMaterial, SRGBColorSpace } from "three";
-import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { Group, Mesh, MeshStandardMaterial } from "three";
 import { frameLerp } from "@/lib/drawIn";
+import { loadModel } from "@/lib/loadModel";
 import { lerp } from "@/lib/progress";
 import { useRoomStore } from "./useRoomStore";
 
@@ -15,33 +14,17 @@ import { useRoomStore } from "./useRoomStore";
  * carried as the glTF occlusion texture. Loaded after first paint and faded
  * in over the procedural room, which then hides its duplicates.
  */
-let promise: Promise<Group> | null = null;
-function loadRoom(): Promise<Group> {
-  promise ??= (async () => {
-    const draco = new DRACOLoader().setDecoderPath("/draco/");
-    const loader = new GLTFLoader().setDRACOLoader(draco);
-    const gltf = await loader.loadAsync("/models/room.glb");
-    gltf.scene.traverse((o) => {
-      const m = o as Mesh;
-      if (!m.isMesh) return;
-      m.castShadow = true;
-      m.receiveShadow = true;
-      const mat = m.material as MeshStandardMaterial;
-      if (mat.aoMap) {
-        // The occlusion slot only exists to carry TEXCOORD_1; it is light.
-        mat.lightMap = mat.aoMap;
-        mat.lightMap.colorSpace = SRGBColorSpace;
-        mat.lightMapIntensity = 1 / 0.35;
-        mat.aoMap = null;
-      }
-      mat.envMapIntensity = 0.35;
-      mat.transparent = true;
-      mat.opacity = 0;
-      mat.needsUpdate = true;
-    });
-    return gltf.scene;
-  })();
-  return promise;
+async function loadRoom(): Promise<Group> {
+  const room = await loadModel("room");
+  // Start invisible; useFrame below fades the room in over the procedural one.
+  room.traverse((o) => {
+    const m = o as Mesh;
+    if (!m.isMesh) return;
+    const mat = m.material as MeshStandardMaterial;
+    mat.transparent = true;
+    mat.opacity = 0;
+  });
+  return room;
 }
 
 export function BakedRoom() {
