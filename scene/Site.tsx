@@ -207,10 +207,7 @@ export function Site({ mech }: { mech: RefObject<Group | null> }) {
     // The second dimension run closes onto 56% of the first as s.dim runs
     // 0 → 1; the cap (tick + arrow) and the line it caps move together.
     const h2 = DIM_FULL + (DIM_CLOSE - DIM_FULL) * s.dim;
-    if (dim2Line.current) {
-      dim2Line.current.scale.y = h2;
-      dim2Line.current.position.y = h2 / 2;
-    }
+    if (dim2Line.current) dim2Line.current.scale.y = h2;
     if (dim2Cap.current) dim2Cap.current.position.y = h2;
     if (bayGroup.current)
       bayGroup.current.children.forEach((b, i) => {
@@ -219,7 +216,11 @@ export function Site({ mech }: { mech: RefObject<Group | null> }) {
     // The vault and its draws are beat iv's own instrument, not a standing
     // fixture, so they arrive with that beat rather than sitting idle before it.
     if (capital.current) capital.current.visible = beat === 3;
-    if (drawMat) drawMat.emissiveIntensity = 0.3 + s.draw;
+    // Three pulses down the columns over the beat. A cosine of the phase is
+    // continuous across the wrap — a linear ramp flashed on every reset.
+    if (drawMat)
+      drawMat.emissiveIntensity =
+        0.3 + 0.25 * (1 - Math.cos(2 * Math.PI * s.draw));
     if (mech.current) mech.current.position.y = s.beam;
   });
   /* eslint-enable react-hooks/immutability */
@@ -303,7 +304,7 @@ export function Site({ mech }: { mech: RefObject<Group | null> }) {
           exist only in the engraved twin, the way a technical drawing's
           annotations always have been ink and never a solid. */}
       <group position={[DIM1_X, 0, 0]}>
-        <group position={[0, WALL_H / 2, 0]} scale={[1, WALL_H, 1]}>
+        <group scale={[1, WALL_H, 1]}>
           <Edged linesOnly geometry={g.dimLine} edges={g.dimLine} />
         </group>
         <Edged linesOnly geometry={g.dimTick} edges={g.dimTick} />
