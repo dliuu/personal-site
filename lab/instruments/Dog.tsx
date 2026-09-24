@@ -12,9 +12,9 @@ import { useLabStore } from "@/store/useLabStore";
 import { useRoomStore } from "./useRoomStore";
 
 /**
- * The dog asleep on the rug: a rigid mesh, so it breathes and stirs rather
- * than moving its legs. Clicking wakes it, and it lifts and turns toward you
- * for a few seconds before settling again.
+ * The dog sitting on the rug: a rigid mesh, so it breathes and stirs rather
+ * than moving its legs. Clicking makes it perk up and turn toward you for a
+ * few seconds before settling again.
  */
 const REST_YAW = -0.5;
 
@@ -40,7 +40,7 @@ function loadDog(): Promise<Group> {
 
 export function Dog({
   position,
-  scale = 0.52,
+  scale = 0.33,
 }: {
   position: [number, number, number];
   scale?: number;
@@ -76,7 +76,7 @@ export function Dog({
     // Breathing is a gentle swell of the whole body; waking lifts it and
     // turns it toward whoever clicked.
     const b = reducedMotion ? 1 : breathe(t);
-    r.scale.set(scale * b, scale * (1 + (b - 1) * 1.6 + a * 0.06), scale * b);
+    r.scale.set(scale * b, scale * (1 + (b - 1) * 0.7 + a * 0.04), scale * b);
     r.position.set(position[0], position[1] + a * 0.02, position[2]);
     const look = new Vector3().subVectors(camera.position, r.position);
     r.rotation.y = REST_YAW + a * (Math.atan2(look.x, look.z) - REST_YAW) * 0.6;
@@ -90,7 +90,7 @@ export function Dog({
       scale={scale}
       onPointerOver={(e) => {
         e.stopPropagation();
-        setHover({ label: "the dog", note: "click to wake him" });
+        setHover({ label: "the dog", note: "click and he looks up" });
       }}
       onPointerOut={() => setHover(null)}
       onClick={(e) => {
