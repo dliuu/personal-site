@@ -321,22 +321,6 @@ export function RoomSet({
         position={[0.2, 0.004, 0.55]}
         receiveShadow
       />
-      {/* Door on the right wall */}
-      <group position={[2.39, 1.03, 1.6]}>
-        <mesh geometry={g.doorFrame} visible={!baked} material={m.trim} />
-        <mesh
-          geometry={g.door}
-          visible={!baked}
-          material={m.door}
-          position={[-0.01, 0, 0]}
-        />
-        <mesh
-          geometry={g.handle}
-          visible={!baked}
-          material={m.brass}
-          position={[-0.04, 0, -0.32]}
-        />
-      </group>
       {/* Left wall: the print, the cork board, a hanging pothos */}
       <group position={[-2.38, 1.75, -0.2]} rotation={[0, Math.PI / 2, 0]}>
         <mesh
@@ -386,80 +370,6 @@ export function RoomSet({
             potR={0.09}
             potH={0.1}
             droop={1.2}
-          />
-        </group>
-      ) : null}
-      {/* Shelf wall (right): two oak shelves, books, record player, deck, photo */}
-      {stage >= 1 ? (
-        <group position={[2.27, 1.25, -0.3]} rotation={[0, Math.PI / 2, 0]}>
-          <mesh
-            geometry={g.shelf}
-            visible={!baked}
-            material={m.oak}
-            castShadow
-            receiveShadow
-          />
-          <mesh
-            geometry={g.shelf}
-            visible={!baked}
-            material={m.oak}
-            position={[0, 0.5, 0]}
-            castShadow
-            receiveShadow
-          />
-          {m.spines?.map((sm, i) => (
-            <mesh
-              key={i}
-              geometry={g.book}
-              material={sm}
-              position={[-0.45 + i * 0.038, 0.125, 0.02]}
-              rotation={[0, 0, i === 11 ? -0.18 : 0]}
-              castShadow
-            />
-          ))}
-          <group position={[0.27, 0.515, -0.02]}>
-            <mesh geometry={g.plinth} material={m.oak} castShadow />
-            <mesh
-              geometry={g.sleeve}
-              material={m.sleeve}
-              position={[0.2, 0.15, -0.08]}
-              rotation={[0, 0, -0.08]}
-            />
-          </group>
-          <group position={[-0.22, 0.565, 0]}>
-            <mesh geometry={g.deck} material={m.black} castShadow />
-            <mesh
-              geometry={g.deckWindow}
-              material={m.deckGlass}
-              position={[0, 0.005, 0.091]}
-            />
-          </group>
-          <group position={[0.02, 0.575, 0.03]} rotation={[0, -0.3, 0]}>
-            <mesh geometry={g.photoFrame} material={m.posterFrame} />
-            <mesh
-              geometry={g.photo}
-              material={m.photo}
-              position={[0, 0, 0.009]}
-            />
-          </group>
-          <Plant
-            position={[-0.42, 0.515, 0.02]}
-            leaves={9}
-            size={0.16}
-            color="#4f8a4a"
-            potColor="#e6dccb"
-            potR={0.07}
-            potH={0.09}
-            droop={0.9}
-          />
-          <Plant
-            position={[0.42, 0.015, 0.02]}
-            leaves={7}
-            size={0.12}
-            color="#6f9a5a"
-            potColor="#c4795a"
-            potR={0.06}
-            potH={0.08}
           />
         </group>
       ) : null}

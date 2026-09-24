@@ -269,16 +269,13 @@ for x in (-2.4, -0.8, 0.8, 2.4):
 box("header", (4.9, 0.06, 0.08), (0, 2.57, -1.2), M["steel"])
 box("threshold", (4.9, 0.02, 0.1), (0, 0.01, -1.2), M["steel"])
 box("rug", (2.8, 0.012, 2.0), (0.2, 0.006, 0.55), M["linen"], uv_scale=0.5)
-box("doorFrame", (0.04, 2.12, 0.95), (2.39, 1.03, 1.6), M["ceiling"])
-box("door", (0.02, 2.05, 0.85), (2.37, 1.03, 1.6), M["door"])
-box("shelf1", (0.26, 0.03, 1.0), (2.27, 1.25, -0.3), M["oak"])
-box("shelf2", (0.26, 0.03, 1.0), (2.27, 1.75, -0.3), M["oak"])
 box("bench", (1.2, 0.05, 0.35), (1.4, 0.42, -0.95), M["oak"])
 box("benchLegL", (0.04, 0.4, 0.3), (0.85, 0.2, -0.95), M["oak"])
 box("benchLegR", (0.04, 0.4, 0.3), (1.95, 0.2, -0.95), M["oak"])
 box("deskTop", (1.7, 0.035, 0.75), (0, 0.735, -0.36), M["oak"])
 box("deskLegL", (0.05, 0.72, 0.7), (-0.8, 0.36, -0.36), M["oak"])
 box("deskLegR", (0.05, 0.72, 0.7), (0.8, 0.36, -0.36), M["oak"])
+# The right wall is a grid of shelf units from the manifest; no door.
 # The seated figure arrives with its own chair (assets/room/props/dev_figure).
 # The lamp comes from assets/room/props (see the manifest).
 # The main monitor: a thin bevelled panel on an aluminium stem and foot; the
