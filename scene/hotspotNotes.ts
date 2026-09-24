@@ -56,14 +56,17 @@ export const hotspots: Record<InstrumentKind, Hotspot[]> = {
       note: "$4.31M in annualized translation OPEX savings.",
     },
   ],
-  bridge: [
+  site: [
     {
       position: [0, 0.35, 0],
       label: "1",
-      note: "The keystone goes in last: bridge loans, DSCR, hard-money, refinance.",
+      note: "The last beam tops out: bridge loans, DSCR, hard-money, refinance.",
     },
     {
-      position: [-1.55, 0.2, 0],
+      // Inside the lot's short half-width (1.0), not the long one: the drawing
+      // turns through a quarter of a turn in the band, so anything past 1.0
+      // hangs off the sheet for part of the scroll.
+      position: [-0.95, 0.2, 0],
       label: "2",
       note: "$1.3M ARR from institutional onboarding.",
     },

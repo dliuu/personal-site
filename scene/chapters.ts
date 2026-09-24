@@ -1,11 +1,5 @@
 export type InstrumentKind =
-  | "desk"
-  | "armillary"
-  | "balance"
-  | "network"
-  | "globe"
-  | "bridge"
-  | "quadrant";
+  "desk" | "armillary" | "balance" | "network" | "globe" | "site" | "quadrant";
 export type MechKind = "spinY" | "spinZ" | "swing" | "tilt" | "drop";
 export type Chapter = {
   id: "intro" | "eisen" | "meta" | "wcp" | "contact";
@@ -26,6 +20,8 @@ export type Chapter = {
   scene?: "desk";
   /** Presented as a screen (the desktop inside the intro's monitor): drawn raw, never engraved. */
   screen?: boolean;
+  /** Hold the engraving at full strength through the plate: this chapter is a drawing, and never dissolves to a real render. */
+  engraved?: boolean;
 };
 export type PlateBeat = {
   caption: string;
@@ -129,6 +125,64 @@ export const eisenBeats: PlateBeat[] = [
   },
 ];
 
+/**
+ * Washington Capital's plate: the drawing builds itself, one beat per bullet.
+ * The camera walks east in one direction, 120° then 60° then 60°, and every
+ * longitude is chosen for what it puts in the clear: the lot (i), the corner
+ * where two clad faces meet, which is the twelve the caption promises (ii),
+ * the dimension runs beside the elevation rather than behind it (iii), and the
+ * draws and the vault (iv). Beat i's 50° is a near-plan view, deliberately
+ * neither 90° nor the 72° this chapter was first drawn at: overhead, a hinging
+ * wall only foreshortens and reads as shrinking, but the camera holds its
+ * elevation once it arrives, so the same number decides what a wall that has
+ * *finished* hinging looks like — it keeps cos(lat) of its height, 0.31 at 72°
+ * and 0.64 at 50°. Every beat holds `full`: the drawing is 2.04 tall on a rig
+ * that frames a 1.05 sphere, so the beats differ by angle, not distance. No
+ * `at`: `Site` draws no callouts, and an anchored beat's docked caption is
+ * hidden above 721px, so these four use the dock.
+ */
+export const wcpBeats: PlateBeat[] = [
+  {
+    caption:
+      "Led an 8-engineer team to build and deploy a stateless backend for FISH, a white-label lending platform; institutional onboarding contributed $1.3M ARR.",
+    sub: "The slab",
+    lon: -90,
+    lat: 50,
+    zoom: "full",
+  },
+  {
+    caption:
+      "A multi-client backend for DSCR, hard-money, refinance and bridge loans, with live admin customization for 12+ lending institutions.",
+    sub: "One frame, twelve faces",
+    lon: 30,
+    lat: 18,
+    zoom: "full",
+  },
+  {
+    caption:
+      "Configurable loan calculations and guidelines across regions; the fleet scaled on traffic data, response times 56% faster year over year.",
+    sub: "56%",
+    lon: 90,
+    lat: 4,
+    zoom: "full",
+  },
+  {
+    caption:
+      "Live pipelines ingesting payment, disbursement and lending data into production Postgres.",
+    sub: "The draw schedule",
+    lon: 150,
+    // Below grade, where the lot plane no longer stands between the camera and
+    // the vault. The eye does not cross the sheet at 0°: the orbit target sits
+    // 0.53 above the lot, so it passes the paper at about −9.4°, a quarter of
+    // the way into the beat, and the crossing hides the sub-grade run of the
+    // draws rather than opening it as an image. −12° clears the sheet by 2.6°;
+    // the cull itself cannot pop, since a plane turns over exactly when its
+    // projected area is zero.
+    lat: -12,
+    zoom: "full",
+  },
+];
+
 export const chapters: Chapter[] = [
   {
     id: "intro",
@@ -170,11 +224,16 @@ export const chapters: Chapter[] = [
     id: "wcp",
     numeral: "IV",
     title: "Washington Capital",
-    instrument: "bridge",
-    mech: "drop",
-    note: "the keystone last",
+    instrument: "site",
+    // spinY, not drop: `case "drop"` never reaches the default branch that
+    // applies the plate yaw, so a drop chapter cannot orbit in its plate. The
+    // topping-out beam is driven inside Site instead.
+    mech: "spinY",
+    note: "the last beam",
     spin: 0,
     palette: { paper: "#efe0cc", ink: "#3d2418", accent: "#c49a3c" },
+    engraved: true,
+    plate: { beats: wcpBeats },
   },
   {
     id: "contact",
