@@ -29,7 +29,7 @@ import { keyPress, phonePulse, twinkle } from "@/lib/ambient";
 import { lerp } from "@/lib/progress";
 import { frameLerp } from "@/lib/drawIn";
 import { useLabStore } from "@/store/useLabStore";
-import { Cat } from "./Cat";
+import { Dog } from "./Dog";
 import { useThing } from "./RoomSet";
 import { rng } from "@/lib/roomTextures";
 import { loadGarden, nature, sprite } from "./roomTextures";
@@ -504,7 +504,7 @@ export function RoomLife({
             position={[-0.5, 0.95, -0.33]}
             rotation={[0.08, 0, 0.1]}
           />
-          <Cat position={[0.55, 0, 0.95]} />
+          <Dog position={[0.55, 0, 0.95]} />
         </>
       ) : null}
       {stage >= 1 ? (

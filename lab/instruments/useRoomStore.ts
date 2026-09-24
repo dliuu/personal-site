@@ -7,8 +7,8 @@ type RoomState = {
   duskMode: boolean;
   soundOn: boolean;
   curtainsOpen: boolean;
-  /** Seconds (performance.now based) until which the cat stays awake; 0 = asleep. */
-  catAwakeUntil: number;
+  /** Seconds (performance.now based) until which the dog stays awake; 0 = asleep. */
+  petAwakeUntil: number;
   hover: Hover;
   pinned: string | null;
   steamPuff: number;
@@ -17,7 +17,7 @@ type RoomState = {
   toggleDusk: () => void;
   toggleSound: () => void;
   toggleCurtains: () => void;
-  wakeCat: () => void;
+  wakePet: () => void;
   setHover: (h: Hover) => void;
   pin: (note: string | null) => void;
   puff: () => void;
@@ -30,7 +30,7 @@ export const useRoomStore = create<RoomState>()(
       duskMode: false,
       soundOn: false,
       curtainsOpen: true,
-      catAwakeUntil: 0,
+      petAwakeUntil: 0,
       hover: null,
       pinned: null,
       steamPuff: 0,
@@ -38,14 +38,14 @@ export const useRoomStore = create<RoomState>()(
       toggleDusk: () => set((s) => ({ duskMode: !s.duskMode })),
       toggleSound: () => set((s) => ({ soundOn: !s.soundOn })),
       toggleCurtains: () => set((s) => ({ curtainsOpen: !s.curtainsOpen })),
-      wakeCat: () => set({ catAwakeUntil: performance.now() / 1000 + 8 }),
+      wakePet: () => set({ petAwakeUntil: performance.now() / 1000 + 8 }),
       setHover: (hover) => set({ hover }),
       pin: (pinned) => set({ pinned }),
       puff: () => set({ steamPuff: performance.now() / 1000 }),
       setBaked: (baked) => set({ baked }),
     }),
     {
-      name: "instruments-room-5",
+      name: "instruments-room-6",
       partialize: (s) => ({
         duskMode: s.duskMode,
         soundOn: s.soundOn,

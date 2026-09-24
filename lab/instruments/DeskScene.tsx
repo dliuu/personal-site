@@ -182,7 +182,7 @@ export function DeskScene() {
   const soundOn = useRoomStore((s) => s.soundOn);
   const duskMode = useRoomStore((s) => s.duskMode);
   const curtainsOpen = useRoomStore((s) => s.curtainsOpen);
-  const catAwakeUntil = useRoomStore((s) => s.catAwakeUntil);
+  const petAwakeUntil = useRoomStore((s) => s.petAwakeUntil);
   const baked = useRoomStore((s) => s.baked);
   const hemi = useRef<HemisphereLight>(null);
   useEffect(() => {
@@ -205,8 +205,8 @@ export function DeskScene() {
     audio.current?.setRain(!duskMode);
   }, [duskMode]);
   useEffect(() => {
-    if (catAwakeUntil) audio.current?.purr();
-  }, [catAwakeUntil]);
+    if (petAwakeUntil) audio.current?.purr();
+  }, [petAwakeUntil]);
   useEffect(() => () => audio.current?.dispose(), []);
 
   const toggleDusk = useRoomStore((s) => s.toggleDusk);
