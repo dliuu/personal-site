@@ -171,7 +171,7 @@ export const wcpBeats: PlateBeat[] = [
       "Live pipelines ingesting payment, disbursement and lending data into production Postgres.",
     sub: "The draw schedule",
     lon: 150,
-    lat: 8,
+    lat: -12,
     zoom: "full",
   },
 ];

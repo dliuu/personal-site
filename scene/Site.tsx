@@ -7,17 +7,19 @@ import {
   BoxGeometry,
   BufferGeometry,
   CylinderGeometry,
+  DoubleSide,
   Float32BufferAttribute,
   Group,
   MeshStandardMaterial,
   PlaneGeometry,
 } from "three";
 
-import { hatchRect, RECTS, type Rect } from "@/lib/sheet";
+import { FLOOR_LABELS, hatchRect, RECTS, type Rect } from "@/lib/sheet";
 import { BAYS, FLOORS, TENANTS, stage, tenantAt } from "@/lib/site";
 
 import { chapters } from "./chapters";
 import { Edged, EdgedModeContext } from "./Instruments";
+import { BRONZE } from "./palette";
 import { plateState } from "./plateState";
 import { makeSheetTexture } from "./sheetAtlas";
 
@@ -34,6 +36,9 @@ const SLOTS = FACES * FLOORS;
 const CLAD_OFF = 0.012;
 /** And the draw runs just off the cladding, clear of the column it follows. */
 const DRAW_OFF = 0.035;
+/** The vault sits under the slab; its lid is where the draws come to rest. */
+const VAULT_Y = -0.45;
+const VAULT_TOP = VAULT_Y + 0.11;
 const BEAM_T = 0.024;
 /** The slab edge oversails the frame, as a floor plate does. */
 const BEAM_OVER = 0.06;
@@ -62,8 +67,63 @@ const DIM2_X = -(FOOT.w / 2) - 0.34;
 const DIM_FULL = WALL_H;
 const DIM_CLOSE = WALL_H * 0.56;
 
-/** Bay `i`'s centre, marching in +X off the footprint at FOOT.w spacing. */
-const bayX = (i: number) => FOOT.w * (i + 1);
+/**
+ * Bay `i`'s centre, marching in +X off the footprint. The run has to finish
+ * inside the sheet's own half-width (1.3): at the building's own 1.2 spacing
+ * the last three bays stood off the page, where no zoom step could reach them.
+ */
+const BAY_0 = FOOT.w / 2 + 0.12;
+const BAY_STEP = 0.14;
+const bayX = (i: number) => BAY_0 + BAY_STEP * i;
+
+/**
+ * The sheet's lettering: one plane per painted rect, each the aspect of the
+ * rect it samples so nothing is stretched. The floor labels sample only the
+ * left third of their row, where the painter puts the words — a whole row is
+ * 8:1, and at that aspect a plane tall enough to read would be wider than the
+ * building it names.
+ */
+const TITLE_SIZE: [number, number] = [0.78, 0.39];
+/** A drawing's title block lies on the page, in the corner beat i looks down at. */
+const TITLE_POS: [number, number, number] = [0.87, 0.003, 0.76];
+const NOTE_SIZE: [number, number] = [0.86, 0.43];
+/**
+ * The notes stand in the right margin of beat iii's elevation, outboard of both
+ * dimension runs. Flat on the page they would be unreadable there: beat iii
+ * looks along the sheet at 4°, where anything lying on it is edge-on.
+ */
+const NOTE_POS: [number, number, number] = [-1.95, 1.02, 0];
+/**
+ * The numeral plate is the beat's headline number, so it is sized to be read
+ * at the distance the whole elevation needs, and sits outboard of both runs.
+ */
+const DIM_PLATE_SIZE: [number, number] = [0.64, 0.32];
+const DIM_PLATE_X = DIM2_X - 0.41;
+/** Beat iii's yaw is −180°, so its lettering faces local −Z, not +Z. */
+const FACE_BACK: [number, number, number] = [0, Math.PI, 0];
+const LABEL_W = 0.34;
+const LABEL_SIZE: [number, number] = [0.66, 0.24];
+const floorLabelRect = (i: number): Rect => {
+  const b = RECTS.floors;
+  const h = b.h / FLOOR_LABELS.length;
+  return { x: b.x, y: b.y + i * h, w: b.w * LABEL_W, h };
+};
+/**
+ * Beat ii faces lon 30, which turns the drawing to a yaw of −120°. Lettering
+ * has to be aimed rather than made double-sided: a plane seen from behind
+ * shows its text mirrored. At that yaw the local direction 240° is what lands
+ * at the camera's right, and a plane yawed 120° is what faces it — so the four
+ * labels stand off the frame on the clear side, one per floor, with the bays
+ * marching away on the other.
+ */
+const LABEL_OUT = 1.15;
+const LABEL_SIDE = (240 * Math.PI) / 180;
+const LABEL_YAW = (120 * Math.PI) / 180;
+const labelPos = (i: number): [number, number, number] => [
+  Math.cos(LABEL_SIDE) * LABEL_OUT,
+  (i + 1) * FLOOR_H,
+  Math.sin(LABEL_SIDE) * LABEL_OUT,
+];
 
 /**
  * ~24 fixed samples of the traffic curve that drove the fleet's scaling —
@@ -73,9 +133,9 @@ const TRAFFIC = [
   0.32, 0.3, 0.35, 0.42, 0.55, 0.62, 0.58, 0.47, 0.4, 0.44, 0.53, 0.66, 0.74,
   0.7, 0.6, 0.52, 0.48, 0.57, 0.69, 0.8, 0.86, 0.78, 0.68, 0.6,
 ];
-/** The curve rides just off the bay line, at the base of the frame. */
+/** The curve rides along the bay run, at the base of the frame and no wider. */
 const trafficPoint = (i: number): [number, number, number] => [
-  (i / (TRAFFIC.length - 1)) * bayX(BAYS - 1),
+  bayX(0) + (i / (TRAFFIC.length - 1)) * (bayX(BAYS - 1) - bayX(0)),
   0.02 + TRAFFIC[i] * 0.14,
   0.12,
 ];
@@ -107,7 +167,10 @@ export function Site({ mech }: { mech: RefObject<Group | null> }) {
       dimArrow: segments([
         0, 0, 0, -0.018, -0.045, 0, 0, 0, 0, 0.018, -0.045, 0,
       ]),
-      dimPlate: new PlaneGeometry(0.32, 0.16),
+      dimPlate: new PlaneGeometry(...DIM_PLATE_SIZE),
+      title: new PlaneGeometry(...TITLE_SIZE),
+      note: new PlaneGeometry(...NOTE_SIZE),
+      label: new PlaneGeometry(...LABEL_SIZE),
       traffic: segments(
         Array.from({ length: TRAFFIC.length - 1 }, (_, i) => i).flatMap((i) => [
           ...trafficPoint(i),
@@ -115,18 +178,21 @@ export function Site({ mech }: { mech: RefObject<Group | null> }) {
         ]),
       ),
       vault: new BoxGeometry(0.5, 0.22, 0.4),
-      drawLine: new CylinderGeometry(0.008, 0.008, WALL_H, 6),
+      // The draw runs from the roof to the vault's own level, not to grade:
+      // stopped at the slab it left a hand's gap of paper between the money
+      // and what it paid for.
+      drawLine: new CylinderGeometry(0.008, 0.008, WALL_H - VAULT_TOP, 6),
       topOut: new BoxGeometry(FOOT.w, 0.04, 0.05),
     }),
     [],
   );
   /**
-   * Twelve institutions, twelve windows onto one sheet: each material samples
-   * its own hatch cell, and all of them keep the chapter ink, because the
-   * drawing tells them apart by ruling and never by colour. The "56%" numeral
-   * is one more window onto the same sheet, so it shares this one texture
-   * upload rather than painting a second canvas. Only the solid twin is
-   * mapped; the engraved twin draws the same parts as line work.
+   * One sheet, many windows: every hatch, the title block, the notes, the four
+   * floor labels and the "56%" numeral are cells of the same painted canvas,
+   * so the chapter's whole surface is one texture upload. All of them keep the
+   * chapter ink — the drawing tells its faces apart by ruling and never by
+   * colour. Only the solid twin is mapped; the engraved twin draws the same
+   * parts as line work.
    */
   const sheetMats = useMemo(() => {
     if (!solid) return null;
@@ -138,8 +204,11 @@ export function Site({ mech }: { mech: RefObject<Group | null> }) {
     sheet.flipY = false;
     const matFor = (r: Rect) => {
       const tex = sheet.clone();
-      tex.offset.set(r.x, r.y);
-      tex.repeat.set(r.w, r.h);
+      // Unflipped, v = 0 is the top of the canvas, so the V axis is run
+      // backwards here: without it every rect arrives upside down, which no
+      // one could see while the only mapped cells were symmetrical hatches.
+      tex.offset.set(r.x, r.y + r.h);
+      tex.repeat.set(r.w, -r.h);
       return new MeshStandardMaterial({
         color: WCP_PALETTE.ink,
         map: tex,
@@ -156,10 +225,35 @@ export function Site({ mech }: { mech: RefObject<Group | null> }) {
     return {
       hatch: Array.from({ length: TENANTS }, (_, i) => matFor(hatchRect(i))),
       dim: matFor(RECTS.dim),
+      title: matFor(RECTS.title),
+      note: matFor(RECTS.note),
+      labels: FLOOR_LABELS.map((_, i) => matFor(floorLabelRect(i))),
     };
   }, [solid]);
   const hatch = sheetMats?.hatch ?? null;
   const dimMat = sheetMats?.dim ?? null;
+  /**
+   * The four walls are planes, and a plane is one-sided: after the hinge their
+   * normals all point out of the lot, so the far wall was culled and the side
+   * pair went edge-on, leaving beat i's gesture to be carried by whichever
+   * single wall happened to face the camera. Two-sided here and nowhere else —
+   * these are four unshadowed procedural planes, not a baked model.
+   */
+  const wallMat = useMemo(
+    () =>
+      solid
+        ? new MeshStandardMaterial({
+            color: BRONZE,
+            side: DoubleSide,
+            roughness: 0.6,
+            metalness: 0.15,
+            polygonOffset: true,
+            polygonOffsetFactor: 1,
+            polygonOffsetUnits: 1,
+          })
+        : null,
+    [solid],
+  );
   const walls = useRef<Group>(null);
   const frame = useRef<Group>(null);
   const beams = useRef<Group>(null);
@@ -169,6 +263,10 @@ export function Site({ mech }: { mech: RefObject<Group | null> }) {
   const bayGroup = useRef<Group>(null);
   const capital = useRef<Group>(null);
   const topOut = useRef<Group>(null);
+  const title = useRef<Group>(null);
+  const labels = useRef<Group>(null);
+  const note = useRef<Group>(null);
+  const dimPlate = useRef<Group>(null);
   const drawMat = useMemo(
     () =>
       solid
@@ -224,7 +322,28 @@ export function Site({ mech }: { mech: RefObject<Group | null> }) {
     if (drawMat)
       drawMat.emissiveIntensity =
         0.3 + 0.25 * (1 - Math.cos(2 * Math.PI * s.draw));
-    if (topOut.current) topOut.current.position.y = s.beam;
+    // The lettering inks with the beat it belongs to: the title block as the
+    // plan lifts, a floor label as its floor is inked, the notes with beat iii
+    // and the numeral once its dimension run has closed onto 56%.
+    if (title.current) title.current.visible = s.hinge[0] > 0;
+    // The labels are aimed at beat ii's camera, so they belong to beat ii:
+    // held on, they stood across the elevation and (turned away) left four
+    // empty rules behind them in the line twin.
+    if (labels.current)
+      labels.current.children.forEach((l, i) => {
+        l.visible = beat === 1 && s.floors > i;
+      });
+    // Aimed lettering is shown only at the beat it is aimed at; only the title
+    // block, which lies flat on the page, belongs to every view of it.
+    if (note.current) note.current.visible = beat === 2;
+    if (dimPlate.current) dimPlate.current.visible = beat === 2 && s.dim > 0.5;
+    // The last beam arrives with the beat that drops it. Held aloft through
+    // the earlier beats it only hung above the frame, out of the plate's
+    // vertical reach, as a pale band behind the nav.
+    if (topOut.current) {
+      topOut.current.visible = beat === 3;
+      topOut.current.position.y = s.beam;
+    }
   });
   /* eslint-enable react-hooks/immutability */
 
@@ -269,6 +388,7 @@ export function Site({ mech }: { mech: RefObject<Group | null> }) {
                   geometry={faceLong(f) ? g.wallLong : g.wallShort}
                   position={[0, 0, WALL_H / 2]}
                   rotation={[Math.PI / 2, 0, 0]}
+                  material={wallMat ?? undefined}
                 />
               </group>
             );
@@ -355,12 +475,47 @@ export function Site({ mech }: { mech: RefObject<Group | null> }) {
             rotation={[0, 0, Math.PI]}
           />
         </group>
-        {/* The "56%" numeral is one more window onto the sheet texture. */}
-        <Edged
-          geometry={g.dimPlate}
-          position={[DIM2_X - 0.24, DIM_CLOSE / 2, 0]}
-          material={dimMat ?? undefined}
-        />
+        {/* The "56%" numeral is one more window onto the sheet texture, aimed
+          at beat iii the way the notes beside it are. */}
+        <group ref={dimPlate}>
+          <Edged
+            geometry={g.dimPlate}
+            position={[DIM_PLATE_X, DIM_CLOSE / 2, 0]}
+            rotation={FACE_BACK}
+            material={dimMat ?? undefined}
+          />
+        </group>
+        {/* The title block: the sheet says whose drawing this is, and the
+          revision line carries the number beat i claims. */}
+        <group ref={title}>
+          <Edged
+            geometry={g.title}
+            position={TITLE_POS}
+            rotation={[-Math.PI / 2, 0, 0]}
+            material={sheetMats?.title}
+          />
+        </group>
+        {/* Region guidelines, in the margin of the elevation beat iii reads. */}
+        <group ref={note}>
+          <Edged
+            geometry={g.note}
+            position={NOTE_POS}
+            rotation={FACE_BACK}
+            material={sheetMats?.note}
+          />
+        </group>
+        {/* One label per loan product, against the floor it names. */}
+        <group ref={labels}>
+          {FLOOR_LABELS.map((label, i) => (
+            <Edged
+              key={label}
+              geometry={g.label}
+              position={labelPos(i)}
+              rotation={[0, LABEL_YAW, 0]}
+              material={sheetMats?.labels[i]}
+            />
+          ))}
+        </group>
         {/* Bays extend the frame in +X, the fleet the traffic curve scaled. */}
         <group ref={bayGroup}>
           {Array.from({ length: BAYS }, (_, i) => (
@@ -378,7 +533,7 @@ export function Site({ mech }: { mech: RefObject<Group | null> }) {
         <group ref={capital}>
           <Edged
             geometry={g.vault}
-            position={[0, -0.45, 0]}
+            position={[0, VAULT_Y, 0]}
             color={WCP_PALETTE.accent}
           />
           {[-1, 1].map((sx) =>
@@ -391,7 +546,7 @@ export function Site({ mech }: { mech: RefObject<Group | null> }) {
                 // beat iv the cladding has closed over the frame.
                 position={[
                   sx * (FOOT.w / 2 + DRAW_OFF),
-                  WALL_H / 2,
+                  (WALL_H + VAULT_TOP) / 2,
                   (sz * FOOT.d) / 2,
                 ]}
                 material={drawMat ?? undefined}
