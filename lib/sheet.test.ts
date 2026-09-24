@@ -2,10 +2,12 @@ import { describe, expect, it } from "vitest";
 import { TENANTS } from "./site";
 import {
   ATLAS,
+  DRAW_DASHES,
   FLOOR_LABELS,
   hatchRect,
   hatchStyle,
   paintDimensions,
+  paintDraws,
   paintFloorLabels,
   paintHatches,
   paintNoteBlock,
@@ -88,6 +90,13 @@ describe("painters", () => {
     const dim = fakeCtx();
     paintDimensions(dim.ctx, "#3d2418");
     expect(dim.text.join(" ")).toContain("56");
+  });
+  it("fills the draw strip with a whole number of dashes", () => {
+    // Whole is the contract: the rods scroll this strip a full atlas height
+    // per pass, so a partial dash at the column's end would show the reset.
+    const { ctx, calls } = fakeCtx();
+    paintDraws(ctx, "#c49a3c");
+    expect(calls.filter((c) => c === "fillRect").length).toBe(DRAW_DASHES);
   });
   it("paints the whole sheet without throwing", () => {
     const { ctx, calls } = fakeCtx();

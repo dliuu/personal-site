@@ -21,8 +21,6 @@ export type Stage = {
   floors: number;
   /** Cladding coverage, 0..1. */
   clad: number;
-  /** Institutions counted, 0..TENANTS. */
-  tenants: number;
   /** Structural bays, 1..BAYS. */
   bays: number;
   /** Dimension-arrow closure, 0..1. */
@@ -72,7 +70,6 @@ export function stage(beat: number, t: number): Stage {
     hinge,
     floors: Math.round(inked * FLOORS),
     clad,
-    tenants: Math.round(clad * TENANTS),
     bays: beat === 2 ? bayCount(u) : beat > 2 ? BAYS : 1,
     dim,
     // The phase drives a repeating dash pattern down the columns; the reset at

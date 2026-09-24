@@ -31,17 +31,27 @@ const NOTES = [
 
 export type Rect = { x: number; y: number; w: number; h: number };
 
-/** Where each painter writes, in 0..1 UV space. Tested for overlap. */
+/**
+ * Where each painter writes, in 0..1 UV space. Tested for overlap.
+ *
+ * `draw` is the one region sampled with a repeating wrap, and a wrap repeats
+ * the whole texture rather than a sub-rect, so it takes a column of the
+ * atlas's full height and its neighbours give up the width for it.
+ */
 export const RECTS: Record<
-  "title" | "note" | "dim" | "floors" | "hatch",
+  "title" | "note" | "dim" | "floors" | "hatch" | "draw",
   Rect
 > = {
   title: { x: 0, y: 0, w: 0.5, h: 0.25 },
-  note: { x: 0.5, y: 0, w: 0.5, h: 0.25 },
+  note: { x: 0.5, y: 0, w: 0.44, h: 0.22 },
   dim: { x: 0, y: 0.25, w: 0.5, h: 0.25 },
-  hatch: { x: 0.5, y: 0.25, w: 0.5, h: 0.25 },
-  floors: { x: 0, y: 0.5, w: 1, h: 0.5 },
+  hatch: { x: 0.5, y: 0.25, w: 0.44, h: 0.25 },
+  floors: { x: 0, y: 0.5, w: 0.94, h: 0.5 },
+  draw: { x: 0.94, y: 0, w: 0.06, h: 1 },
 };
+
+/** Dashes painted down the draw strip: the pattern the gold rods scroll. */
+export const DRAW_DASHES = 4;
 
 /** The hatch region is a grid, one cell per institution. */
 const HATCH_COLS = 4;
@@ -177,10 +187,26 @@ export function paintHatches(ctx: Ctx, ink: string): void {
   }
 }
 
+/**
+ * The draw strip: evenly spaced dashes down a full-height column, the only
+ * painted region meant to tile. A whole number of dashes fills the column, so
+ * a rod that scrolls the strip by one atlas height is back where it started
+ * and the phase reset at each pass boundary cannot be seen.
+ */
+export function paintDraws(ctx: Ctx, accent: string): void {
+  const b = px(ctx, RECTS.draw);
+  const period = b.h / DRAW_DASHES;
+  ctx.fillStyle = accent;
+  // Ink then paper: a run of payments travelling, not one bar sliding.
+  for (let i = 0; i < DRAW_DASHES; i++)
+    ctx.fillRect(b.x, b.y + i * period, b.w, period * 0.55);
+}
+
 export function paintSheet(ctx: Ctx, ink: string, accent: string): void {
   paintTitleBlock(ctx, ink, accent);
   paintNoteBlock(ctx, ink);
   paintDimensions(ctx, ink);
   paintHatches(ctx, ink);
   paintFloorLabels(ctx, ink);
+  paintDraws(ctx, accent);
 }

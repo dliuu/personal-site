@@ -28,18 +28,14 @@ describe("frame and cladding", () => {
     expect(stage(0, 0).floors).toBe(0);
     expect(stage(1, 1).floors).toBe(FLOORS);
   });
-  it("clads and counts institutions monotonically through beat ii", () => {
+  it("clads monotonically through beat ii", () => {
     let prevClad = -1;
-    let prevTenants = -1;
     for (let i = 0; i <= 10; i++) {
       const s = stage(1, i / 10);
       expect(s.clad).toBeGreaterThanOrEqual(prevClad);
-      expect(s.tenants).toBeGreaterThanOrEqual(prevTenants);
       prevClad = s.clad;
-      prevTenants = s.tenants;
     }
     expect(stage(1, 1).clad).toBeCloseTo(1, 6);
-    expect(stage(1, 1).tenants).toBe(TENANTS);
   });
   it("cycles twelve tenants across the twenty-four slots without gaps", () => {
     const seen = new Set(Array.from({ length: 24 }, (_, i) => tenantAt(i)));

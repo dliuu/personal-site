@@ -37,24 +37,43 @@ Washington Capital (chapter IV) is hard-money construction lending as the thing 
 money pays for: a construction sheet that draws itself, and the one plate that never
 leaves the drawing. `Chapter.engraved` pins `reveal` at 0, so the hairlines hold at
 full strength to full screen while the chroma wash (driven by `expand`, not `reveal`)
-brings up the warm paper and the gold. Four beats, one per bullet. i, the slab: the
+brings up the warm paper and the gold. The page carries a border rule inset 0.08
+inside its trim, as a drawing sheet does. Four beats, one per bullet. i, the slab: the
 camera rises to a near-plan 50° over the lot and the four walls hinge up off the sheet
 on a stagger. ii, one frame twelve faces: the frame inks a floor at a time and the
 cladding closes over it face by face, each institution told apart by hatch pattern and
 never by colour — twelve hatches, six angles × two spacings, all windows onto one
 canvas atlas, and four labels name the floors they stand against. iii, the dimension
-line: a flat-on elevation with the two dimension runs
-standing clear beside it and its numeral, the second closing onto 56% of the first,
-and structural
-bays marching off the lot as the fleet scales along an inked traffic curve. iv, the
-draw schedule: the camera drops below grade, where the lot plane no longer stands
-between it and the money, and gold draws run down the outside of the columns into the
-vault under the slab while the topping-out beam drops into its seat. The sheet's
+line: a flat-on elevation with the two dimension runs standing clear beside it, the
+second closing onto 56% of the first, its numeral and the note block beside them, and
+structural bays marching off the lot as the fleet scales along an inked traffic curve.
+iv, the draw schedule: the camera drops below grade, where the lot plane no longer
+stands between it and the money, and gold draws run down the outside of the columns
+into the vault under the slab while the topping-out beam drops into its seat. The
+draws travel: the rods map a full-height dash strip of the same canvas atlas with a
+repeating wrap, and `s.draw` scrolls it three passes down the beat — one pass is a
+whole number of dashes, so the reset at each pass boundary cannot be seen. Beat iii's
+furniture (both dimension runs, the bays, the traffic curve) is gated to the plate;
+in the chapter band the page is near edge-on, and full-height runs measuring a
+building that is not standing yet read as a mast through a smear. The sheet's
 lettering — title block, floor labels, notes, the 56% numeral — is aimed at the beat it
 belongs to rather than made two-sided, because a plane read from behind reads
-mirrored. The whole drawing hangs off the
+mirrored; the notes and the numeral are sized to be read at beat iii's distance, which
+stands them beside the page rather than in a margin of it, the elevation and its runs
+having already filled the paper inside the border. The whole drawing hangs off the
 mech group, so the plate yaw turns it (`scene/Site.tsx`, staging in `lib/site.ts`, the
 sheet's painters in `lib/sheet.ts` → `scene/sheetAtlas.ts`).
+
+Known limit, phone width: the plate rig sets the camera distance from the instrument's
+radius alone and ignores aspect (`scene/HeroObjects.tsx:406`), so the visible
+half-width is 1.772 · aspect in instrument units — 2.84 at 1440×900 but 0.82 at
+390×844. Chapter IV is cropped to what stands within 0.82 of its centre, which at beat
+iii is the cladding alone: the second dimension run (x 0.94), the 56% plate (1.35), the
+note block (1.95) and bays 2–4 (1.0–1.28) are all off screen, so the beat's whole
+instrument is lost and the docked caption carries it alone; beat i keeps the sheet but
+loses most of the title block. Seen at 390×844 in `shots/`, and it ships this way. The
+follow-up is an aspect-aware `k` in the shared plate rig, which would reframe Eisen and
+Meta too.
 
 Placeholders awaiting owner input: the Eisen bullet wording, the twelve task names
 and their log lines, orchestrator and worker counts, pass rate and colours, the beat

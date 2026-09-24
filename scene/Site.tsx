@@ -12,6 +12,7 @@ import {
   Group,
   MeshStandardMaterial,
   PlaneGeometry,
+  RepeatWrapping,
 } from "three";
 
 import { FLOOR_LABELS, hatchRect, RECTS, type Rect } from "@/lib/sheet";
@@ -25,6 +26,8 @@ import { makeSheetTexture } from "./sheetAtlas";
 
 /** Lot and building, in world units at scale 1. */
 const SHEET = { w: 2.6, d: 2.0 };
+/** Every drawing sheet carries a border inside its trim (spec 5.2). */
+const BORDER = 0.08;
 const FOOT = { w: 1.2, d: 0.9 };
 const FLOOR_H = 0.34;
 const STAKES = 8;
@@ -36,6 +39,13 @@ const SLOTS = FACES * FLOORS;
 const CLAD_OFF = 0.012;
 /** And the draw runs just off the cladding, clear of the column it follows. */
 const DRAW_OFF = 0.035;
+/**
+ * Whole repeats of the painted strip down one rod, so the rod carries this
+ * many times lib/sheet's DRAW_DASHES and the phase is periodic: scrolling the
+ * strip by one atlas height lands dash on dash, which is what makes the reset
+ * at each pass boundary invisible rather than merely smooth.
+ */
+const DRAW_REPEATS = 2;
 /** The vault sits under the slab; its lid is where the draws come to rest. */
 const VAULT_Y = -0.45;
 const VAULT_TOP = VAULT_Y + 0.11;
@@ -88,25 +98,30 @@ const TITLE_SIZE: [number, number] = [0.78, 0.39];
 const TITLE_POS: [number, number, number] = [0.87, 0.003, 0.76];
 const NOTE_SIZE: [number, number] = [0.86, 0.43];
 /**
- * The notes stand in the right margin of beat iii's elevation, outboard of both
- * dimension runs. Flat on the page they would be unreadable there: beat iii
- * looks along the sheet at 4°, where anything lying on it is edge-on.
+ * The notes stand clear of beat iii's elevation on the camera's right, outboard
+ * of both dimension runs — and, at 0.86 wide against the 0.36 of paper left
+ * between the border and the second run, off the sheet entirely: they float
+ * beside the page rather than in a margin of it. Flat on the page they would
+ * be unreadable anyway, since beat iii looks along the sheet at 4°, where
+ * anything lying on it is edge-on.
  */
 const NOTE_POS: [number, number, number] = [-1.95, 1.02, 0];
 /**
  * The numeral plate is the beat's headline number, so it is sized to be read
- * at the distance the whole elevation needs, and sits outboard of both runs.
+ * at the distance the whole elevation needs; it too sits outboard of both runs
+ * and, at that size, beyond the sheet's own edge.
  */
 const DIM_PLATE_SIZE: [number, number] = [0.64, 0.32];
 const DIM_PLATE_X = DIM2_X - 0.41;
 /** Beat iii's yaw is −180°, so its lettering faces local −Z, not +Z. */
 const FACE_BACK: [number, number, number] = [0, Math.PI, 0];
+/** The label window, in atlas UV: the left of the row, where the words are. */
 const LABEL_W = 0.34;
 const LABEL_SIZE: [number, number] = [0.66, 0.24];
 const floorLabelRect = (i: number): Rect => {
   const b = RECTS.floors;
   const h = b.h / FLOOR_LABELS.length;
-  return { x: b.x, y: b.y + i * h, w: b.w * LABEL_W, h };
+  return { x: b.x, y: b.y + i * h, w: LABEL_W, h };
 };
 /**
  * Beat ii faces lon 30, which turns the drawing to a yaw of −120°. Lettering
@@ -153,6 +168,23 @@ export function Site({ mech }: { mech: RefObject<Group | null> }) {
   const g = useMemo(
     () => ({
       sheet: new PlaneGeometry(SHEET.w, SHEET.d),
+      // The border rule, inset from the trim: ink, like every other rule on
+      // the page, so it is drawn by the engraved twin the chapter never loses.
+      border: segments(
+        [
+          [-1, -1, 1, -1],
+          [1, -1, 1, 1],
+          [1, 1, -1, 1],
+          [-1, 1, -1, -1],
+        ].flatMap(([ax, az, bx, bz]) => [
+          ax * (SHEET.w / 2 - BORDER),
+          0,
+          az * (SHEET.d / 2 - BORDER),
+          bx * (SHEET.w / 2 - BORDER),
+          0,
+          bz * (SHEET.d / 2 - BORDER),
+        ]),
+      ),
       stake: new CylinderGeometry(0.012, 0.012, 0.16, 6),
       column: new BoxGeometry(0.05, WALL_H, 0.05),
       wallLong: new PlaneGeometry(FOOT.w, WALL_H),
@@ -222,9 +254,33 @@ export function Site({ mech }: { mech: RefObject<Group | null> }) {
         polygonOffsetUnits: 1,
       });
     };
+    // The draws sample the one region that tiles. U is windowed to the strip
+    // as usual; V repeats, and because a wrap repeats the whole texture rather
+    // than a sub-rect the strip runs the atlas's full height. The V axis still
+    // runs backwards, so the dashes are the way up the painter drew them.
+    const drawTex = sheet.clone();
+    drawTex.wrapT = RepeatWrapping;
+    drawTex.offset.set(RECTS.draw.x, RECTS.draw.y + RECTS.draw.h);
+    drawTex.repeat.set(RECTS.draw.w, -DRAW_REPEATS);
     return {
       hatch: Array.from({ length: TENANTS }, (_, i) => matFor(hatchRect(i))),
       dim: matFor(RECTS.dim),
+      // Gold, and the only gold besides the vault and the revision line. The
+      // gaps between the dashes are cut rather than blended: alphaTest keeps
+      // the rods in the opaque pass, where six of them cannot sort wrongly
+      // against each other or the cladding they run down.
+      draw: new MeshStandardMaterial({
+        color: WCP_PALETTE.accent,
+        map: drawTex,
+        alphaTest: 0.5,
+        emissive: WCP_PALETTE.accent,
+        emissiveIntensity: 0.55,
+        roughness: 0.5,
+        metalness: 0.3,
+        polygonOffset: true,
+        polygonOffsetFactor: 1,
+        polygonOffsetUnits: 1,
+      }),
       title: matFor(RECTS.title),
       note: matFor(RECTS.note),
       labels: FLOOR_LABELS.map((_, i) => matFor(floorLabelRect(i))),
@@ -258,6 +314,9 @@ export function Site({ mech }: { mech: RefObject<Group | null> }) {
   const frame = useRef<Group>(null);
   const beams = useRef<Group>(null);
   const cladding = useRef<Group>(null);
+  const dim1 = useRef<Group>(null);
+  const dim2 = useRef<Group>(null);
+  const traffic = useRef<Group>(null);
   const dim2Line = useRef<Group>(null);
   const dim2Cap = useRef<Group>(null);
   const bayGroup = useRef<Group>(null);
@@ -267,22 +326,7 @@ export function Site({ mech }: { mech: RefObject<Group | null> }) {
   const labels = useRef<Group>(null);
   const note = useRef<Group>(null);
   const dimPlate = useRef<Group>(null);
-  const drawMat = useMemo(
-    () =>
-      solid
-        ? new MeshStandardMaterial({
-            color: WCP_PALETTE.accent,
-            emissive: WCP_PALETTE.accent,
-            emissiveIntensity: 0,
-            roughness: 0.5,
-            metalness: 0.3,
-            polygonOffset: true,
-            polygonOffsetFactor: 1,
-            polygonOffsetUnits: 1,
-          })
-        : null,
-    [solid],
-  );
+  const drawMat = sheetMats?.draw ?? null;
 
   /* eslint-disable react-hooks/immutability -- r3f pattern: mutate the memoized gold material and the part refs in useFrame */
   useFrame(() => {
@@ -291,7 +335,7 @@ export function Site({ mech }: { mech: RefObject<Group | null> }) {
     const s = stage(active ? plateState.beat : 0, active ? plateState.t : 0);
     if (walls.current)
       walls.current.children.forEach((w, i) => {
-        w.rotation.x = -(s.hinge[i % s.hinge.length] ?? 0);
+        w.rotation.x = -s.hinge[i];
       });
     if (frame.current) frame.current.visible = s.floors > 0;
     // Counted, not faded: the frame inks a floor at a time and the cladding
@@ -310,18 +354,30 @@ export function Site({ mech }: { mech: RefObject<Group | null> }) {
     const h2 = DIM_FULL + (DIM_CLOSE - DIM_FULL) * s.dim;
     if (dim2Line.current) dim2Line.current.scale.y = h2;
     if (dim2Cap.current) dim2Cap.current.position.y = h2;
-    if (bayGroup.current)
+    // Beat iii's furniture belongs to the plate. In the chapter band the
+    // camera sits near level, where the page is almost edge-on: two
+    // full-height dimension runs, a 2.04 bay column and the traffic curve
+    // under it left a flat smear with a mast through it, and the runs measure
+    // a building that is not standing yet.
+    if (dim1.current) dim1.current.visible = active;
+    if (dim2.current) dim2.current.visible = active;
+    if (traffic.current) traffic.current.visible = active;
+    if (bayGroup.current) {
+      bayGroup.current.visible = active;
       bayGroup.current.children.forEach((b, i) => {
         b.visible = i < s.bays;
       });
+    }
     // The vault and its draws are beat iv's own instrument, not a standing
     // fixture, so they arrive with that beat rather than sitting idle before it.
     if (capital.current) capital.current.visible = beat === 3;
-    // Three pulses down the columns over the beat. A cosine of the phase is
-    // continuous across the wrap — a linear ramp flashed on every reset.
-    if (drawMat)
-      drawMat.emissiveIntensity =
-        0.3 + 0.25 * (1 - Math.cos(2 * Math.PI * s.draw));
+    // Three passes of dashes down the rods over the beat: capital running
+    // from the roof into the vault. The strip is scrolled, not dimmed, and a
+    // pass is exactly one atlas height, a whole number of dashes — so the wrap
+    // lands dash on dash and no reset is visible. Walking the offset backwards
+    // is what sends them down, because this atlas's V runs backwards.
+    if (drawMat?.map)
+      drawMat.map.offset.y = RECTS.draw.y + RECTS.draw.h - s.draw;
     // The lettering inks with the beat it belongs to: the title block as the
     // plan lifts, a floor label as its floor is inked, the notes with beat iii
     // and the numeral once its dimension run has closed onto 56%. The title
@@ -356,8 +412,14 @@ export function Site({ mech }: { mech: RefObject<Group | null> }) {
           nothing else, so a part left outside it would never turn and the
           beats' longitudes would be inert. */}
       <group ref={mech}>
-        {/* The sheet the whole chapter is drawn on. */}
+        {/* The sheet the whole chapter is drawn on, and its border rule. */}
         <Edged geometry={g.sheet} rotation={[-Math.PI / 2, 0, 0]} />
+        <Edged
+          linesOnly
+          geometry={g.border}
+          edges={g.border}
+          position={[0, 0.002, 0]}
+        />
         {/* Eight survey stakes: the team that set the lot out. */}
         {Array.from({ length: STAKES }, (_, i) => {
           const a = (i / STAKES) * Math.PI * 2;
@@ -435,7 +497,7 @@ export function Site({ mech }: { mech: RefObject<Group | null> }) {
         {/* Dimension lines are drafting marks, not volumes: linesOnly, so they
           exist only in the engraved twin, the way a technical drawing's
           annotations always have been ink and never a solid. */}
-        <group position={[DIM1_X, 0, 0]}>
+        <group ref={dim1} position={[DIM1_X, 0, 0]}>
           <group scale={[1, WALL_H, 1]}>
             <Edged linesOnly geometry={g.dimLine} edges={g.dimLine} />
           </group>
@@ -461,7 +523,7 @@ export function Site({ mech }: { mech: RefObject<Group | null> }) {
         </group>
         {/* The second run closes to 56% of the first as s.dim runs 0 → 1 — the
           bullet's own number, staged as a caliper reading itself. */}
-        <group position={[DIM2_X, 0, 0]}>
+        <group ref={dim2} position={[DIM2_X, 0, 0]}>
           <group ref={dim2Line}>
             <Edged linesOnly geometry={g.dimLine} edges={g.dimLine} />
           </group>
@@ -497,7 +559,8 @@ export function Site({ mech }: { mech: RefObject<Group | null> }) {
             material={sheetMats?.title}
           />
         </group>
-        {/* Region guidelines, in the margin of the elevation beat iii reads. */}
+        {/* Region guidelines, standing beside the elevation beat iii reads —
+          clear of the page, which the elevation and its runs already fill. */}
         <group ref={note}>
           <Edged
             geometry={g.note}
@@ -529,7 +592,9 @@ export function Site({ mech }: { mech: RefObject<Group | null> }) {
             />
           ))}
         </group>
-        <Edged linesOnly geometry={g.traffic} edges={g.traffic} />
+        <group ref={traffic}>
+          <Edged linesOnly geometry={g.traffic} edges={g.traffic} />
+        </group>
         {/* The vault and its draws are the only new gold in the chapter besides
           the title block's revision line. */}
         <group ref={capital}>
