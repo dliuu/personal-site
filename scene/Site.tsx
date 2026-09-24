@@ -32,6 +32,8 @@ const WALL_H = FLOOR_H * FLOORS;
 const SLOTS = FACES * FLOORS;
 /** Cladding stands just off the folded wall so the two never z-fight. */
 const CLAD_OFF = 0.012;
+/** And the draw runs just off the cladding, clear of the column it follows. */
+const DRAW_OFF = 0.035;
 const BEAM_T = 0.024;
 /** The slab edge oversails the frame, as a floor plate does. */
 const BEAM_OVER = 0.06;
@@ -166,6 +168,7 @@ export function Site({ mech }: { mech: RefObject<Group | null> }) {
   const dim2Cap = useRef<Group>(null);
   const bayGroup = useRef<Group>(null);
   const capital = useRef<Group>(null);
+  const topOut = useRef<Group>(null);
   const drawMat = useMemo(
     () =>
       solid
@@ -183,7 +186,7 @@ export function Site({ mech }: { mech: RefObject<Group | null> }) {
     [solid],
   );
 
-  /* eslint-disable react-hooks/immutability -- r3f pattern: mutate the memoized gold material and the mech ref in useFrame */
+  /* eslint-disable react-hooks/immutability -- r3f pattern: mutate the memoized gold material and the part refs in useFrame */
   useFrame(() => {
     const active = plateState.instrument === "site";
     const beat = active ? plateState.beat : -1;
@@ -221,173 +224,188 @@ export function Site({ mech }: { mech: RefObject<Group | null> }) {
     if (drawMat)
       drawMat.emissiveIntensity =
         0.3 + 0.25 * (1 - Math.cos(2 * Math.PI * s.draw));
-    if (mech.current) mech.current.position.y = s.beam;
+    if (topOut.current) topOut.current.position.y = s.beam;
   });
   /* eslint-enable react-hooks/immutability */
 
   return (
     <group position={[0, -1.0, 0]}>
-      {/* The sheet the whole chapter is drawn on. */}
-      <Edged geometry={g.sheet} rotation={[-Math.PI / 2, 0, 0]} />
-      {/* Eight survey stakes: the team that set the lot out. */}
-      {Array.from({ length: STAKES }, (_, i) => {
-        const a = (i / STAKES) * Math.PI * 2;
-        return (
-          <Edged
-            key={i}
-            geometry={g.stake}
-            position={[Math.cos(a) * FOOT.w, 0.08, Math.sin(a) * FOOT.d]}
-          />
-        );
-      })}
-      <group ref={walls}>
-        {Array.from({ length: FACES }, (_, f) => {
-          const a = faceYaw(f);
-          const out = faceOut(f);
+      {/* The whole drawing hangs off the mech group, the way the globe and the
+          factory do: HeroObjects writes the plate yaw onto that group and
+          nothing else, so a part left outside it would never turn and the
+          beats' longitudes would be inert. */}
+      <group ref={mech}>
+        {/* The sheet the whole chapter is drawn on. */}
+        <Edged geometry={g.sheet} rotation={[-Math.PI / 2, 0, 0]} />
+        {/* Eight survey stakes: the team that set the lot out. */}
+        {Array.from({ length: STAKES }, (_, i) => {
+          const a = (i / STAKES) * Math.PI * 2;
           return (
-            <group
-              key={f}
-              // The hinge turns about the lot line, so the yaw has to apply
-              // after the tilt: in the default XYZ order the frame's
-              // rotation.x would swing every wall about world X and the short
-              // pair would never leave the sheet.
-              rotation-order="YXZ"
-              rotation-y={a}
-              position={[Math.sin(a) * out, 0, Math.cos(a) * out]}
-            >
-              {/* Flat on the sheet it lies outward along the group's +z, so
-                  rotation.x stands it up off the lot line. */}
-              <Edged
-                geometry={faceLong(f) ? g.wallLong : g.wallShort}
-                position={[0, 0, WALL_H / 2]}
-                rotation={[Math.PI / 2, 0, 0]}
-              />
-            </group>
+            <Edged
+              key={i}
+              geometry={g.stake}
+              position={[Math.cos(a) * FOOT.w, 0.08, Math.sin(a) * FOOT.d]}
+            />
           );
         })}
-      </group>
-      <group ref={frame}>
-        {[-1, 1].map((sx) =>
-          [-1, 0, 1].map((sz) => (
+        <group ref={walls}>
+          {Array.from({ length: FACES }, (_, f) => {
+            const a = faceYaw(f);
+            const out = faceOut(f);
+            return (
+              <group
+                key={f}
+                // The hinge turns about the lot line, so the yaw has to apply
+                // after the tilt: in the default XYZ order the frame's
+                // rotation.x would swing every wall about world X and the short
+                // pair would never leave the sheet.
+                rotation-order="YXZ"
+                rotation-y={a}
+                position={[Math.sin(a) * out, 0, Math.cos(a) * out]}
+              >
+                {/* Flat on the sheet it lies outward along the group's +z, so
+                  rotation.x stands it up off the lot line. */}
+                <Edged
+                  geometry={faceLong(f) ? g.wallLong : g.wallShort}
+                  position={[0, 0, WALL_H / 2]}
+                  rotation={[Math.PI / 2, 0, 0]}
+                />
+              </group>
+            );
+          })}
+        </group>
+        <group ref={frame}>
+          {[-1, 1].map((sx) =>
+            [-1, 0, 1].map((sz) => (
+              <Edged
+                key={`${sx}:${sz}`}
+                geometry={g.column}
+                position={[(sx * FOOT.w) / 2, WALL_H / 2, (sz * FOOT.d) / 2]}
+              />
+            )),
+          )}
+          <group ref={beams}>
+            {Array.from({ length: FLOORS }, (_, k) => (
+              <Edged
+                key={k}
+                geometry={g.beam}
+                position={[0, (k + 1) * FLOOR_H, 0]}
+              />
+            ))}
+          </group>
+        </group>
+        {/* Twenty-four panels, one Edged part each: an InstancedMesh would never
+          read the mode context, so it would draw solid in the engraved twin
+          too and cost this chapter its line work. */}
+        <group ref={cladding}>
+          {Array.from({ length: SLOTS }, (_, i) => (
             <Edged
-              key={`${sx}:${sz}`}
-              geometry={g.column}
-              position={[(sx * FOOT.w) / 2, WALL_H / 2, (sz * FOOT.d) / 2]}
-            />
-          )),
-        )}
-        <group ref={beams}>
-          {Array.from({ length: FLOORS }, (_, k) => (
-            <Edged
-              key={k}
-              geometry={g.beam}
-              position={[0, (k + 1) * FLOOR_H, 0]}
+              key={i}
+              geometry={
+                faceLong(Math.floor(i / FLOORS)) ? g.padLong : g.padShort
+              }
+              position={panelPos(i)}
+              rotation={[0, panelYaw(i), 0]}
+              material={hatch?.[tenantAt(i)]}
             />
           ))}
         </group>
-      </group>
-      {/* Twenty-four panels, one Edged part each: an InstancedMesh would never
-          read the mode context, so it would draw solid in the engraved twin
-          too and cost this chapter its line work. */}
-      <group ref={cladding}>
-        {Array.from({ length: SLOTS }, (_, i) => (
-          <Edged
-            key={i}
-            geometry={faceLong(Math.floor(i / FLOORS)) ? g.padLong : g.padShort}
-            position={panelPos(i)}
-            rotation={[0, panelYaw(i), 0]}
-            material={hatch?.[tenantAt(i)]}
-          />
-        ))}
-      </group>
-      {/* Dimension lines are drafting marks, not volumes: linesOnly, so they
+        {/* Dimension lines are drafting marks, not volumes: linesOnly, so they
           exist only in the engraved twin, the way a technical drawing's
           annotations always have been ink and never a solid. */}
-      <group position={[DIM1_X, 0, 0]}>
-        <group scale={[1, WALL_H, 1]}>
-          <Edged linesOnly geometry={g.dimLine} edges={g.dimLine} />
-        </group>
-        <Edged linesOnly geometry={g.dimTick} edges={g.dimTick} />
-        <Edged
-          linesOnly
-          geometry={g.dimTick}
-          edges={g.dimTick}
-          position={[0, WALL_H, 0]}
-        />
-        <Edged
-          linesOnly
-          geometry={g.dimArrow}
-          edges={g.dimArrow}
-          position={[0, WALL_H, 0]}
-        />
-        <Edged
-          linesOnly
-          geometry={g.dimArrow}
-          edges={g.dimArrow}
-          rotation={[0, 0, Math.PI]}
-        />
-      </group>
-      {/* The second run closes to 56% of the first as s.dim runs 0 → 1 — the
-          bullet's own number, staged as a caliper reading itself. */}
-      <group position={[DIM2_X, 0, 0]}>
-        <group ref={dim2Line}>
-          <Edged linesOnly geometry={g.dimLine} edges={g.dimLine} />
-        </group>
-        <Edged linesOnly geometry={g.dimTick} edges={g.dimTick} />
-        <group ref={dim2Cap}>
+        <group position={[DIM1_X, 0, 0]}>
+          <group scale={[1, WALL_H, 1]}>
+            <Edged linesOnly geometry={g.dimLine} edges={g.dimLine} />
+          </group>
           <Edged linesOnly geometry={g.dimTick} edges={g.dimTick} />
-          <Edged linesOnly geometry={g.dimArrow} edges={g.dimArrow} />
-        </group>
-        <Edged
-          linesOnly
-          geometry={g.dimArrow}
-          edges={g.dimArrow}
-          rotation={[0, 0, Math.PI]}
-        />
-      </group>
-      {/* The "56%" numeral is one more window onto the sheet texture. */}
-      <Edged
-        geometry={g.dimPlate}
-        position={[DIM2_X - 0.24, DIM_CLOSE / 2, 0]}
-        material={dimMat ?? undefined}
-      />
-      {/* Bays extend the frame in +X, the fleet the traffic curve scaled. */}
-      <group ref={bayGroup}>
-        {Array.from({ length: BAYS }, (_, i) => (
           <Edged
-            key={i}
-            geometry={g.column}
-            position={[bayX(i), WALL_H / 2, 0]}
+            linesOnly
+            geometry={g.dimTick}
+            edges={g.dimTick}
+            position={[0, WALL_H, 0]}
+          />
+          <Edged
+            linesOnly
+            geometry={g.dimArrow}
+            edges={g.dimArrow}
+            position={[0, WALL_H, 0]}
+          />
+          <Edged
+            linesOnly
+            geometry={g.dimArrow}
+            edges={g.dimArrow}
+            rotation={[0, 0, Math.PI]}
+          />
+        </group>
+        {/* The second run closes to 56% of the first as s.dim runs 0 → 1 — the
+          bullet's own number, staged as a caliper reading itself. */}
+        <group position={[DIM2_X, 0, 0]}>
+          <group ref={dim2Line}>
+            <Edged linesOnly geometry={g.dimLine} edges={g.dimLine} />
+          </group>
+          <Edged linesOnly geometry={g.dimTick} edges={g.dimTick} />
+          <group ref={dim2Cap}>
+            <Edged linesOnly geometry={g.dimTick} edges={g.dimTick} />
+            <Edged linesOnly geometry={g.dimArrow} edges={g.dimArrow} />
+          </group>
+          <Edged
+            linesOnly
+            geometry={g.dimArrow}
+            edges={g.dimArrow}
+            rotation={[0, 0, Math.PI]}
+          />
+        </group>
+        {/* The "56%" numeral is one more window onto the sheet texture. */}
+        <Edged
+          geometry={g.dimPlate}
+          position={[DIM2_X - 0.24, DIM_CLOSE / 2, 0]}
+          material={dimMat ?? undefined}
+        />
+        {/* Bays extend the frame in +X, the fleet the traffic curve scaled. */}
+        <group ref={bayGroup}>
+          {Array.from({ length: BAYS }, (_, i) => (
+            <Edged
+              key={i}
+              geometry={g.column}
+              position={[bayX(i), WALL_H / 2, 0]}
+              color={WCP_PALETTE.ink}
+            />
+          ))}
+        </group>
+        <Edged linesOnly geometry={g.traffic} edges={g.traffic} />
+        {/* The vault and its draws are the only new gold in the chapter besides
+          the title block's revision line. */}
+        <group ref={capital}>
+          <Edged
+            geometry={g.vault}
+            position={[0, -0.45, 0]}
+            color={WCP_PALETTE.accent}
+          />
+          {[-1, 1].map((sx) =>
+            [-1, 0, 1].map((sz) => (
+              <Edged
+                key={`${sx}:${sz}`}
+                geometry={g.drawLine}
+                // Outside the column, not inside it: a 0.008 rod on the
+                // column's own centreline is money nobody can see, and by
+                // beat iv the cladding has closed over the frame.
+                position={[
+                  sx * (FOOT.w / 2 + DRAW_OFF),
+                  WALL_H / 2,
+                  (sz * FOOT.d) / 2,
+                ]}
+                material={drawMat ?? undefined}
+              />
+            )),
+          )}
+        </group>
+        <group ref={topOut}>
+          <Edged
+            geometry={g.topOut}
+            position={[0, WALL_H, 0]}
             color={WCP_PALETTE.ink}
           />
-        ))}
-      </group>
-      <Edged linesOnly geometry={g.traffic} edges={g.traffic} />
-      {/* The vault and its draws are the only new gold in the chapter besides
-          the title block's revision line. */}
-      <group ref={capital}>
-        <Edged
-          geometry={g.vault}
-          position={[0, -0.45, 0]}
-          color={WCP_PALETTE.accent}
-        />
-        {[-1, 1].map((sx) =>
-          [-1, 0, 1].map((sz) => (
-            <Edged
-              key={`${sx}:${sz}`}
-              geometry={g.drawLine}
-              position={[(sx * FOOT.w) / 2, WALL_H / 2, (sz * FOOT.d) / 2]}
-              material={drawMat ?? undefined}
-            />
-          )),
-        )}
-      </group>
-      <group ref={mech}>
-        <Edged
-          geometry={g.topOut}
-          position={[0, WALL_H, 0]}
-          color={WCP_PALETTE.ink}
-        />
+        </group>
       </group>
     </group>
   );

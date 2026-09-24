@@ -95,7 +95,10 @@ const FIT: Record<InstrumentKind, number> = {
   balance: 1.75 / 1.5,
   network: 1.75 / 1.6,
   globe: 1.75 / 1.5,
-  site: 1.75 / 1.6,
+  // The drawing is the one instrument that is taller than it is wide: the
+  // sheet's corner is 1.64 out, but the frame stands 2.04 above it, and the
+  // plate camera frames a 1.05 sphere. Fitted to the height, not the width.
+  site: 1.75 / 2.3,
   quadrant: 1.75 / 1.45,
 };
 

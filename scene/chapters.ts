@@ -127,50 +127,52 @@ export const eisenBeats: PlateBeat[] = [
 
 /**
  * Washington Capital's plate: the drawing builds itself, one beat per bullet.
- * Longitudes put each anchor in front of the camera; beat i's 72° is a
- * near-plan view, deliberately not 90° — at true overhead a hinging wall only
- * foreshortens and reads as shrinking.
+ * The camera walks east in one direction, 120° then 60° then 60°, and every
+ * longitude is chosen for what it puts in the clear: the lot (i), the corner
+ * where two clad faces meet, which is the twelve the caption promises (ii),
+ * the dimension runs beside the elevation rather than behind it (iii), and the
+ * draws and the vault (iv). Beat i's 50° is a near-plan view, deliberately
+ * neither 90° nor the 72° this chapter was first drawn at: overhead, a hinging
+ * wall only foreshortens and reads as shrinking, but the camera holds its
+ * elevation once it arrives, so the same number decides what a wall that has
+ * *finished* hinging looks like — it keeps cos(lat) of its height, 0.31 at 72°
+ * and 0.64 at 50°. Every beat holds `full`: the drawing is 2.04 tall on a rig
+ * that frames a 1.05 sphere, so the beats differ by angle, not distance. No
+ * `at`: `Site` draws no callouts, and an anchored beat's docked caption is
+ * hidden above 721px, so these four use the dock.
  */
 export const wcpBeats: PlateBeat[] = [
   {
     caption:
       "Led an 8-engineer team to build and deploy a stateless backend for FISH, a white-label lending platform; institutional onboarding contributed $1.3M ARR.",
     sub: "The slab",
-    at: "stakes",
     lon: -90,
-    lat: 72,
+    lat: 50,
     zoom: "full",
-    side: "right",
   },
   {
     caption:
       "A multi-client backend for DSCR, hard-money, refinance and bridge loans, with live admin customization for 12+ lending institutions.",
     sub: "One frame, twelve faces",
-    at: "frame",
     lon: 30,
     lat: 18,
-    zoom: "near",
-    side: "left",
+    zoom: "full",
   },
   {
     caption:
       "Configurable loan calculations and guidelines across regions; the fleet scaled on traffic data, response times 56% faster year over year.",
     sub: "56%",
-    at: "dimension",
-    lon: 0,
+    lon: 90,
     lat: 4,
-    zoom: "mid",
-    side: "left",
+    zoom: "full",
   },
   {
     caption:
       "Live pipelines ingesting payment, disbursement and lending data into production Postgres.",
     sub: "The draw schedule",
-    at: "vault",
     lon: 150,
-    lat: 30,
+    lat: 8,
     zoom: "full",
-    side: "right",
   },
 ];
 
