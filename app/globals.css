@@ -454,6 +454,29 @@ body:has(.instruments) {
   }
 }
 
+.instruments-greeting {
+  position: sticky;
+  /* Low enough to sit under him rather than across his chest. */
+  top: 76vh;
+  margin: 0 auto;
+  width: min(32ch, 84vw);
+  padding: 16px 22px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--paper, #efe7da) 84%, transparent);
+  backdrop-filter: blur(6px);
+  font-family: var(--font-fell), Georgia, serif;
+  font-size: clamp(19px, 2.1vw, 26px);
+  line-height: 1.35;
+  text-align: center;
+  color: var(--ink);
+  transition: opacity 160ms linear;
+}
+@media (max-width: 720px) {
+  .instruments-greeting {
+    top: 70vh;
+  }
+}
+
 .instruments-room-controls {
   display: flex;
   gap: 8px;

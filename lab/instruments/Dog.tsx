@@ -5,14 +5,14 @@ import { useFrame } from "@react-three/fiber";
 import { Group, Mesh, MeshStandardMaterial, Vector3 } from "three";
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { breathe } from "@/lib/ambient";
+import { pant } from "@/lib/ambient";
 import { frameLerp } from "@/lib/drawIn";
 import { lerp } from "@/lib/progress";
 import { useLabStore } from "@/store/useLabStore";
 import { useRoomStore } from "./useRoomStore";
 
 /**
- * The dog sitting on the rug: a rigid mesh, so it breathes and stirs rather
+ * The dog sitting on the rug: a rigid mesh, so it pants and stirs rather
  * than moving its legs. Clicking makes it perk up and turn toward you for a
  * few seconds before settling again.
  */
@@ -75,9 +75,20 @@ export function Dog({
     const a = awake.current;
     // Breathing is a gentle swell of the whole body; waking lifts it and
     // turns it toward whoever clicked.
-    const b = reducedMotion ? 1 : breathe(t);
-    r.scale.set(scale * b, scale * (1 + (b - 1) * 0.7 + a * 0.04), scale * b);
-    r.position.set(position[0], position[1] + a * 0.02, position[2]);
+    // Panting: a quick shallow swell through the chest, the body dipping a
+    // little against it. Clicking lifts him and turns him to whoever did it.
+    const q = reducedMotion ? 0 : pant(t);
+    const swell = 1 + q * 0.02;
+    r.scale.set(
+      scale * swell,
+      scale * (1 + q * 0.012 + a * 0.04),
+      scale * swell,
+    );
+    r.position.set(
+      position[0],
+      position[1] + a * 0.02 - q * 0.005 * scale,
+      position[2],
+    );
     const look = new Vector3().subVectors(camera.position, r.position);
     r.rotation.y = REST_YAW + a * (Math.atan2(look.x, look.z) - REST_YAW) * 0.6;
   });

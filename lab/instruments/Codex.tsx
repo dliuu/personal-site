@@ -5,7 +5,7 @@ import { useSectionProgress } from "@/hooks/useSectionProgress";
 import { useSectionsStore } from "@/store/useSectionsStore";
 import { useRoomStore } from "./useRoomStore";
 import { beatAt } from "@/lib/beats";
-import { overlayOpacity } from "@/lib/introTimeline";
+import { greetOpacity, overlayOpacity } from "@/lib/introTimeline";
 import { chapters, sections, type Chapter } from "./chapters";
 import { links, profile, roles, type Role } from "./content";
 import { fell, script, ui } from "./fonts";
@@ -207,6 +207,24 @@ function IntroOverlay({ sectionIndex }: { sectionIndex: number }) {
   );
 }
 
+/** What he says once he has turned round to face you. */
+function IntroGreeting({ sectionIndex }: { sectionIndex: number }) {
+  const opacity = useSectionsStore((s) =>
+    s.active === sectionIndex
+      ? Math.round(greetOpacity(s.progress) * 20) / 20
+      : 0,
+  );
+  return (
+    <p
+      className="instruments-greeting"
+      style={{ opacity }}
+      aria-hidden={opacity === 0}
+    >
+      Hi, I&rsquo;m Danny. Welcome to my portfolio.
+    </p>
+  );
+}
+
 export function Codex() {
   const els = useRef<(HTMLElement | null)[]>([]);
   const getEls = useCallback(
@@ -259,6 +277,7 @@ export function Codex() {
                 }}
               >
                 <IntroOverlay sectionIndex={i} />
+                <IntroGreeting sectionIndex={i} />
               </section>
             );
           }

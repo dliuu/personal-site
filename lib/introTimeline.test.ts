@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   cameraU,
   greetBob,
+  greetOpacity,
   idleSway,
   isTyping,
   overlayOpacity,
@@ -20,6 +21,11 @@ describe("intro timeline", () => {
   it("turns back before the camera reaches the screen", () => {
     expect(swivelAmount(0.7)).toBe(0);
     expect(swivelAmount(1)).toBe(0);
+  });
+  it("shows the greeting line only while he is turned round", () => {
+    expect(greetOpacity(0.2)).toBe(0);
+    expect(greetOpacity(0.45)).toBe(1);
+    expect(greetOpacity(0.7)).toBe(0);
   });
   it("bobs only while the greeting is held", () => {
     expect(greetBob(0, 1).lift).toBe(0);

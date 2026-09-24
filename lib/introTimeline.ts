@@ -31,6 +31,10 @@ export function greetBob(
     tilt: a * 0.05 * Math.sin(time * 2.3 + 0.7),
   };
 }
+/** The greeting line fades in as he comes round and out as he turns back. */
+export function greetOpacity(p: number): number {
+  return smooth(0.28, 0.38, p) * (1 - smooth(0.52, 0.62, p));
+}
 /** Idle breathing sway while he is working, in radians. */
 export function idleSway(time: number): number {
   return 0.02 * Math.sin(time * 0.6);

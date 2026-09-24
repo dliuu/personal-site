@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   breathe,
+  pant,
   flicker,
   keyPress,
   parallax,
@@ -41,6 +42,14 @@ describe("ambient motions", () => {
   it("halves parallax on touch", () => {
     expect(parallax(1, 0, false)[0]).toBeCloseTo(0.03, 6);
     expect(parallax(1, 0, true)[0]).toBeCloseTo(0.015, 6);
+  });
+  it("pants quickly between 0 and 1", () => {
+    for (const t of [0, 0.1, 0.33, 1.7, 5]) {
+      expect(pant(t)).toBeGreaterThanOrEqual(0);
+      expect(pant(t)).toBeLessThanOrEqual(1);
+    }
+    // Faster than breathing: it should complete a cycle well inside a second.
+    expect(pant(0)).not.toBeCloseTo(pant(0.2), 2);
   });
   it("flickers within 1.5 %", () => {
     for (const t of [0, 0.01, 0.37, 2])

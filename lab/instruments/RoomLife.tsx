@@ -504,7 +504,7 @@ export function RoomLife({
             position={[-0.5, 0.95, -0.33]}
             rotation={[0.08, 0, 0.1]}
           />
-          <Dog position={[0.55, 0, 0.95]} />
+          <Dog position={[0.72, 0, 0.52]} />
         </>
       ) : null}
       {stage >= 1 ? (

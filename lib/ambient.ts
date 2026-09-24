@@ -43,3 +43,11 @@ export function parallax(
 export function flicker(t: number): number {
   return 1 + 0.015 * (Math.sin(t * 50) * 0.6 + Math.sin(t * 37.3) * 0.4);
 }
+/** A small dog panting: quick shallow breaths, about two and a half a second. */
+export function pant(t: number): number {
+  const u = (t * 2.5) % 1;
+  // Sharp in, slower out, the way a breath actually moves.
+  return u < 0.4
+    ? Math.sin((u / 0.4) * Math.PI * 0.5)
+    : Math.cos(((u - 0.4) / 0.6) * Math.PI * 0.5);
+}
