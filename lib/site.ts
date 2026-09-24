@@ -35,7 +35,7 @@ export type Stage = {
 
 /** Which institution clads slot `i`; twelve cycle over the twenty-four slots. */
 export function tenantAt(slot: number): number {
-  return ((slot % TENANTS) + TENANTS) % TENANTS;
+  return slot % TENANTS;
 }
 
 /**
@@ -75,7 +75,8 @@ export function stage(beat: number, t: number): Stage {
     tenants: Math.round(clad * TENANTS),
     bays: beat === 2 ? bayCount(u) : beat > 2 ? BAYS : 1,
     dim,
-    // Three passes down the columns over the beat; the fract keeps it seamless.
+    // The phase drives a repeating dash pattern down the columns; the reset at
+    // each pass boundary is invisible in the render.
     draw: beat === 3 ? (u * 3) % 1 : 0,
     beam: seat * BEAM_LIFT,
   };

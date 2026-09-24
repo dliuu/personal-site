@@ -66,15 +66,25 @@ describe("beat iii", () => {
 });
 
 describe("beat iv", () => {
-  it("wraps the draw phase without a jump at the seam", () => {
-    const a = stage(3, 0.499).draw;
-    const b = stage(3, 0.501).draw;
-    expect(Math.abs(b - a)).toBeLessThan(0.5);
-    for (let i = 0; i <= 20; i++) {
-      const d = stage(3, i / 20).draw;
+  it("keeps the draw phase in [0, 1) across the beat", () => {
+    for (let i = 0; i <= 300; i++) {
+      const d = stage(3, i / 300).draw;
       expect(d).toBeGreaterThanOrEqual(0);
       expect(d).toBeLessThan(1);
     }
+  });
+  it("runs exactly three passes down the columns, resetting at each", () => {
+    // The phase drives a repeating pattern: it climbs within a pass and drops
+    // back to 0 at the next, so three drops means three passes.
+    let drops = 0;
+    let prev = stage(3, 0).draw;
+    for (let i = 1; i <= 3000; i++) {
+      const d = stage(3, i / 3000).draw;
+      if (d < prev) drops++;
+      else expect(d).toBeGreaterThan(prev);
+      prev = d;
+    }
+    expect(drops).toBe(3);
   });
   it("drops the topping-out beam into its seat by the end", () => {
     expect(stage(3, 0)).toHaveProperty("beam");
