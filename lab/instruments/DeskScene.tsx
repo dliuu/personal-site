@@ -39,15 +39,17 @@ import { plateState } from "./plateState";
 import { createRoomAudio, type RoomAudio } from "./roomAudio";
 import { RoomLife } from "./RoomLife";
 import { RoomSet, useThing } from "./RoomSet";
-import { gobo, roomFonts, wood } from "./roomTextures";
+import { gobo, roomFonts } from "./roomTextures";
 import { makeScreen } from "./screenTexture";
 import { useRoomStore } from "./useRoomStore";
 
 // Metres. The desk's front edge is at z = 0, the man sits at +z facing −z,
 // the monitor faces him (+z), the camera comes from his side.
-const SCREEN_W = 0.585;
-const SCREEN_H = 0.33;
-const SCREEN_C = new Vector3(0, 1.05, -0.44);
+// The centre monitor of the baked workstation (see the props manifest): the
+// real-time picture sits a centimetre in front of its panel.
+const SCREEN_W = 0.66;
+const SCREEN_H = 0.4;
+const SCREEN_C = new Vector3(0.115, 1.24, -0.46);
 const EISEN_PAPER =
   chapters.find((c) => c.id === "eisen")?.palette.paper ?? "#14161c";
 const INTRO_CHAPTER = chapters.findIndex((c) => c.scene === "desk");
@@ -107,17 +109,9 @@ export function DeskScene() {
 
   const screen = useMemo(() => makeScreen(), []);
   const goboTex = useMemo(() => gobo(), []);
-  const woodTex = useMemo(() => (stage >= 1 ? wood() : null), [stage]);
   const g = useMemo(
     () => ({
-      deskTop: new BoxGeometry(1.7, 0.035, 0.75),
-      deskLeg: new BoxGeometry(0.05, 0.72, 0.7),
-      panel: new BoxGeometry(0.63, 0.37, 0.03),
       screen: new PlaneGeometry(SCREEN_W, SCREEN_H),
-      stem: new BoxGeometry(0.05, 0.16, 0.04),
-      foot: new BoxGeometry(0.28, 0.015, 0.16),
-      keyboard: new BoxGeometry(0.44, 0.012, 0.15),
-      mouse: new BoxGeometry(0.06, 0.025, 0.1),
       mug: new CylinderGeometry(0.045, 0.04, 0.1, 16),
       seat: new BoxGeometry(0.46, 0.06, 0.46),
       back: new BoxGeometry(0.44, 0.5, 0.05),
@@ -132,13 +126,6 @@ export function DeskScene() {
   );
   const m = useMemo(
     () => ({
-      wood: woodTex
-        ? new MeshStandardMaterial({
-            map: woodTex,
-            roughness: 0.6,
-            color: "#e0c9a6",
-          })
-        : mat("#b89b74", 0.6),
       dark: mat("#2a2724", 0.5, 0.2),
       metal: mat("#8c8c94", 0.35, 0.8),
       fabric: mat("#2a2b30", 0.95),
@@ -152,7 +139,7 @@ export function DeskScene() {
       // Unlit, so the room's lights never glint off the picture.
       screen: new MeshBasicMaterial({ map: screen.texture }),
     }),
-    [screen.texture, woodTex],
+    [screen.texture],
   );
 
   // The camera path, per aspect: rest, stood, over the desk, on the screen.
@@ -166,13 +153,13 @@ export function DeskScene() {
       ? [
           { position: [-1.1, 1.8, 3.8], target: [0.2, 0.9, 0.1] },
           { position: [-1.5, 1.7, 4.2], target: [0.4, 1.0, 0.3] },
-          { position: [-0.3, 1.4, 1.2], target: [0, 1.05, -0.4] },
+          { position: [-0.3, 1.55, 1.2], target: [0.115, 1.24, -0.46] },
           onScreen,
         ]
       : [
           { position: [-1.6, 1.5, 2.6], target: [0.1, 0.95, 0.2] },
           { position: [-2.1, 1.45, 3.1], target: [0.35, 1.0, 0.3] },
-          { position: [-0.35, 1.35, 0.9], target: [0, 1.05, -0.4] },
+          { position: [-0.35, 1.5, 0.9], target: [0.115, 1.24, -0.46] },
           onScreen,
         ];
     return buildCurves(keys);
@@ -368,73 +355,18 @@ export function DeskScene() {
         intensity={1.2}
         distance={2.5}
         decay={2}
-        position={[0, 1.05, -0.2]}
+        position={[0.115, 1.25, -0.35]}
       />
 
       <BakedRoom />
       <RoomSet stage={stage} fonts={fonts} />
       <RoomLife stage={stage} typing={typing} lampLevel={lampLevel} />
 
-      {/* Desk and what sits on it */}
-      <mesh
-        geometry={g.deskTop}
-        visible={!baked}
-        material={m.wood}
-        position={[0, 0.735, -0.36]}
-        castShadow
-        receiveShadow
-      />
-      <mesh
-        geometry={g.deskLeg}
-        visible={!baked}
-        material={m.wood}
-        position={[-0.8, 0.36, -0.36]}
-        castShadow
-      />
-      <mesh
-        geometry={g.deskLeg}
-        visible={!baked}
-        material={m.wood}
-        position={[0.8, 0.36, -0.36]}
-        castShadow
-      />
-      <mesh
-        geometry={g.foot}
-        visible={!baked}
-        material={m.dark}
-        position={[0, 0.76, -0.5]}
-      />
-      <mesh
-        geometry={g.stem}
-        visible={!baked}
-        material={m.dark}
-        position={[0, 0.84, -0.5]}
-      />
-      <mesh
-        geometry={g.panel}
-        visible={!baked}
-        material={m.dark}
-        position={[0, 1.05, -0.46]}
-        castShadow
-      />
+      {/* The desk is baked (the workstation in the props manifest); only what sits on it is here */}
       <mesh
         geometry={g.screen}
         material={m.screen}
         position={[SCREEN_C.x, SCREEN_C.y, SCREEN_C.z]}
-      />
-      <mesh
-        geometry={g.keyboard}
-        visible={!baked}
-        material={m.dark}
-        position={[0, 0.759, -0.15]}
-        castShadow
-      />
-      <mesh
-        geometry={g.mouse}
-        visible={!baked}
-        material={m.dark}
-        position={[0.32, 0.765, -0.15]}
-        castShadow
       />
       <mesh
         geometry={g.mug}
