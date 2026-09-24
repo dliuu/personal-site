@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Render each chapter of a lab route to PNGs with headless Chromium + software WebGL.
-// Usage: node scripts/shots.mjs [--route /lab/instruments] [--url http://localhost:3000] [--motion] [--full]
+// Render each chapter of the site to PNGs with headless Chromium + software WebGL.
+// Usage: node scripts/shots.mjs [--route /] [--url http://localhost:3000] [--motion] [--full]
 import { chromium } from "playwright";
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
@@ -14,7 +14,7 @@ const opt = (name, fallback) => {
 };
 const flag = (name) => args.includes(`--${name}`);
 
-const route = opt("route", "/lab/instruments");
+const route = opt("route", "/");
 const base = opt("url", "http://localhost:3000").replace(/\/$/, "");
 const motion = flag("motion");
 const full = flag("full");

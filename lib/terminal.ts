@@ -5,7 +5,7 @@ import { smooth } from "./beats";
  * What a worker's screen shows and when. Pure: the task templates, the log
  * lines each one prints, how many lines are printed at a cycle fraction, how
  * far the window has scrolled, and the atlas layout the painter and shader
- * share. The canvas painter (lab/instruments/terminalAtlas.ts) draws it.
+ * share. The canvas painter (scene/terminalAtlas.ts) draws it.
  */
 
 export type Kind = "DEV" | "TEST" | "FEAT";
