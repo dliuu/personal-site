@@ -29,7 +29,6 @@ import { keyPress, phonePulse, twinkle } from "@/lib/ambient";
 import { lerp } from "@/lib/progress";
 import { frameLerp } from "@/lib/drawIn";
 import { useLabStore } from "@/store/useLabStore";
-import { Dog } from "./Dog";
 import { useThing } from "./RoomSet";
 import { rng } from "@/lib/roomTextures";
 import { loadGarden, nature, sprite } from "./roomTextures";
@@ -320,6 +319,8 @@ export function RoomLife({
   const toggleCurtains = useRoomStore((s) => s.toggleCurtains);
   const toggleSound = useRoomStore((s) => s.toggleSound);
   const puff = useRoomStore((s) => s.puff);
+  // The baked workstation brings its own keyboard; the pressing keys were the built one's.
+  const baked = useRoomStore((s) => s.baked);
   const curtainsThing = useThing(
     "the curtains",
     "click to draw or open",
@@ -504,7 +505,6 @@ export function RoomLife({
             position={[-0.5, 0.95, -0.33]}
             rotation={[0.08, 0, 0.1]}
           />
-          <Dog position={[0.72, 0, 0.52]} />
         </>
       ) : null}
       {stage >= 1 ? (
@@ -512,6 +512,7 @@ export function RoomLife({
           <instancedMesh
             ref={keys}
             args={[keyGeom, keyMat, KEYS]}
+            visible={!baked}
             castShadow
             frustumCulled={false}
           />

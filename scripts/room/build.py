@@ -272,29 +272,19 @@ box("rug", (2.8, 0.012, 2.0), (0.2, 0.006, 0.55), M["linen"], uv_scale=0.5)
 box("bench", (1.2, 0.05, 0.35), (1.4, 0.42, -0.95), M["oak"])
 box("benchLegL", (0.04, 0.4, 0.3), (0.85, 0.2, -0.95), M["oak"])
 box("benchLegR", (0.04, 0.4, 0.3), (1.95, 0.2, -0.95), M["oak"])
-box("deskTop", (1.7, 0.035, 0.75), (0, 0.735, -0.36), M["oak"])
-box("deskLegL", (0.05, 0.72, 0.7), (-0.8, 0.36, -0.36), M["oak"])
-box("deskLegR", (0.05, 0.72, 0.7), (0.8, 0.36, -0.36), M["oak"])
+# The desk is the triple-monitor workstation from the manifest: a slab with
+# its monitors, keyboard, mouse and headphones on it, but no legs of its own.
+# Its slab is not a rectangle: ray-cast from below at this placement, its
+# outline is a skewed quad with corners near (-0.45, -0.82) back left,
+# (0.82, -0.74) back right, (0.62, 0.20) front right and (-0.61, 0.09) front
+# left, underside at y = 0.64. Four square oak legs stand under those
+# corners, set in about 7 cm from the edges and reaching 1.5 cm up into the
+# slab so each joint is closed. Nothing else: a rail read as a second top.
+for name, x, z in (("BL", -0.39, -0.74), ("BR", 0.74, -0.68), ("FR", 0.55, 0.1), ("FL", -0.52, 0.02)):
+    box(f"deskLeg{name}", (0.06, 0.655, 0.06), (x, 0.3275, z), M["oak"], bevel_w=0.004)
 # The right wall is a grid of shelf units from the manifest; no door.
 # The seated figure arrives with its own chair (assets/room/props/dev_figure).
 # The lamp comes from assets/room/props (see the manifest).
-# The main monitor: a thin bevelled panel on an aluminium stem and foot; the
-# screen itself stays a real-time plane 5 mm in front of the panel face.
-box("monitorPanel", (0.63, 0.37, 0.018), (0, 1.05, -0.455), M["plastic"], bevel_w=0.004)
-box("monitorBack", (0.3, 0.2, 0.02), (0, 1.05, -0.474), M["alu"], bevel_w=0.004)
-box("monitorStem", (0.04, 0.2, 0.03), (0, 0.86, -0.48), M["alu"], bevel_w=0.006)
-box("monitorFoot", (0.26, 0.01, 0.16), (0, 0.755, -0.5), M["alu"], bevel_w=0.004)
-# A second, smaller monitor turned toward the man, switched off.
-box("monitor2Panel", (0.5, 0.3, 0.016), (-0.55, 0.9, -0.55), M["plastic"], rot_y=0.35, bevel_w=0.004)
-box("monitor2Stem", (0.035, 0.12, 0.03), (-0.55, 0.78, -0.57), M["alu"], rot_y=0.35, bevel_w=0.005)
-box("monitor2Foot", (0.2, 0.01, 0.13), (-0.55, 0.755, -0.58), M["alu"], rot_y=0.35, bevel_w=0.004)
-# Keyboard base (the keys are real time so they can press) and a rounded mouse.
-box("keyboardBase", (0.44, 0.014, 0.15), (0, 0.757, -0.15), M["alu"], bevel_w=0.004)
-box("mouse", (0.062, 0.032, 0.11), (0.32, 0.766, -0.15), M["plastic"], bevel_w=0.012)
-# Headphones hung on the monitor's corner: a band and two leather cups.
-torus("headBand", 0.08, 0.009, (0.34, 1.2, -0.42), M["plastic"], rot=(math.pi / 2, -0.2, 0))
-cyl("cupL", 0.036, 0.036, 0.03, (0.265, 1.2, -0.42), M["leather"], segments=24, rot=(0, math.pi / 2, 0), bevel_w=0.006)
-cyl("cupR", 0.036, 0.036, 0.03, (0.415, 1.2, -0.42), M["leather"], segments=24, rot=(0, math.pi / 2, 0), bevel_w=0.006)
 cyl("cushion", 0.28, 0.3, 0.12, (1.75, 0.06, 0.25), M["terracotta"], segments=24, uv_scale=0.5)
 cyl("standTop", 0.16, 0.16, 0.02, (-1.9, 0.5, 0.6), M["oak"], segments=20)
 for i in range(3):
@@ -434,11 +424,11 @@ mon_data = bpy.data.lights.new("monitor", "AREA")
 mon_data.energy = 5
 mon_data.color = (0.62, 0.76, 1.0)
 mon_data.shape = "RECTANGLE"
-mon_data.size = 0.58
-mon_data.size_y = 0.33
+mon_data.size = 0.66
+mon_data.size_y = 0.4
 mon = bpy.data.objects.new("monitor", mon_data)
 scene.collection.objects.link(mon)
-mon.location = V(0, 1.05, -0.43)
+mon.location = V(0.115, 1.24, -0.48)
 mon.rotation_euler = (-math.pi / 2, 0, 0)
 
 for i in range(6):

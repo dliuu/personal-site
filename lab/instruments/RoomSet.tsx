@@ -33,10 +33,11 @@ const BOOKS = [
   ["Designing Design", "#3a3128"],
 ] as const;
 const NOTES = [
-  ["ship the globe by friday", "#c9b04a", [0.345, 1.16, -0.44]],
-  ["call mom", "#c98a96", [0.345, 1.06, -0.44]],
-  ["water the monstera", "#8fb07a", [-0.345, 1.15, -0.44]],
-  ["48 locales → get the real list", "#7fa6c4", [-0.345, 1.05, -0.44]],
+  // Stuck low on the workstation's two side monitors.
+  ["ship the globe by friday", "#c9b04a", [0.63, 1.13, -0.45]],
+  ["call mom", "#c98a96", [0.63, 1.04, -0.45]],
+  ["water the monstera", "#8fb07a", [-0.37, 1.13, -0.45]],
+  ["48 locales → get the real list", "#7fa6c4", [-0.37, 1.04, -0.45]],
 ] as const;
 
 /** Hover/click plumbing for an interactive thing in the room. */
@@ -547,11 +548,13 @@ export function RoomSet({
           </group>
           <mesh
             geometry={g.wrist}
+            visible={!baked}
             material={m.linen}
             position={[0, 0.762, -0.05]}
           />
           <mesh
             geometry={g.cable}
+            visible={!baked}
             material={m.black}
             position={[0.15, 0.755, -0.45]}
             rotation={[0, 0.9, Math.PI / 2]}

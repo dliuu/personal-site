@@ -19,9 +19,9 @@ run(
 run(
   `resize ${a} ${c} --width 512 --height 512 --pattern "{potted,dining,desk_lamp}*"`,
 );
-// The seated figure is the one prop you look straight at; keep it at 1k.
+// The workstation is the one prop you look straight at; keep it at 1k.
 run(
-  `resize ${c} ${c} --width 1024 --height 1024 --pattern "cute_office_chair*"`,
+  `resize ${c} ${c} --width 1024 --height 1024 --pattern "{cute_office_chair,triple_monitor}*"`,
 );
 run(`webp ${c} ${b}`);
 run(`draco ${b} ${out}`);
