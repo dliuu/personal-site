@@ -4,6 +4,7 @@ import {
   ATLAS,
   FLOOR_LABELS,
   hatchRect,
+  hatchStyle,
   paintDimensions,
   paintFloorLabels,
   paintHatches,
@@ -124,5 +125,25 @@ describe("hatches", () => {
     expect(calls.filter((c) => c === "stroke").length).toBeGreaterThanOrEqual(
       TENANTS,
     );
+  });
+  it("gives all twelve institutions a ruling no other one shares", () => {
+    const seen = new Set(
+      Array.from({ length: TENANTS }, (_, i) => {
+        const s = hatchStyle(i);
+        return `${s.angle.toFixed(6)}:${s.step}`;
+      }),
+    );
+    expect(seen.size).toBe(TENANTS);
+  });
+  it("separates same-angle twins by a spacing ratio that reads", () => {
+    for (let i = 0; i < TENANTS; i++)
+      for (let j = i + 1; j < TENANTS; j++) {
+        const a = hatchStyle(i);
+        const b = hatchStyle(j);
+        if (Math.abs(a.angle - b.angle) < 1e-9)
+          expect(
+            Math.max(a.step, b.step) / Math.min(a.step, b.step),
+          ).toBeGreaterThan(2);
+      }
   });
 });

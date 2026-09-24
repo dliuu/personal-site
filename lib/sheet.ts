@@ -132,10 +132,16 @@ export function paintFloorLabels(ctx: Ctx, ink: string): void {
   });
 }
 
+/** Institution `tenant`'s ruling: six angles, two spacings, no two alike. */
+export function hatchStyle(tenant: number): { angle: number; step: number } {
+  const i = tenant % TENANTS;
+  return { angle: (i % 6) * (Math.PI / 6), step: 6 + Math.floor(i / 6) * 7 };
+}
+
 /**
  * Twelve institutions, twelve hatch patterns — never twelve colours. The
  * chapter is a drawing and gold is reserved for capital flow, so the faces are
- * told apart by the ruling on them: angle, spacing, and whether they cross.
+ * told apart by the ruling on them: angle and spacing.
  */
 export function paintHatches(ctx: Ctx, ink: string): void {
   const { width: W, height: H } = ctx.canvas;
@@ -147,29 +153,25 @@ export function paintHatches(ctx: Ctx, ink: string): void {
     const y = r.y * H;
     const w = r.w * W;
     const h = r.h * H;
-    const angle = (i % 4) * (Math.PI / 4);
-    const step = 6 + (Math.floor(i / 4) % 3) * 5;
-    const cross = i % 3 === 2;
+    const { angle, step } = hatchStyle(i);
     ctx.save();
     ctx.beginPath();
     ctx.rect(x, y, w, h);
     ctx.clip();
     const span = Math.hypot(w, h);
-    for (const a of cross ? [angle, angle + Math.PI / 2] : [angle]) {
-      const dx = Math.cos(a);
-      const dy = Math.sin(a);
-      for (let d = -span; d <= span; d += step) {
-        ctx.beginPath();
-        ctx.moveTo(
-          x + w / 2 + dx * span - dy * d,
-          y + h / 2 + dy * span + dx * d,
-        );
-        ctx.lineTo(
-          x + w / 2 - dx * span - dy * d,
-          y + h / 2 - dy * span + dx * d,
-        );
-        ctx.stroke();
-      }
+    const dx = Math.cos(angle);
+    const dy = Math.sin(angle);
+    for (let d = -span; d <= span; d += step) {
+      ctx.beginPath();
+      ctx.moveTo(
+        x + w / 2 + dx * span - dy * d,
+        y + h / 2 + dy * span + dx * d,
+      );
+      ctx.lineTo(
+        x + w / 2 - dx * span - dy * d,
+        y + h / 2 - dy * span + dx * d,
+      );
+      ctx.stroke();
     }
     ctx.restore();
   }
