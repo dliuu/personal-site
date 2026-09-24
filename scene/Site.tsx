@@ -324,8 +324,10 @@ export function Site({ mech }: { mech: RefObject<Group | null> }) {
         0.3 + 0.25 * (1 - Math.cos(2 * Math.PI * s.draw));
     // The lettering inks with the beat it belongs to: the title block as the
     // plan lifts, a floor label as its floor is inked, the notes with beat iii
-    // and the numeral once its dimension run has closed onto 56%.
-    if (title.current) title.current.visible = s.hinge[0] > 0;
+    // and the numeral once its dimension run has closed onto 56%. The title
+    // block leaves at beat iv: its solid twin is culled from under the sheet,
+    // but the line twin would keep drawing an empty ruled rectangle there.
+    if (title.current) title.current.visible = s.hinge[0] > 0 && beat !== 3;
     // The labels are aimed at beat ii's camera, so they belong to beat ii:
     // held on, they stood across the elevation and (turned away) left four
     // empty rules behind them in the line twin.
