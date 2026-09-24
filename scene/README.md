@@ -48,21 +48,23 @@ line: a flat-on elevation with the two dimension runs standing clear beside it, 
 second closing onto 56% of the first, its numeral and the note block beside them, and
 structural bays marching off the lot as the fleet scales along an inked traffic curve.
 iv, the draw schedule: the camera drops below grade, where the lot plane no longer
-stands between it and the money, and gold draws run down the outside of the columns
+stands between it and the money, and gold draws travel as dashes down the rods
 into the vault under the slab while the topping-out beam drops into its seat. The
-draws travel: the rods map a full-height dash strip of the same canvas atlas with a
-repeating wrap, and `s.draw` scrolls it three passes down the beat — one pass is a
-whole number of dashes, so the reset at each pass boundary cannot be seen. Beat iii's
-furniture (both dimension runs, the bays, the traffic curve) is gated to the plate;
-in the chapter band the page is near edge-on, and full-height runs measuring a
-building that is not standing yet read as a mast through a smear. The sheet's
+travel reads only on the below-grade run; above the slab the rods are lost
+against the cladding hatch. The rods map a full-height dash strip of the same
+canvas atlas with a repeating wrap, and `s.draw` scrolls it three passes down the
+beat — one pass is a whole number of dashes, so the reset at each pass boundary
+cannot be seen. Beat iii's furniture (both dimension runs, the bays, the traffic
+curve) is gated to the plate; in the chapter band the page is a hatched smear
+with two stakes visible. The sheet's
 lettering — title block, floor labels, notes, the 56% numeral — is aimed at the beat it
 belongs to rather than made two-sided, because a plane read from behind reads
-mirrored; the notes and the numeral are sized to be read at beat iii's distance, which
-stands them beside the page rather than in a margin of it, the elevation and its runs
-having already filled the paper inside the border. The whole drawing hangs off the
-mech group, so the plate yaw turns it (`scene/Site.tsx`, staging in `lib/site.ts`, the
-sheet's painters in `lib/sheet.ts` → `scene/sheetAtlas.ts`).
+mirrored; the notes and the numeral are sized to be read at beat iii's distance,
+which stands them beside the page rather than in a margin of it, the elevation
+and its runs having already filled the paper inside the border. The whole
+drawing hangs off the mech group, so the plate yaw turns it (`scene/Site.tsx`,
+staging in `lib/site.ts`, the sheet's painters in `lib/sheet.ts` →
+`scene/sheetAtlas.ts`).
 
 Known limit, phone width: the plate rig sets the camera distance from the instrument's
 radius alone and ignores aspect (`scene/HeroObjects.tsx:406`), so the visible

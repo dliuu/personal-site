@@ -174,10 +174,10 @@ export const wcpBeats: PlateBeat[] = [
     // Below grade, where the lot plane no longer stands between the camera and
     // the vault. The eye does not cross the sheet at 0°: the orbit target sits
     // 0.53 above the lot, so it passes the paper at about −9.4°, a quarter of
-    // the way into the beat, and the vault, the sub-grade run of the draws and
-    // the first of the three draw pulses are a reveal rather than an opening
-    // image. −12° clears the sheet by 2.6°; the cull itself cannot pop, since
-    // a plane turns over exactly when its projected area is zero.
+    // the way into the beat, and the crossing hides the sub-grade run of the
+    // draws rather than opening it as an image. −12° clears the sheet by 2.6°;
+    // the cull itself cannot pop, since a plane turns over exactly when its
+    // projected area is zero.
     lat: -12,
     zoom: "full",
   },
