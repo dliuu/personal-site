@@ -5,8 +5,10 @@ import { Stats } from "@react-three/drei";
 import { Leva } from "leva";
 import { Suspense, useEffect, useState, type ReactNode } from "react";
 import { pickInitialTier } from "@/lib/quality";
+import { stillMode } from "@/lib/still";
 import { useLabStore } from "@/store/useLabStore";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { Stepper } from "./Stepper";
 import { WebGLFallback } from "./WebGLFallback";
 
 export type StageProps = {
@@ -43,6 +45,8 @@ export function Stage({
   const tier = useLabStore((s) => s.tier);
   const setTier = useLabStore((s) => s.setTier);
   const [webgl, setWebgl] = useState<boolean | null>(null);
+  // The scene is client only, so the URL is readable on first render.
+  const [still] = useState(stillMode);
   useReducedMotion();
 
   useEffect(() => {
@@ -65,11 +69,11 @@ export function Stage({
 
   return (
     <>
-      <Leva hidden={isProd} collapsed />
+      <Leva hidden={isProd || still} collapsed />
       <Canvas
         shadows={shadows && high}
         dpr={high ? [1, 2] : 1}
-        frameloop={frameloop}
+        frameloop={still ? "never" : frameloop}
         camera={{ position: cameraPosition, fov: 45 }}
         style={{ position: "fixed", inset: 0 }}
       >
@@ -78,7 +82,8 @@ export function Stage({
           <fog attach="fog" args={[fog.color, fog.near, fog.far]} />
         ) : null}
         <Suspense fallback={null}>{children}</Suspense>
-        {isProd ? null : <Stats className="stats-corner" />}
+        {still ? <Stepper /> : null}
+        {isProd || still ? null : <Stats className="stats-corner" />}
       </Canvas>
     </>
   );

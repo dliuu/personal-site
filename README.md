@@ -47,16 +47,42 @@ linked before the app existed.
 
 ## Screenshots
 
-Render each chapter to PNGs with headless Chromium (software WebGL), so visual
+Render each chapter to PNGs with headless Chromium on the real GPU, so visual
 changes can be checked without a browser session:
 
 ```bash
 npm run shots:install        # once: downloads Chromium for Playwright
 npm run dev                  # in another terminal
-npm run shots                # / at 1440×900, 1280×720, 390×844
+npm run shots                # / at 1440×900, 1280×720, 390×844 (~30 s)
+npm run shots -- --section intro-plate   # one section, while iterating on it
 npm run shots -- --motion --full
 ```
 
 Output lands in `shots/<route>/<w>x<h>/NN-<section>.png` (gitignored). Plate sections
 (`data-kind="plate"`) are captured once per beat (60 % through it) as `NN-<section>-b0…bN.png`, plus `-in` and `-out` for the entry and exit.
 Reduced motion is on by default for deterministic frames; `--motion` restores idle animation.
+
+Each plate also gets `NN-<section>-sheet.png`: its frames as one labelled grid,
+so a beat arc can be read as a whole instead of as a folder of stills.
+
+**Frames are stepped, not waited for.** The script loads the page with `?still`,
+which puts the frameloop under its control (`lib/still.ts`,
+`components/Stepper.tsx`): each capture advances the clock by exactly
+`--settle` frames (60 by default) of 1/60 s and renders, so the same commit
+gives byte-identical PNGs on any machine, and the Leva and stats panels stay
+out of frame. `--live` gives that up for the old wall-clock waits.
+
+Chromium reaches the GPU through ANGLE's platform default — Metal on macOS,
+about 2 ms a frame against SwiftShader's 300, and the same renderer the site is
+looked at in. `--swiftshader` falls back to software for a machine without a
+usable GPU.
+
+`window.__still` also answers questions about the frame on screen, which is
+otherwise guesswork from a PNG:
+
+- `window.__still.pick(x, y)` — what is under this pixel: every visible mesh the
+  ray hits, nearest first, with its geometry, material and world hit point.
+- `window.__still.boxes()` — the world bounding box of every visible mesh, for
+  finding things that intersect each other or float.
+
+Both are how the desk lamp was found standing inside the second monitor.
