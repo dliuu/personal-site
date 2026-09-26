@@ -6,8 +6,9 @@ Build, bake and export the intro room.
 Rebuilds the static shell and furniture of the intro room from the same
 coordinates the code uses (three.js: y up, +z toward the camera; here
 Blender: z up, so three (x, y, z) -> Blender (x, -z, y)), dresses it in CC0
-PBR materials from Poly Haven, unwraps a second UV channel, bakes sun + sky
-lighting with Cycles into one lightmap atlas, and exports a Draco GLB with
+PBR materials from Poly Haven, unwraps a second UV channel, bakes a sunset
+(a low warm sun, a warm sky, the desk lamp and monitor on) with Cycles into
+one lightmap atlas, and exports a Draco GLB with
 the lightmap carried as the glTF occlusion texture (so TEXCOORD_1 survives
 the export; the runtime moves it to lightMap). Everything that moves or
 toggles stays real time in the app: the screen, lamp, plants, curtains, cat.
@@ -364,15 +365,15 @@ wn = world.node_tree
 env = wn.nodes.new("ShaderNodeTexEnvironment")
 env.image = load_image(hdri_path)
 bg = wn.nodes["Background"]
-# Pass 1 is night: the sky is almost nothing, deep and blue.
-bg.inputs["Strength"].default_value = 0.02
-night_tint = wn.nodes.new("ShaderNodeMix")
-night_tint.data_type = "RGBA"
-night_tint.blend_type = "MULTIPLY"
-night_tint.inputs["Factor"].default_value = 1.0
-night_tint.inputs[7].default_value = (0.35, 0.5, 1.0, 1)
-wn.links.new(env.outputs["Color"], night_tint.inputs[6])
-wn.links.new(night_tint.outputs[2], bg.inputs["Color"])
+# Sunset: the meadow HDRI gives the sky its shape, tinted warm and low.
+bg.inputs["Strength"].default_value = 0.5
+sky_tint = wn.nodes.new("ShaderNodeMix")
+sky_tint.data_type = "RGBA"
+sky_tint.blend_type = "MULTIPLY"
+sky_tint.inputs["Factor"].default_value = 1.0
+sky_tint.inputs[7].default_value = (1.0, 0.6, 0.4, 1)
+wn.links.new(env.outputs["Color"], sky_tint.inputs[6])
+wn.links.new(sky_tint.outputs[2], bg.inputs["Color"])
 # Turn the HDRI so its brighter half sits beyond the glass wall (-z in three = +y here).
 wmap = wn.nodes.new("ShaderNodeMapping")
 wmap.inputs["Rotation"].default_value = (0, 0, math.radians(90))
@@ -380,32 +381,9 @@ wtex = wn.nodes.new("ShaderNodeTexCoord")
 wn.links.new(wtex.outputs["Generated"], wmap.inputs["Vector"])
 wn.links.new(wmap.outputs["Vector"], env.inputs["Vector"])
 
-# The view through the glass, for the app: 120° × 60° slices of the same
-# meadow, one centred on the direction beyond the glass wall (u = 0.5 after the
-# 90° turn) and one a quarter turn on for the right wall (+x, u = 0.75), from
-# 15° below the horizon to 45° above, tone-mapped like the bake.
-hdri4k = fetch(f"{PH}/HDRIs/hdr/4k/{HDRI[0]}_4k.hdr", CACHE / f"{HDRI[0]}_4k.hdr")
-big = bpy.data.images.load(str(hdri4k), check_existing=True)
-W4, H4 = big.size
-px4 = np.array(big.pixels[:], dtype=np.float32).reshape(H4, W4, 4)
-r0, r1 = int(H4 * (0.5 - 15 / 180)), int(H4 * (0.5 + 45 / 180))
-scene.render.image_settings.file_format = "JPEG"
-scene.render.image_settings.quality = 86
-scene.render.image_settings.color_mode = "RGB"
-for name, u in (("garden.jpg", 0.5), ("garden_r.jpg", 0.75)):
-    c0, c1 = int(W4 * (u - 1 / 6)), int(W4 * (u + 1 / 6))
-    crop = px4[r0:r1, c0:c1].copy()
-    crop[:, :, :3] *= 1.1
-    crop[:, :, 3] = 1
-    garden = bpy.data.images.new(name, c1 - c0, r1 - r0, float_buffer=True)
-    garden.pixels.foreach_set(crop.ravel())
-    garden.update()
-    garden.save_render(str(OUT / name), scene=scene)
-    print("garden", name, (OUT / name).stat().st_size, c1 - c0, r1 - r0)
-bpy.data.images.remove(big)
 
-# The practicals, lit in both moods: the desk lamp, the monitor, and the
-# string bulbs along the glass header.
+# The practicals: the desk lamp, the monitor, and the string bulbs along the
+# glass header.
 lamp_data = bpy.data.lights.new("lamp", "SPOT")
 lamp_data.energy = 28
 lamp_data.color = (1.0, 0.7, 0.42)
@@ -437,18 +415,19 @@ for i in range(6):
     scene.collection.objects.link(bo)
     bo.location = V(-2.0 + i * 0.8, 2.44, -1.1)
 
+# The sun, low and orange, going down behind the city beyond the glass wall.
 sun_data = bpy.data.lights.new("sun", "SUN")
-sun_data.energy = 0.0
+sun_data.energy = 1.6
 sun_data.angle = math.radians(2.5)
-sun_data.color = (1.0, 0.9, 0.76)
+sun_data.color = (1.0, 0.5, 0.25)
 sun = bpy.data.objects.new("sun", sun_data)
 scene.collection.objects.link(sun)
-sun.location = V(1.6, 3.2, -4.5)
+sun.location = V(3.2, 0.7, -4.5)
 # Aim at the code's target (0, 0.6, 0.4).
 import mathutils
 
 lamp.rotation_euler = _ld.to_track_quat("-Z", "Y").to_euler()
-direction = mathutils.Vector(V(0, 0.6, 0.4)) - mathutils.Vector(V(1.6, 3.2, -4.5))
+direction = mathutils.Vector(V(0, 0.6, 0.4)) - mathutils.Vector(V(3.2, 0.7, -4.5))
 sun.rotation_euler = direction.to_track_quat("-Z", "Y").to_euler()
 
 # ---------------------------------------------------------------- lightmap UVs: unwrap each, pack across all
@@ -502,55 +481,7 @@ for mat in bpy.data.materials:
     if mat.use_nodes and mat.node_tree.nodes.get("LIGHTMAP"):
         mat.node_tree.nodes["LIGHTMAP"].image = lm_img
 
-# ---------------------------------------------------------------- evening: the lamp toggle's second lightmap
-# Dusk outside, the desk lamp and the monitor lighting the room. Baked into a
-# second atlas the runtime blends toward when the lamp is switched on.
-LIGHTMAP2 = bpy.data.images.new("lightmap_dusk_bake", LIGHTMAP_SIZE, LIGHTMAP_SIZE, float_buffer=True)
-LIGHTMAP2.colorspace_settings.name = "Non-Color"
-for mat in bpy.data.materials:
-    if mat.use_nodes and mat.node_tree.nodes.get("LIGHTMAP"):
-        mat.node_tree.nodes["LIGHTMAP"].image = LIGHTMAP2
-bg.inputs["Strength"].default_value = 0.5
-night_tint.inputs[7].default_value = (1.0, 0.62, 0.42, 1)
-sun_data.energy = 1.6
-sun_data.color = (1.0, 0.5, 0.25)
-sun.location = V(3.2, 0.7, -4.5)
-direction = mathutils.Vector(V(0, 0.6, 0.4)) - mathutils.Vector(V(3.2, 0.7, -4.5))
-sun.rotation_euler = direction.to_track_quat("-Z", "Y").to_euler()
-bpy.ops.object.select_all(action="DESELECT")
-for obj in STATIC:
-    obj.select_set(True)
-bpy.context.view_layer.objects.active = STATIC[0]
-bpy.ops.object.bake(type="DIFFUSE", pass_filter={"DIRECT", "INDIRECT"}, uv_layer="lightmap", margin=6, use_clear=True)
-print("baked dusk")
-px = np.array(LIGHTMAP2.pixels[:], dtype=np.float32).reshape(-1, 4)
-px[:, :3] = np.clip(px[:, :3] * 0.35, 0, 1)
-px[:, 3] = 1
-LIGHTMAP2.pixels.foreach_set(px.ravel())
-LIGHTMAP2.update()
-scene.render.image_settings.file_format = "JPEG"
-scene.render.image_settings.quality = 90
-lm2_path = OUT / "lightmap_dusk.jpg"
-LIGHTMAP2.save_render(str(lm2_path), scene=scene)
-print("lightmap dusk", lm2_path.stat().st_size)
-lm2_img = bpy.data.images.load(str(lm2_path))
-lm2_img.name = "lightmap_dusk"
-for mat in bpy.data.materials:
-    if mat.use_nodes and mat.node_tree.nodes.get("LIGHTMAP"):
-        mat.node_tree.nodes["LIGHTMAP"].image = lm_img
-# A one-quad carrier so the exporter embeds the evening atlas as an emissive texture.
-bpy.ops.mesh.primitive_plane_add(size=0.01, location=V(0, -5, 0))
-carrier = bpy.context.active_object
-carrier.name = "lightmap_dusk_carrier"
-cm = bpy.data.materials.new("lightmap_dusk_carrier")
-cm.use_nodes = True
-cb = cm.node_tree.nodes["Principled BSDF"]
-ct = cm.node_tree.nodes.new("ShaderNodeTexImage")
-ct.image = lm2_img
-cm.node_tree.links.new(ct.outputs["Color"], cb.inputs["Emission Color"])
-cb.inputs["Emission Strength"].default_value = 1.0
-carrier.data.materials.append(cm)
-carrier.data.uv_layers.new(name="UVMap")
+# ---------------------------------------------------------------- preview from the code's resting camera
 if PREVIEW:
     cam_data = bpy.data.cameras.new("cam")
     cam_data.sensor_fit = "VERTICAL"
@@ -565,18 +496,7 @@ if PREVIEW:
     scene.render.resolution_y = 900
     scene.cycles.samples = 96
     scene.render.image_settings.file_format = "PNG"
-    scene.render.filepath = str(OUT / "preview_dusk.png")
-    bpy.ops.render.render(write_still=True)
-    print("preview dusk")
-    # Back to day for the main preview.
-    bg.inputs["Strength"].default_value = 0.02
-    night_tint.inputs[7].default_value = (0.35, 0.5, 1.0, 1)
-    sun_data.energy = 0.0
-
-# ---------------------------------------------------------------- preview from the code's resting camera
-if PREVIEW:
-    scene.render.image_settings.file_format = "PNG"
-    scene.render.filepath = str(OUT / "preview_night.png")
+    scene.render.filepath = str(OUT / "preview.png")
     bpy.ops.render.render(write_still=True)
     print("preview", scene.render.filepath)
 
@@ -587,7 +507,6 @@ if SAVE_BLEND:
 bpy.ops.object.select_all(action="DESELECT")
 for obj in STATIC:
     obj.select_set(True)
-carrier.select_set(True)
 glb = OUT / "room.glb"
 bpy.ops.export_scene.gltf(
     filepath=str(glb),

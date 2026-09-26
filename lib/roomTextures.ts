@@ -205,58 +205,301 @@ export function paintPhoto(ctx: Ctx, seed = 4): void {
   ctx.fillRect(0, h * 0.94, w, h * 0.06);
 }
 
-/** A garden at golden hour: sky, far hills, a tree line, grass. For the glass wall. */
-export function paintNature(ctx: Ctx, seed = 5): void {
+export type SkylineSide = "front" | "right";
+
+/**
+ * Manhattan at sunset, for the glass walls: a warm sky, the skyline in ink
+ * with its landmarks, windows catching the last light, and the river giving
+ * the sky back. `front` looks at Midtown with the sun going down behind it;
+ * `right` looks downtown, where the sky is already cooling.
+ */
+export function paintSkyline(
+  ctx: Ctx,
+  side: SkylineSide = "front",
+  seed = 6,
+): void {
   const { width: w, height: h } = ctx.canvas;
-  const r = rng(seed);
-  const sky = ctx.createLinearGradient(0, 0, 0, h * 0.62);
-  sky.addColorStop(0, "#bcd3e6");
-  sky.addColorStop(0.7, "#e9dcc4");
-  sky.addColorStop(1, "#f3d9b0");
+  const front = side === "front";
+  const r = rng(seed + (front ? 0 : 1));
+  const hz = h * 0.68;
+  const sunX = front ? w * 0.6 : w * 1.6;
+
+  // Sky: indigo overhead falling to gold at the horizon.
+  const sky = ctx.createLinearGradient(0, 0, 0, hz);
+  for (const [at, c] of front
+    ? ([
+        [0, "#2c3262"],
+        [0.28, "#6a4d86"],
+        [0.52, "#c76a50"],
+        [0.72, "#f0924b"],
+        [0.9, "#ffd48c"],
+        [1, "#ffe6ae"],
+      ] as const)
+    : ([
+        [0, "#28305d"],
+        [0.34, "#5a4b7f"],
+        [0.62, "#ad6a6c"],
+        [0.84, "#e6a06c"],
+        [1, "#f6c98c"],
+      ] as const))
+    sky.addColorStop(at, c);
   ctx.fillStyle = sky;
   ctx.fillRect(0, 0, w, h);
-  // Far hills, two bands, softer the further back.
-  for (const [y0, amp, color] of [
-    [0.36, 0.04, "#b7c1a4"],
-    [0.4, 0.03, "#94a883"],
-  ] as const) {
+  if (front) {
+    // Low enough that the towers cut into it.
+    const sy = hz - h * 0.27;
+    const glow = ctx.createRadialGradient(sunX, sy, 0, sunX, sy, w * 0.3);
+    glow.addColorStop(0, "rgba(255, 225, 160, 0.95)");
+    glow.addColorStop(0.15, "rgba(255, 175, 95, 0.5)");
+    glow.addColorStop(1, "rgba(255, 150, 80, 0)");
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, w, hz);
+    ctx.fillStyle = "#fff3cc";
+    ctx.beginPath();
+    ctx.arc(sunX, sy, h * 0.06, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // Streaky clouds, lit from below.
+  for (let i = 0; i < 10; i++) {
+    const y = h * (0.06 + r() * 0.42);
+    const len = w * (0.06 + r() * 0.22);
+    ctx.fillStyle = `rgba(255, ${140 + r() * 70}, ${130 + r() * 70}, ${0.1 + r() * 0.2})`;
+    ctx.beginPath();
+    ctx.ellipse(r() * w, y, len, h * (0.005 + r() * 0.012), 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Towers are recorded so the river can mirror them.
+  const towers: [number, number, number][] = [];
+  const windows = (x: number, top: number, bw: number, lit: number) => {
+    const sx = 6;
+    const sy = 8;
+    for (let wy = top + 5; wy < hz - 4; wy += sy)
+      for (let wx = x + 3; wx < x + bw - 4; wx += sx)
+        if (r() < lit) {
+          ctx.fillStyle = `rgba(255, ${190 + r() * 50}, ${110 + r() * 70}, ${0.35 + r() * 0.55})`;
+          ctx.fillRect(wx, wy, 3, 4);
+        }
+    // The facade toward the sun catches it.
+    const toSun = sunX > x + bw / 2 ? x + bw - 2 : x;
+    ctx.fillStyle = "rgba(255, 170, 100, 0.28)";
+    ctx.fillRect(toSun, top, 2, hz - top);
+  };
+  const block = (x: number, bw: number, top: number, color: string) => {
+    ctx.fillStyle = color;
+    ctx.fillRect(x, top, bw, hz - top);
+    towers.push([x, bw, top]);
+  };
+  // A polygon in (x, y) pairs, bottomed on the horizon.
+  const shape = (pts: [number, number][], color: string) => {
     ctx.fillStyle = color;
     ctx.beginPath();
-    ctx.moveTo(0, h);
-    for (let x = 0; x <= w; x += 8) {
-      const y =
-        h *
-        (y0 +
-          amp * Math.sin(x / (w * 0.13) + r() * 0.2) +
-          amp * 0.5 * Math.sin(x / (w * 0.05)));
-      ctx.lineTo(x, y);
-    }
-    ctx.lineTo(w, h);
+    ctx.moveTo(pts[0][0], hz);
+    for (const [x, y] of pts) ctx.lineTo(x, y);
+    ctx.lineTo(pts[pts.length - 1][0], hz);
     ctx.closePath();
     ctx.fill();
+  };
+  // Stepped setbacks: tiers of (width fraction, top) from the base up.
+  const tiers = (
+    cx: number,
+    bw: number,
+    steps: [number, number][],
+    color: string,
+  ) => {
+    ctx.fillStyle = color;
+    let base = hz;
+    for (const [f, top] of steps) {
+      ctx.fillRect(cx - (bw * f) / 2, top, bw * f, base - top);
+      base = top;
+    }
+    towers.push([cx - bw / 2, bw, steps[0][1]]);
+  };
+
+  // Far bank of buildings in the haze, then the skyline in ink.
+  const haze = front ? "rgba(150, 100, 120, 0.55)" : "rgba(120, 95, 135, 0.55)";
+  for (let x = -10; x < w + 10; x += 6 + r() * 14) {
+    const bw = 10 + r() * 26;
+    ctx.fillStyle = haze;
+    ctx.fillRect(x, hz - h * (0.03 + r() * 0.1), bw, h);
   }
-  // Tree line: rounded canopies on short trunks.
-  for (let x = -20; x < w + 20; x += 8 + r() * 14) {
-    const th = h * (0.06 + r() * 0.1);
-    const base = h * 0.46;
-    const g = 60 + r() * 40;
-    ctx.fillStyle = `rgb(${40 + r() * 20}, ${g}, ${35 + r() * 15})`;
-    ctx.fillRect(x - 2, base - th * 0.5, 4, th * 0.5);
-    ctx.beginPath();
-    ctx.arc(x, base - th * 0.6, th * 0.45, 0, Math.PI * 2);
-    ctx.arc(x - th * 0.25, base - th * 0.45, th * 0.32, 0, Math.PI * 2);
-    ctx.arc(x + th * 0.25, base - th * 0.45, th * 0.32, 0, Math.PI * 2);
-    ctx.fill();
+  const ink = "#23243a";
+  const inkFar = "#332f4a";
+  for (let x = -10; x < w + 10; x += 4 + r() * 10) {
+    const bw = 22 + r() * 54;
+    const top = hz - h * (0.06 + r() * 0.17);
+    block(x, bw, top, r() < 0.4 ? inkFar : ink);
+    if (r() < 0.35) {
+      // A narrower storey or two on top, sometimes a water tank.
+      ctx.fillRect(x + bw * 0.25, top - h * 0.02, bw * 0.5, h * 0.02);
+      if (r() < 0.5) ctx.fillRect(x + bw * 0.4, top - h * 0.035, 6, h * 0.015);
+    }
+    windows(x, top, bw, 0.22);
   }
-  // Grass to the bottom, warmer near the house.
-  const grass = ctx.createLinearGradient(0, h * 0.45, 0, h);
-  grass.addColorStop(0, "#7f9a68");
-  grass.addColorStop(0.85, "#a3a874");
-  grass.addColorStop(1, "#b9a98a");
-  ctx.fillStyle = grass;
-  ctx.fillRect(0, h * 0.45, w, h * 0.55);
-  for (let i = 0; i < w * 0.8; i++) {
-    ctx.fillStyle = `rgba(255,255,255,${r() * 0.06})`;
-    ctx.fillRect(r() * w, h * 0.45 + r() * h * 0.55, 2, 1);
+
+  if (front) {
+    // Midtown from the south: Bank of America, the Empire State, One
+    // Vanderbilt, the Chrysler, and the pencil towers off to the east.
+    const boa = w * 0.29;
+    shape(
+      [
+        [boa - w * 0.022, hz],
+        [boa - w * 0.022, hz - h * 0.3],
+        [boa + w * 0.006, hz - h * 0.36],
+        [boa + w * 0.022, hz - h * 0.33],
+        [boa + w * 0.022, hz],
+      ],
+      ink,
+    );
+    ctx.fillRect(boa + w * 0.002, hz - h * 0.42, 3, h * 0.07);
+    towers.push([boa - w * 0.022, w * 0.044, hz - h * 0.3]);
+    windows(boa - w * 0.022, hz - h * 0.3, w * 0.044, 0.3);
+    const esb = w * 0.4;
+    const ew = w * 0.06;
+    tiers(
+      esb,
+      ew,
+      [
+        [1, hz - h * 0.14],
+        [0.72, hz - h * 0.3],
+        [0.5, hz - h * 0.37],
+        [0.3, hz - h * 0.41],
+        [0.14, hz - h * 0.44],
+      ],
+      ink,
+    );
+    ctx.fillRect(esb - 2, hz - h * 0.52, 4, h * 0.09);
+    windows(esb - ew / 2, hz - h * 0.14, ew, 0.32);
+    windows(esb - ew * 0.36, hz - h * 0.3, ew * 0.72, 0.32);
+    const ov = w * 0.49;
+    shape(
+      [
+        [ov - w * 0.02, hz],
+        [ov - w * 0.02, hz - h * 0.2],
+        [ov - w * 0.011, hz - h * 0.4],
+        [ov - w * 0.004, hz - h * 0.44],
+        [ov + w * 0.004, hz - h * 0.44],
+        [ov + w * 0.011, hz - h * 0.4],
+        [ov + w * 0.02, hz - h * 0.2],
+        [ov + w * 0.02, hz],
+      ],
+      ink,
+    );
+    towers.push([ov - w * 0.02, w * 0.04, hz - h * 0.2]);
+    windows(ov - w * 0.02, hz - h * 0.2, w * 0.04, 0.35);
+    const chr = w * 0.56;
+    const cw = w * 0.04;
+    const crown: [number, number][] = [[1, hz - h * 0.25]];
+    for (let k = 1; k <= 6; k++)
+      crown.push([1 - k * 0.14, hz - h * (0.25 + k * 0.02)]);
+    tiers(chr, cw, crown, ink);
+    ctx.fillRect(chr - 1.5, hz - h * 0.43, 3, h * 0.07);
+    windows(chr - cw / 2, hz - h * 0.25, cw, 0.3);
+    for (const [u, hh, ww] of [
+      [0.7, 0.42, 0.016],
+      [0.76, 0.46, 0.024],
+      [0.81, 0.38, 0.014],
+    ] as const) {
+      block(w * u, w * ww, hz - h * hh, ink);
+      windows(w * u, hz - h * hh, w * ww, 0.3);
+    }
+  } else {
+    // Downtown from the east: Woolworth, One World Trade with its neighbours,
+    // 70 Pine and the towers of the financial district.
+    const wool = w * 0.32;
+    tiers(
+      wool,
+      w * 0.034,
+      [
+        [1, hz - h * 0.19],
+        [0.6, hz - h * 0.28],
+        [0.3, hz - h * 0.31],
+      ],
+      ink,
+    );
+    windows(wool - w * 0.017, hz - h * 0.19, w * 0.034, 0.3);
+    const wtc = w * 0.46;
+    const ww = w * 0.058;
+    shape(
+      [
+        [wtc - ww / 2, hz],
+        [wtc - ww / 2, hz - h * 0.05],
+        [wtc - ww * 0.31, hz - h * 0.44],
+        [wtc + ww * 0.31, hz - h * 0.44],
+        [wtc + ww / 2, hz - h * 0.05],
+        [wtc + ww / 2, hz],
+      ],
+      ink,
+    );
+    ctx.fillRect(wtc - 2, hz - h * 0.54, 4, h * 0.1);
+    towers.push([wtc - ww / 2, ww, hz - h * 0.05]);
+    windows(wtc - ww * 0.36, hz - h * 0.4, ww * 0.72, 0.36);
+    // The glass of One World Trade takes the whole sky on its west face.
+    const sheen = ctx.createLinearGradient(0, hz - h * 0.44, 0, hz);
+    sheen.addColorStop(0, "rgba(255, 190, 140, 0.35)");
+    sheen.addColorStop(1, "rgba(255, 150, 110, 0.05)");
+    ctx.fillStyle = sheen;
+    ctx.fillRect(wtc - ww * 0.3, hz - h * 0.43, ww * 0.16, h * 0.43);
+    for (const [u, hh, bw] of [
+      [0.52, 0.36, 0.04],
+      [0.57, 0.3, 0.036],
+      [0.4, 0.3, 0.03],
+    ] as const) {
+      block(w * u, w * bw, hz - h * hh, ink);
+      windows(w * u, hz - h * hh, w * bw, 0.3);
+    }
+    ctx.fillStyle = ink;
+    ctx.fillRect(w * 0.52 + 4, hz - h * 0.4, 3, h * 0.04);
+    ctx.fillRect(w * 0.56 - 7, hz - h * 0.4, 3, h * 0.04);
+    const pine = w * 0.66;
+    tiers(
+      pine,
+      w * 0.03,
+      [
+        [1, hz - h * 0.2],
+        [0.7, hz - h * 0.26],
+        [0.4, hz - h * 0.3],
+        [0.15, hz - h * 0.33],
+      ],
+      ink,
+    );
+    windows(pine - w * 0.015, hz - h * 0.2, w * 0.03, 0.3);
+    for (const [u, hh, bw] of [
+      [0.72, 0.24, 0.034],
+      [0.24, 0.26, 0.028],
+    ] as const) {
+      block(w * u, w * bw, hz - h * hh, ink);
+      windows(w * u, hz - h * hh, w * bw, 0.28);
+    }
+  }
+
+  // The river: the sky again, darker and broken by ripples, with the towers
+  // standing on their heads in it and the sun laid out in a path.
+  const water = ctx.createLinearGradient(0, hz, 0, h);
+  water.addColorStop(0, front ? "#d9895a" : "#c98a72");
+  water.addColorStop(0.3, front ? "#7a5470" : "#6e5578");
+  water.addColorStop(1, "#2a2a48");
+  ctx.fillStyle = water;
+  ctx.fillRect(0, hz, w, h - hz);
+  ctx.fillStyle = "rgba(30, 30, 58, 0.3)";
+  for (const [x, bw, top] of towers) ctx.fillRect(x, hz, bw, (hz - top) * 0.22);
+  for (let i = 0; i < 260; i++) {
+    const y = hz + r() * (h - hz);
+    const d = (y - hz) / (h - hz);
+    ctx.fillStyle = `rgba(255, ${170 + r() * 60}, ${120 + r() * 60}, ${(0.05 + r() * 0.16) * (1 - d * 0.6)})`;
+    ctx.fillRect(r() * w, y, 8 + r() * 50, 1 + Math.round(r() * 1.5));
+  }
+  if (front) {
+    for (let i = 0; i < 90; i++) {
+      const y = hz + r() * (h - hz) * 0.7;
+      const d = (y - hz) / (h - hz);
+      ctx.fillStyle = `rgba(255, 220, 160, ${0.12 + r() * 0.3 * (1 - d)})`;
+      ctx.fillRect(
+        sunX + (r() - 0.5) * w * 0.08 * (1 + d * 3),
+        y,
+        6 + r() * 30,
+        2,
+      );
+    }
   }
 }
