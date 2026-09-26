@@ -69,15 +69,19 @@ export const note = (text: string, color: string, font: string) =>
 export const neon = (text: string, color: string, font: string) =>
   make(512, 128, (c) => paintNeon(c, text, color, font));
 
-let gardenPromise: Promise<Texture> | null = null;
-/** The view beyond the glass: a tone-mapped slice of the bake's own meadow HDRI. */
-export function loadGarden(): Promise<Texture> {
-  gardenPromise ??= new TextureLoader()
-    .loadAsync("/models/garden.jpg")
-    .then((t) => {
-      t.colorSpace = SRGBColorSpace;
-      t.anisotropy = 8;
-      return t;
-    });
-  return gardenPromise;
+const gardenPromises: Partial<Record<string, Promise<Texture>>> = {};
+/**
+ * The view beyond the glass: a tone-mapped slice of the bake's own meadow HDRI,
+ * one centred on the glass wall and one a quarter turn on for the right wall.
+ */
+export function loadGarden(
+  side: "front" | "right" = "front",
+): Promise<Texture> {
+  const file = side === "right" ? "/models/garden_r.jpg" : "/models/garden.jpg";
+  gardenPromises[file] ??= new TextureLoader().loadAsync(file).then((t) => {
+    t.colorSpace = SRGBColorSpace;
+    t.anisotropy = 8;
+    return t;
+  });
+  return gardenPromises[file];
 }

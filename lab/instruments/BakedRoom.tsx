@@ -23,7 +23,8 @@ import { useRoomStore } from "./useRoomStore";
  * in over the procedural room, which then hides its duplicates.
  */
 /** Shared by every baked material: 0 = day atlas, 1 = evening atlas. */
-const lightMix = { value: 0 };
+// Starts on whichever atlas the store wakes up in, so dusk does not fade in from night.
+const lightMix = { value: useRoomStore.getState().duskMode ? 1 : 0 };
 const LM_LINE = "vec4 lightMapTexel = texture2D( lightMap, vLightMapUv );";
 
 let promise: Promise<Group> | null = null;
@@ -112,7 +113,7 @@ export function BakedRoom() {
   }, []);
   const duskMode = useRoomStore((s) => s.duskMode);
   useFrame((_, delta) => {
-    // Night is the default atlas; the toggle crossfades to dusk.
+    // Dusk is the default atlas; the toggle crossfades to night.
     lightMix.value = lerp(
       lightMix.value,
       duskMode ? 1 : 0,

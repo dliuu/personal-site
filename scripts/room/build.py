@@ -257,21 +257,21 @@ def torus(name, major, minor, center, mat, rot=None):
 # ---------------------------------------------------------------- the room (three.js coordinates)
 box("floor", (4.8, 0.02, 6.0), (0, -0.01, 1.8), M["floor"])
 box("wallL", (0.02, 2.6, 6.0), (-2.41, 1.3, 1.8), M["plaster"])
-box("wallR", (0.02, 2.6, 6.0), (2.41, 1.3, 1.8), M["plaster"])
 box("wallF", (4.84, 2.6, 0.02), (0, 1.3, 4.81), M["plaster"])  # behind the camera; closes the light
 box("ceiling", (4.8, 0.02, 6.0), (0, 2.61, 1.8), M["ceiling"])
 for i in range(9):
     box(f"slat{i}", (4.8, 0.03, 0.06), (0, 2.56, -0.9 + i * 0.5), M["oak"])
 box("baseL", (0.02, 0.06, 6.0), (-2.39, 0.03, 1.8), M["ceiling"])
-box("baseR", (0.02, 0.06, 6.0), (2.39, 0.03, 1.8), M["ceiling"])
 for x in (-2.4, -0.8, 0.8, 2.4):
     box(f"mullion{x}", (0.05, 2.6, 0.05), (x, 1.3, -1.2), M["steel"])
 box("header", (4.9, 0.06, 0.08), (0, 2.57, -1.2), M["steel"])
 box("threshold", (4.9, 0.02, 0.1), (0, 0.01, -1.2), M["steel"])
+# The right wall is glass too: mullions every 1.5 m, a header and a threshold.
+for z in (0.3, 1.8, 3.3, 4.8):
+    box(f"mullionR{z}", (0.05, 2.6, 0.05), (2.41, 1.3, z), M["steel"])
+box("headerR", (0.08, 0.06, 6.0), (2.41, 2.57, 1.8), M["steel"])
+box("thresholdR", (0.1, 0.02, 6.0), (2.41, 0.01, 1.8), M["steel"])
 box("rug", (2.8, 0.012, 2.0), (0.2, 0.006, 0.55), M["linen"], uv_scale=0.5)
-box("bench", (1.2, 0.05, 0.35), (1.4, 0.42, -0.95), M["oak"])
-box("benchLegL", (0.04, 0.4, 0.3), (0.85, 0.2, -0.95), M["oak"])
-box("benchLegR", (0.04, 0.4, 0.3), (1.95, 0.2, -0.95), M["oak"])
 # The desk is the triple-monitor workstation from the manifest: a slab with
 # its monitors, keyboard, mouse and headphones on it, but no legs of its own.
 # Its slab is not a rectangle: ray-cast from below at this placement, its
@@ -282,13 +282,8 @@ box("benchLegR", (0.04, 0.4, 0.3), (1.95, 0.2, -0.95), M["oak"])
 # slab so each joint is closed. Nothing else: a rail read as a second top.
 for name, x, z in (("BL", -0.39, -0.74), ("BR", 0.74, -0.68), ("FR", 0.55, 0.1), ("FL", -0.52, 0.02)):
     box(f"deskLeg{name}", (0.06, 0.655, 0.06), (x, 0.3275, z), M["oak"], bevel_w=0.004)
-# The right wall is a grid of shelf units from the manifest; no door.
 # The seated figure arrives with its own chair (assets/room/props/dev_figure).
 # The lamp comes from assets/room/props (see the manifest).
-cyl("cushion", 0.28, 0.3, 0.12, (1.75, 0.06, 0.25), M["terracotta"], segments=24, uv_scale=0.5)
-cyl("standTop", 0.16, 0.16, 0.02, (-1.9, 0.5, 0.6), M["oak"], segments=20)
-for i in range(3):
-    cyl(f"standLeg{i}", 0.01, 0.01, 0.5, (-1.9 + math.cos(i * 2.1) * 0.12, 0.25, 0.6 + math.sin(i * 2.1) * 0.12), M["steel"], segments=6)
 
 # Extra props dropped into assets/room/props/<name>/ with a manifest are merged
 # here: placed, flattened to world-space meshes, given the lightmap channel and
@@ -385,26 +380,28 @@ wtex = wn.nodes.new("ShaderNodeTexCoord")
 wn.links.new(wtex.outputs["Generated"], wmap.inputs["Vector"])
 wn.links.new(wmap.outputs["Vector"], env.inputs["Vector"])
 
-# The view through the glass, for the app: a 120° × 60° slice of the same
-# meadow, centred on the direction beyond the glass wall (u = 0.5 after the
-# 90° turn), from 15° below the horizon to 45° above, tone-mapped like the bake.
+# The view through the glass, for the app: 120° × 60° slices of the same
+# meadow, one centred on the direction beyond the glass wall (u = 0.5 after the
+# 90° turn) and one a quarter turn on for the right wall (+x, u = 0.75), from
+# 15° below the horizon to 45° above, tone-mapped like the bake.
 hdri4k = fetch(f"{PH}/HDRIs/hdr/4k/{HDRI[0]}_4k.hdr", CACHE / f"{HDRI[0]}_4k.hdr")
 big = bpy.data.images.load(str(hdri4k), check_existing=True)
 W4, H4 = big.size
 px4 = np.array(big.pixels[:], dtype=np.float32).reshape(H4, W4, 4)
-c0, c1 = int(W4 * (0.5 - 1 / 6)), int(W4 * (0.5 + 1 / 6))
 r0, r1 = int(H4 * (0.5 - 15 / 180)), int(H4 * (0.5 + 45 / 180))
-crop = px4[r0:r1, c0:c1].copy()
-crop[:, :, :3] *= 1.1
-crop[:, :, 3] = 1
-garden = bpy.data.images.new("garden", c1 - c0, r1 - r0, float_buffer=True)
-garden.pixels.foreach_set(crop.ravel())
-garden.update()
 scene.render.image_settings.file_format = "JPEG"
 scene.render.image_settings.quality = 86
 scene.render.image_settings.color_mode = "RGB"
-garden.save_render(str(OUT / "garden.jpg"), scene=scene)
-print("garden", (OUT / "garden.jpg").stat().st_size, c1 - c0, r1 - r0)
+for name, u in (("garden.jpg", 0.5), ("garden_r.jpg", 0.75)):
+    c0, c1 = int(W4 * (u - 1 / 6)), int(W4 * (u + 1 / 6))
+    crop = px4[r0:r1, c0:c1].copy()
+    crop[:, :, :3] *= 1.1
+    crop[:, :, 3] = 1
+    garden = bpy.data.images.new(name, c1 - c0, r1 - r0, float_buffer=True)
+    garden.pixels.foreach_set(crop.ravel())
+    garden.update()
+    garden.save_render(str(OUT / name), scene=scene)
+    print("garden", name, (OUT / name).stat().st_size, c1 - c0, r1 - r0)
 bpy.data.images.remove(big)
 
 # The practicals, lit in both moods: the desk lamp, the monitor, and the

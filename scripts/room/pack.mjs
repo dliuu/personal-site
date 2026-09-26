@@ -17,7 +17,7 @@ run(
   `resize ${src} ${a} --width 1024 --height 1024 --pattern "{plastered,oak,rough_linen}*"`,
 );
 run(
-  `resize ${a} ${c} --width 512 --height 512 --pattern "{potted,dining,desk_lamp}*"`,
+  `resize ${a} ${c} --width 512 --height 512 --pattern "{potted,plotted,dining,desk_lamp,multi_functional_chess}*"`,
 );
 // The workstation is the one prop you look straight at; keep it at 1k.
 run(
@@ -26,6 +26,7 @@ run(
 run(`webp ${c} ${b}`);
 run(`draco ${b} ${out}`);
 copyFileSync("assets/room/out/garden.jpg", "public/models/garden.jpg");
+copyFileSync("assets/room/out/garden_r.jpg", "public/models/garden_r.jpg");
 console.log(
   `${out}: ${(statSync(out).size / 1048576).toFixed(2)} MB; garden.jpg ${(statSync("public/models/garden.jpg").size / 1024).toFixed(0)} KB`,
 );

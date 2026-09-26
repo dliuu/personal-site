@@ -102,7 +102,7 @@ export function DeskScene() {
   const stage = useStagedMount(2);
   const fonts = useMemo(() => roomFonts(), []);
   const typing = useRef(0);
-  const lampLevel = useRef(1);
+  const lampLevel = useRef(useRoomStore.getState().duskMode ? 0 : 1);
   const establish = useRef(-1);
   const audio = useRef<RoomAudio | null>(null);
   const ptr = useRef(new Vector3());
@@ -112,7 +112,6 @@ export function DeskScene() {
   const g = useMemo(
     () => ({
       screen: new PlaneGeometry(SCREEN_W, SCREEN_H),
-      mug: new CylinderGeometry(0.045, 0.04, 0.1, 16),
       seat: new BoxGeometry(0.46, 0.06, 0.46),
       back: new BoxGeometry(0.44, 0.5, 0.05),
       column: new CylinderGeometry(0.025, 0.025, 0.36, 10),
@@ -129,7 +128,6 @@ export function DeskScene() {
       dark: mat("#2a2724", 0.5, 0.2),
       metal: mat("#8c8c94", 0.35, 0.8),
       fabric: mat("#2a2b30", 0.95),
-      mug: mat("#d9cdb8", 0.5),
       brass: mat("#b08d4f", 0.3, 0.9),
       bulb: new MeshStandardMaterial({
         color: "#ffd9a3",
@@ -197,9 +195,11 @@ export function DeskScene() {
   useEffect(() => () => audio.current?.dispose(), []);
 
   const toggleDusk = useRoomStore((s) => s.toggleDusk);
-  const lampThing = useThing("the lamp", "click for dusk", toggleDusk);
-  const puff = useRoomStore((s) => s.puff);
-  const mugThing = useThing("the mug", "click for steam", puff);
+  const lampThing = useThing(
+    "the lamp",
+    duskMode ? "click for night" : "click for dusk",
+    toggleDusk,
+  );
 
   /* eslint-disable react-hooks/immutability -- r3f pattern: drive lights, materials, the scene fog and plateState in useFrame */
   useFrame(({ clock, pointer }, delta) => {
@@ -252,7 +252,7 @@ export function DeskScene() {
     // With the baked room in, sun and sky are already in the lightmap; the
     // real-time copies drop so dynamic things still get lit and shadowed
     // without doubling the room.
-    // Night by default, dusk on the toggle. The lamp and monitor carry the
+    // Dusk by default, night on the toggle. The lamp and monitor carry the
     // room in both; the sky and the sun outside are what change.
     const ev = 1 - lampLevel.current;
     const bakedK = room.baked ? 0.5 : 1;
@@ -368,13 +368,6 @@ export function DeskScene() {
         material={m.screen}
         position={[SCREEN_C.x, SCREEN_C.y, SCREEN_C.z]}
       />
-      <mesh
-        geometry={g.mug}
-        material={m.mug}
-        position={[0.55, 0.8, -0.32]}
-        castShadow
-        {...mugThing}
-      />
       <group position={[-0.6, 0.755, -0.5]} {...lampThing}>
         <mesh geometry={g.lampBase} visible={!baked} material={m.brass} />
         <mesh
@@ -397,14 +390,6 @@ export function DeskScene() {
           position={[0.11, 0.47, 0.16]}
         />
       </group>
-      <Plant
-        position={[0.66, 0.755, -0.58]}
-        leaves={6}
-        size={0.14}
-        color="#5a9a55"
-        potR={0.06}
-        potH={0.08}
-      />
       <group visible={!baked}>
         <Plant
           position={[-1.35, 0, -0.5]}

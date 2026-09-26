@@ -11,7 +11,6 @@ type RoomState = {
   petAwakeUntil: number;
   hover: Hover;
   pinned: string | null;
-  steamPuff: number;
   /** The baked room has faded in; the procedural shell can hide. */
   baked: boolean;
   toggleDusk: () => void;
@@ -20,20 +19,18 @@ type RoomState = {
   wakePet: () => void;
   setHover: (h: Hover) => void;
   pin: (note: string | null) => void;
-  puff: () => void;
   setBaked: (b: boolean) => void;
 };
 
 export const useRoomStore = create<RoomState>()(
   persist(
     (set) => ({
-      duskMode: false,
+      duskMode: true,
       soundOn: false,
       curtainsOpen: true,
       petAwakeUntil: 0,
       hover: null,
       pinned: null,
-      steamPuff: 0,
       baked: false,
       toggleDusk: () => set((s) => ({ duskMode: !s.duskMode })),
       toggleSound: () => set((s) => ({ soundOn: !s.soundOn })),
@@ -41,11 +38,10 @@ export const useRoomStore = create<RoomState>()(
       wakePet: () => set({ petAwakeUntil: performance.now() / 1000 + 8 }),
       setHover: (hover) => set({ hover }),
       pin: (pinned) => set({ pinned }),
-      puff: () => set({ steamPuff: performance.now() / 1000 }),
       setBaked: (baked) => set({ baked }),
     }),
     {
-      name: "instruments-room-6",
+      name: "instruments-room-7",
       partialize: (s) => ({
         duskMode: s.duskMode,
         soundOn: s.soundOn,

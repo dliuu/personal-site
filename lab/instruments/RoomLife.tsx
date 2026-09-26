@@ -9,7 +9,6 @@ import {
   Color,
   CylinderGeometry,
   Float32BufferAttribute,
-  Group,
   InstancedMesh,
   Mesh,
   MeshBasicMaterial,
@@ -21,8 +20,6 @@ import {
   Points,
   PointsMaterial,
   ShaderMaterial,
-  Sprite,
-  SpriteMaterial,
   SphereGeometry,
 } from "three";
 import { keyPress, phonePulse, twinkle } from "@/lib/ambient";
@@ -35,9 +32,22 @@ import { loadGarden, nature, sprite } from "./roomTextures";
 import { useRoomStore } from "./useRoomStore";
 
 const BULBS = 24;
+
+const makePane = () =>
+  new ShaderMaterial({
+    uniforms: {
+      city: { value: null },
+      bright: { value: 1 },
+      tint: { value: new Color("#ffffff") },
+      time: { value: 0 },
+      rain: { value: 1 },
+    },
+    vertexShader: paneShader.vertex,
+    fragmentShader: paneShader.fragment,
+    toneMapped: false,
+  });
 const KEYS = 60;
 const DUST = 240;
-const STEAM = 6;
 
 const paneShader = {
   vertex: /* glsl */ `
@@ -71,8 +81,8 @@ const paneShader = {
 
 /**
  * Everything in the room that moves on its own: blinds and the rain on the
- * glass, string lights, dust in the lamp cone, steam off the mug, keys that
- * press as he types, the phone, the record, the fan, the cat.
+ * glass, string lights, dust in the lamp cone, keys that press as he
+ * types, the phone, the record, the cat.
  */
 export function RoomLife({
   stage,
@@ -82,7 +92,7 @@ export function RoomLife({
   stage: number;
   /** Ref: 1 while he is typing at rest. */
   typing: { current: number };
-  /** Ref: 0..1 how lit the lamp is (drives dust and the fan). */
+  /** Ref: 0..1 how lit the lamp is (drives the dust). */
   lampLevel: { current: number };
 }) {
   const tier = useLabStore((s) => s.tier);
@@ -92,26 +102,16 @@ export function RoomLife({
 
   // Blinds + pane
   const natureTex = useMemo(() => (stage >= 1 ? nature() : null), [stage]);
-  const pane = useMemo(
-    () =>
-      new ShaderMaterial({
-        uniforms: {
-          city: { value: null },
-          bright: { value: 1 },
-          tint: { value: new Color("#ffffff") },
-          time: { value: 0 },
-          rain: { value: 1 },
-        },
-        vertexShader: paneShader.vertex,
-        fragmentShader: paneShader.fragment,
-        toneMapped: false,
-      }),
-    [],
-  );
+  // One pane per window: the glass wall and the right wall each get their own
+  // slice of the meadow, driven by the same uniforms.
+  const pane = useMemo(() => makePane(), []);
+  const paneR = useMemo(() => makePane(), []);
   useEffect(() => {
     // The painted garden shows at once; the photographic one replaces it.
     // eslint-disable-next-line react-hooks/immutability -- r3f pattern: hand the memoized material its texture once it exists
     pane.uniforms.city.value = natureTex;
+    // eslint-disable-next-line react-hooks/immutability -- same, for the right wall's pane
+    paneR.uniforms.city.value = natureTex;
     let on = true;
     loadGarden().then(
       (t) => {
@@ -119,10 +119,16 @@ export function RoomLife({
       },
       () => {},
     );
+    loadGarden("right").then(
+      (t) => {
+        if (on) paneR.uniforms.city.value = t;
+      },
+      () => {},
+    );
     return () => {
       on = false;
     };
-  }, [pane, natureTex]);
+  }, [pane, paneR, natureTex]);
   const nightTint = useMemo(() => new Color("#3d5170"), []);
   const duskTint = useMemo(() => new Color("#ffa478"), []);
   const glassMat = useMemo(
@@ -195,7 +201,7 @@ export function RoomLife({
     return pts;
   }, []);
 
-  // Dust and steam
+  // Dust
   const dust = useRef<Points>(null);
   const dustGeom = useMemo(() => {
     const g = new BufferGeometry();
@@ -226,24 +232,7 @@ export function RoomLife({
       }),
     [],
   );
-  const steamMat = useMemo(
-    () =>
-      new SpriteMaterial({
-        map: sprite(0.5),
-        transparent: true,
-        depthWrite: false,
-        opacity: 0.18,
-        color: "#d8d2c8",
-      }),
-    [],
-  );
-  const steam = useRef<(Sprite | null)[]>([]);
-  const steamSeeds = useMemo(() => {
-    const r = rng(12);
-    return Array.from({ length: STEAM }, () => r());
-  }, []);
-
-  // Keys, phone, record, fan, lamp cone
+  // Keys, phone, record, lamp cone
   const keys = useRef<InstancedMesh>(null);
   const keyGeom = useMemo(() => new BoxGeometry(0.024, 0.008, 0.024), []);
   const keyMat = useMemo(
@@ -261,8 +250,6 @@ export function RoomLife({
       }),
     [],
   );
-  const platter = useRef<Mesh>(null);
-  const fan = useRef<Group>(null);
   const cone = useRef<Mesh>(null);
   const coneMat = useMemo(
     () =>
@@ -280,15 +267,11 @@ export function RoomLife({
     () => ({
       garden: new PlaneGeometry(13.5, 6.75),
       glass: new PlaneGeometry(1.55, 2.6),
+      glassR: new PlaneGeometry(1.5, 2.6),
       rail: new CylinderGeometry(0.012, 0.012, 4.8, 8).rotateZ(Math.PI / 2),
       knob: new SphereGeometry(0.012, 8, 6),
       phone: new BoxGeometry(0.07, 0.008, 0.14),
       phoneScreen: new PlaneGeometry(0.062, 0.13),
-      platter: new CylinderGeometry(0.13, 0.13, 0.008, 40),
-      label: new CylinderGeometry(0.045, 0.045, 0.01, 24),
-      arm: new CylinderGeometry(0.006, 0.006, 0.2, 6),
-      hub: new CylinderGeometry(0.05, 0.05, 0.04, 16),
-      blade: new BoxGeometry(0.5, 0.01, 0.1),
       cone: new CylinderGeometry(0.04, 0.55, 0.62, 24, 1, true),
     }),
     [],
@@ -305,20 +288,11 @@ export function RoomLife({
         roughness: 0.35,
         metalness: 0.3,
       }),
-      label: new MeshStandardMaterial({ color: "#c4795a", roughness: 0.8 }),
-      brass: new MeshStandardMaterial({
-        color: "#b08d4f",
-        roughness: 0.3,
-        metalness: 0.9,
-      }),
-      blade: new MeshStandardMaterial({ color: "#b89b74", roughness: 0.8 }),
     }),
     [],
   );
 
   const toggleCurtains = useRoomStore((s) => s.toggleCurtains);
-  const toggleSound = useRoomStore((s) => s.toggleSound);
-  const puff = useRoomStore((s) => s.puff);
   // The baked workstation brings its own keyboard; the pressing keys were the built one's.
   const baked = useRoomStore((s) => s.baked);
   const curtainsThing = useThing(
@@ -326,13 +300,7 @@ export function RoomLife({
     "click to draw or open",
     toggleCurtains,
   );
-  const recordThing = useThing(
-    "the record player",
-    "click for sound",
-    toggleSound,
-  );
   const phoneThing = useThing("the phone", "face up, mostly quiet");
-  const mugThing = useThing("the mug", "click for steam", puff);
 
   /* eslint-disable react-hooks/immutability -- r3f pattern: drive instances, materials and refs in useFrame */
   useFrame(({ clock }, delta) => {
@@ -362,10 +330,12 @@ export function RoomLife({
     }
     // Outside: dark and blue at night with rain on the glass, warm at dusk.
     const ev = 1 - lampLevel.current;
-    pane.uniforms.time.value = reducedMotion ? 0 : t;
-    pane.uniforms.rain.value = high ? 1 - ev : 0.4 * (1 - ev);
-    pane.uniforms.bright.value = (0.85 + 0.15 * open) * (0.14 + 0.86 * ev);
-    (pane.uniforms.tint.value as Color).copy(nightTint).lerp(duskTint, ev);
+    for (const p of [pane, paneR]) {
+      p.uniforms.time.value = reducedMotion ? 0 : t;
+      p.uniforms.rain.value = high ? 1 - ev : 0.4 * (1 - ev);
+      p.uniforms.bright.value = (0.85 + 0.15 * open) * (0.14 + 0.86 * ev);
+      (p.uniforms.tint.value as Color).copy(nightTint).lerp(duskTint, ev);
+    }
 
     // String lights: laid out each frame (24 is nothing), twinkling by
     // instance colour.
@@ -407,22 +377,6 @@ export function RoomLife({
     }
     if (cone.current) coneMat.opacity = 0.06 * lit;
 
-    // Steam off the mug.
-    const puffAge = t - room.steamPuff;
-    const puffing = puffAge < 1.5 ? 1 - puffAge / 1.5 : 0;
-    steam.current.forEach((sp, i) => {
-      if (!sp) return;
-      const s = steamSeeds[i];
-      const life = reducedMotion ? 0.4 : (t * 0.35 + s) % 1;
-      sp.position.set(
-        0.55 + Math.sin(t * 1.3 + s * 9) * 0.02 * life,
-        0.86 + life * (0.16 + 0.12 * puffing),
-        -0.32,
-      );
-      sp.scale.setScalar(0.05 + life * 0.08);
-      sp.material.opacity = (0.18 + 0.25 * puffing) * Math.sin(life * Math.PI);
-    });
-
     // Keys press while he types.
     if (keys.current) {
       const typingNow = typing.current > 0.5 && !reducedMotion;
@@ -442,24 +396,28 @@ export function RoomLife({
       keys.current.instanceMatrix.needsUpdate = true;
     }
 
-    // The phone lights now and then; the record turns with sound; the fan
-    // with the lamp.
+    // The phone lights now and then.
     const pulse = reducedMotion ? 0 : phonePulse(t, 2);
     phoneMat.emissiveIntensity = 1.4 * pulse;
     if (phoneLight.current) phoneLight.current.intensity = 0.6 * pulse;
-    if (platter.current && room.soundOn && !reducedMotion)
-      platter.current.rotation.y += delta * 3.49;
-    if (fan.current && !reducedMotion)
-      fan.current.rotation.y += delta * 0.8 * lit;
   });
   /* eslint-enable react-hooks/immutability */
 
   return (
     <group>
-      {/* The glass wall: the garden well behind it for parallax, three sheets
-          of glass with a faint reflection, linen curtains on a rail. */}
+      {/* The glass walls: the garden well behind each for parallax, sheets of
+          glass with a faint reflection, linen curtains on a rail along the
+          back one. */}
       {stage >= 1 ? (
-        <mesh geometry={g.garden} material={pane} position={[0, 1.9, -3.8]} />
+        <>
+          <mesh geometry={g.garden} material={pane} position={[0, 1.9, -3.8]} />
+          <mesh
+            geometry={g.garden}
+            material={paneR}
+            position={[5.0, 1.9, 1.8]}
+            rotation={[0, -Math.PI / 2, 0]}
+          />
+        </>
       ) : null}
       {[-1.6, 0, 1.6].map((x) => (
         <mesh
@@ -467,6 +425,15 @@ export function RoomLife({
           geometry={g.glass}
           material={glassMat}
           position={[x, 1.3, -1.2]}
+        />
+      ))}
+      {[-0.45, 1.05, 2.55, 4.05].map((z) => (
+        <mesh
+          key={z}
+          geometry={g.glassR}
+          material={glassMat}
+          position={[2.4, 1.3, z]}
+          rotation={[0, -Math.PI / 2, 0]}
         />
       ))}
       <group position={[0, 1.32, -1.08]} {...curtainsThing}>
@@ -489,15 +456,6 @@ export function RoomLife({
             material={dustMat}
             frustumCulled={false}
           />
-          {Array.from({ length: STEAM }, (_, i) => (
-            <sprite
-              key={i}
-              ref={(el) => {
-                steam.current[i] = el;
-              }}
-              material={steamMat.clone()}
-            />
-          ))}
           <mesh
             ref={cone}
             geometry={g.cone}
@@ -538,48 +496,7 @@ export function RoomLife({
               position={[0, 0.05, 0]}
             />
           </group>
-          <group position={[2.25, 1.795, -0.52]} {...recordThing}>
-            <mesh ref={platter} geometry={g.platter} material={m.black}>
-              <mesh
-                geometry={g.label}
-                material={m.label}
-                position={[0, 0.004, 0]}
-              />
-            </mesh>
-            <mesh
-              geometry={g.arm}
-              material={m.brass}
-              position={[0.12, 0.03, -0.08]}
-              rotation={[0, 0, -0.9]}
-            />
-          </group>
-          <mesh
-            geometry={g.knob}
-            material={m.dark}
-            position={[0.55, 0.86, -0.32]}
-            scale={2.4}
-            visible={false}
-            {...mugThing}
-          />
         </>
-      ) : null}
-      {stage >= 2 ? (
-        <group ref={fan} position={[0.3, 2.5, -0.2]}>
-          <mesh geometry={g.hub} material={m.brass} />
-          {[0, 1, 2, 3].map((i) => (
-            <mesh
-              key={i}
-              geometry={g.blade}
-              material={m.blade}
-              position={[
-                Math.cos((i * Math.PI) / 2) * 0.3,
-                -0.01,
-                Math.sin((i * Math.PI) / 2) * 0.3,
-              ]}
-              rotation={[0, (-i * Math.PI) / 2, 0.08]}
-            />
-          ))}
-        </group>
       ) : null}
     </group>
   );
