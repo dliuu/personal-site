@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import {
   BoxGeometry,
-  Color,
   CylinderGeometry,
   Fog,
   Group,
@@ -21,14 +20,12 @@ import {
 } from "three";
 import { flicker, parallax } from "@/lib/ambient";
 import { buildCurves, sampleAt, type Keyframe } from "@/lib/cameraPath";
-import { frameLerp } from "@/lib/drawIn";
 import {
   cameraU,
   isTyping,
   screenDistance,
   screenFade,
 } from "@/lib/introTimeline";
-import { lerp } from "@/lib/progress";
 import { useLabStore } from "@/store/useLabStore";
 import { useSectionsStore } from "@/store/useSectionsStore";
 import { BakedRoom } from "./BakedRoom";
@@ -53,11 +50,7 @@ const SCREEN_C = new Vector3(0.115, 1.24, -0.46);
 const EISEN_PAPER =
   chapters.find((c) => c.id === "eisen")?.palette.paper ?? "#14161c";
 const INTRO_CHAPTER = chapters.findIndex((c) => c.scene === "desk");
-const FOG = new Fog("#141a28", 8, 20);
-const FOG_NIGHT = new Color("#141a28");
-const FOG_DUSK = new Color("#5a4437");
-const SUN_NIGHT = new Color("#6f86c4");
-const SUN_DUSK = new Color("#ff9a60");
+const FOG = new Fog("#5a4437", 8, 20);
 const ESTABLISH_SECONDS = 2.5;
 const ESTABLISH_OFFSET = new Vector3(-0.7, 0.35, 1.3);
 
@@ -102,7 +95,6 @@ export function DeskScene() {
   const stage = useStagedMount(2);
   const fonts = useMemo(() => roomFonts(), []);
   const typing = useRef(0);
-  const lampLevel = useRef(useRoomStore.getState().duskMode ? 0 : 1);
   const establish = useRef(-1);
   const audio = useRef<RoomAudio | null>(null);
   const ptr = useRef(new Vector3());
@@ -165,7 +157,6 @@ export function DeskScene() {
 
   // Sound: built on the first toggle (a user gesture), never before.
   const soundOn = useRoomStore((s) => s.soundOn);
-  const duskMode = useRoomStore((s) => s.duskMode);
   const curtainsOpen = useRoomStore((s) => s.curtainsOpen);
   const petAwakeUntil = useRoomStore((s) => s.petAwakeUntil);
   const baked = useRoomStore((s) => s.baked);
@@ -186,20 +177,11 @@ export function DeskScene() {
     audio.current?.setRain(curtainsOpen);
   }, [curtainsOpen]);
   useEffect(() => {
-    // Rain is a night thing; dusk is dry.
-    audio.current?.setRain(!duskMode);
-  }, [duskMode]);
-  useEffect(() => {
     if (petAwakeUntil) audio.current?.purr();
   }, [petAwakeUntil]);
   useEffect(() => () => audio.current?.dispose(), []);
 
-  const toggleDusk = useRoomStore((s) => s.toggleDusk);
-  const lampThing = useThing(
-    "the lamp",
-    duskMode ? "click for night" : "click for dusk",
-    toggleDusk,
-  );
+  const lampThing = useThing("the lamp", "on for the evening");
 
   /* eslint-disable react-hooks/immutability -- r3f pattern: drive lights, materials, the scene fog and plateState in useFrame */
   useFrame(({ clock, pointer }, delta) => {
@@ -217,7 +199,6 @@ export function DeskScene() {
     const { reducedMotion } = useLabStore.getState();
     const room = useRoomStore.getState();
     const t = clock.elapsedTime;
-    const k = frameLerp(0.08, delta);
 
     typing.current = isTyping(p) ? 1 : 0;
 
@@ -236,33 +217,24 @@ export function DeskScene() {
       );
     }
 
-    // Lamp: on/off with a filament flicker; the gobo shapes the pool.
-    // 1 = night (lamp is the room), 0 = dusk.
-    lampLevel.current = lerp(lampLevel.current, room.duskMode ? 0 : 1, k);
-    const lit = lampLevel.current;
+    // Lamp: on with a filament flicker; the gobo shapes the pool.
     if (lamp.current) {
-      lamp.current.intensity = (9 + 7 * lit) * (reducedMotion ? 1 : flicker(t));
+      lamp.current.intensity = 9 * (reducedMotion ? 1 : flicker(t));
       if (lampTarget.current) lamp.current.target = lampTarget.current;
       if (high && lamp.current.map !== goboTex) lamp.current.map = goboTex;
     }
-    m.bulb.emissiveIntensity = 2 + 1.5 * lit;
     if (glow.current)
       glow.current.intensity =
         1.2 * (1 + (reducedMotion ? 0 : 0.04 * Math.sin(t * 11)));
     // With the baked room in, sun and sky are already in the lightmap; the
     // real-time copies drop so dynamic things still get lit and shadowed
     // without doubling the room.
-    // Dusk by default, night on the toggle. The lamp and monitor carry the
-    // room in both; the sky and the sun outside are what change.
-    const ev = 1 - lampLevel.current;
+    // Sunset: a low warm sun through the glass, the lamp and monitor on.
     const bakedK = room.baked ? 0.5 : 1;
-    if (hemi.current)
-      hemi.current.intensity = (room.baked ? 0.07 : 0.3) * (1 + 3 * ev);
-    FOG.color.copy(FOG_NIGHT).lerp(FOG_DUSK, ev);
+    if (hemi.current) hemi.current.intensity = (room.baked ? 0.07 : 0.3) * 4;
     if (windowLight.current) {
-      windowLight.current.color.copy(SUN_NIGHT).lerp(SUN_DUSK, ev);
       windowLight.current.intensity =
-        (room.curtainsOpen ? 0.35 : 0.15) * bakedK * (1 + 5 * ev);
+        (room.curtainsOpen ? 0.35 : 0.15) * bakedK * 6;
       if (windowTarget.current)
         windowLight.current.target = windowTarget.current;
     }
@@ -316,10 +288,10 @@ export function DeskScene() {
   return (
     <group ref={root} visible={false}>
       <hemisphereLight ref={hemi} args={["#cfe0f0", "#b8a58a", 0.6]} />
-      {/* The sun, low through the glass wall from the garden side. */}
+      {/* The sun, low through the glass wall, going down behind the city. */}
       <directionalLight
         ref={windowLight}
-        color="#ffe4c0"
+        color="#ff9a60"
         intensity={2.4}
         position={[1.6, 3.2, -4.5]}
         castShadow={high}
@@ -360,7 +332,7 @@ export function DeskScene() {
 
       <BakedRoom />
       <RoomSet stage={stage} fonts={fonts} />
-      <RoomLife stage={stage} typing={typing} lampLevel={lampLevel} />
+      <RoomLife stage={stage} typing={typing} />
 
       {/* The desk is baked (the workstation in the props manifest); only what sits on it is here */}
       <mesh

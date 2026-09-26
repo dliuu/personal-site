@@ -1,14 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import {
-  AdditiveBlending,
   BoxGeometry,
-  BufferGeometry,
   Color,
   CylinderGeometry,
-  Float32BufferAttribute,
   InstancedMesh,
   Mesh,
   MeshBasicMaterial,
@@ -17,9 +14,6 @@ import {
   Object3D,
   PlaneGeometry,
   PointLight,
-  Points,
-  PointsMaterial,
-  ShaderMaterial,
   SphereGeometry,
 } from "three";
 import { keyPress, phonePulse, twinkle } from "@/lib/ambient";
@@ -27,110 +21,44 @@ import { lerp } from "@/lib/progress";
 import { frameLerp } from "@/lib/drawIn";
 import { useLabStore } from "@/store/useLabStore";
 import { useThing } from "./RoomSet";
-import { rng } from "@/lib/roomTextures";
-import { loadGarden, nature, sprite } from "./roomTextures";
+import { skyline } from "./roomTextures";
 import { useRoomStore } from "./useRoomStore";
 
 const BULBS = 24;
-
-const makePane = () =>
-  new ShaderMaterial({
-    uniforms: {
-      city: { value: null },
-      bright: { value: 1 },
-      tint: { value: new Color("#ffffff") },
-      time: { value: 0 },
-      rain: { value: 1 },
-    },
-    vertexShader: paneShader.vertex,
-    fragmentShader: paneShader.fragment,
-    toneMapped: false,
-  });
 const KEYS = 60;
-const DUST = 240;
-
-const paneShader = {
-  vertex: /* glsl */ `
-    varying vec2 vUv;
-    void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }
-  `,
-  fragment: /* glsl */ `
-    uniform sampler2D city;
-    uniform float bright;
-    uniform vec3 tint;
-    uniform float time;
-    uniform float rain;
-    varying vec2 vUv;
-    float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
-    void main() {
-      vec2 uv = vUv;
-      // Rain on the glass: per-column streaks at their own speeds, with the
-      // occasional heavier run that bends the view behind it.
-      float col = floor(uv.x * 90.0);
-      float speed = 0.12 + 0.3 * hash(vec2(col, 1.0));
-      float y = fract(uv.y * 2.5 + time * speed + hash(vec2(col, 2.0)));
-      float streak = smoothstep(0.0, 0.06, y) * smoothstep(0.3, 0.06, y) * step(0.5, hash(vec2(col, 3.0)));
-      float drop = pow(1.0 - fract(uv.y * 7.0 - time * (0.35 + 0.35 * hash(vec2(col, 4.0)))), 14.0) * step(0.88, hash(vec2(col, 5.0)));
-      vec2 off = vec2(0.0, streak * 0.016 + drop * 0.026) * rain;
-      vec3 c = texture2D(city, uv + off).rgb * bright * tint;
-      c += vec3(0.18, 0.22, 0.3) * (streak * 0.3 + drop * 0.55) * rain;
-      gl_FragColor = vec4(c, 1.0);
-    }
-  `,
-};
 
 /**
- * Everything in the room that moves on its own: blinds and the rain on the
- * glass, string lights, dust in the lamp cone, keys that press as he
- * types, the phone, the record, the cat.
+ * Everything in the room that moves on its own: the curtains, string
+ * lights, keys that press as he types, the phone; and the city outside.
  */
 export function RoomLife({
   stage,
   typing,
-  lampLevel,
 }: {
   stage: number;
   /** Ref: 1 while he is typing at rest. */
   typing: { current: number };
-  /** Ref: 0..1 how lit the lamp is (drives the dust). */
-  lampLevel: { current: number };
 }) {
-  const tier = useLabStore((s) => s.tier);
-  const high = tier === "high";
   const dummy = useMemo(() => new Object3D(), []);
   const tmpColor = useMemo(() => new Color(), []);
 
-  // Blinds + pane
-  const natureTex = useMemo(() => (stage >= 1 ? nature() : null), [stage]);
-  // One pane per window: the glass wall and the right wall each get their own
-  // slice of the meadow, driven by the same uniforms.
-  const pane = useMemo(() => makePane(), []);
-  const paneR = useMemo(() => makePane(), []);
-  useEffect(() => {
-    // The painted garden shows at once; the photographic one replaces it.
-    // eslint-disable-next-line react-hooks/immutability -- r3f pattern: hand the memoized material its texture once it exists
-    pane.uniforms.city.value = natureTex;
-    // eslint-disable-next-line react-hooks/immutability -- same, for the right wall's pane
-    paneR.uniforms.city.value = natureTex;
-    let on = true;
-    loadGarden().then(
-      (t) => {
-        if (on) pane.uniforms.city.value = t;
-      },
-      () => {},
-    );
-    loadGarden("right").then(
-      (t) => {
-        if (on) paneR.uniforms.city.value = t;
-      },
-      () => {},
-    );
-    return () => {
-      on = false;
-    };
-  }, [pane, paneR, natureTex]);
-  const nightTint = useMemo(() => new Color("#3d5170"), []);
-  const duskTint = useMemo(() => new Color("#ffa478"), []);
+  // The view: Manhattan at sunset, painted once per wall in idle time. Unlit
+  // and untonemapped, so it shows as painted.
+  const ready = stage >= 1;
+  const pane = useMemo(
+    () =>
+      ready
+        ? new MeshBasicMaterial({ map: skyline("front"), toneMapped: false })
+        : null,
+    [ready],
+  );
+  const paneR = useMemo(
+    () =>
+      ready
+        ? new MeshBasicMaterial({ map: skyline("right"), toneMapped: false })
+        : null,
+    [ready],
+  );
   const glassMat = useMemo(
     () =>
       new MeshPhysicalMaterial({
@@ -201,38 +129,7 @@ export function RoomLife({
     return pts;
   }, []);
 
-  // Dust
-  const dust = useRef<Points>(null);
-  const dustGeom = useMemo(() => {
-    const g = new BufferGeometry();
-    const n = high ? DUST : DUST / 2;
-    const pos = new Float32Array(n * 3);
-    const seed = new Float32Array(n);
-    const r = rng(11);
-    for (let i = 0; i < n; i++) {
-      seed[i] = r();
-      pos[i * 3] = 0;
-      pos[i * 3 + 1] = 0;
-      pos[i * 3 + 2] = 0;
-    }
-    g.setAttribute("position", new Float32BufferAttribute(pos, 3));
-    g.setAttribute("seed", new Float32BufferAttribute(seed, 1));
-    return g;
-  }, [high]);
-  const dustMat = useMemo(
-    () =>
-      new PointsMaterial({
-        size: 0.012,
-        map: sprite(0.3),
-        transparent: true,
-        depthWrite: false,
-        blending: AdditiveBlending,
-        color: "#ffc98a",
-        opacity: 0.55,
-      }),
-    [],
-  );
-  // Keys, phone, record, lamp cone
+  // Keys, phone
   const keys = useRef<InstancedMesh>(null);
   const keyGeom = useMemo(() => new BoxGeometry(0.024, 0.008, 0.024), []);
   const keyMat = useMemo(
@@ -250,29 +147,15 @@ export function RoomLife({
       }),
     [],
   );
-  const cone = useRef<Mesh>(null);
-  const coneMat = useMemo(
-    () =>
-      new MeshBasicMaterial({
-        color: "#ffb36b",
-        transparent: true,
-        opacity: 0.06,
-        blending: AdditiveBlending,
-        depthWrite: false,
-        side: 2,
-      }),
-    [],
-  );
   const g = useMemo(
     () => ({
-      garden: new PlaneGeometry(13.5, 6.75),
+      city: new PlaneGeometry(13.5, 6.75),
       glass: new PlaneGeometry(1.55, 2.6),
       glassR: new PlaneGeometry(1.5, 2.6),
       rail: new CylinderGeometry(0.012, 0.012, 4.8, 8).rotateZ(Math.PI / 2),
       knob: new SphereGeometry(0.012, 8, 6),
       phone: new BoxGeometry(0.07, 0.008, 0.14),
       phoneScreen: new PlaneGeometry(0.062, 0.13),
-      cone: new CylinderGeometry(0.04, 0.55, 0.62, 24, 1, true),
     }),
     [],
   );
@@ -310,7 +193,7 @@ export function RoomLife({
     const k = frameLerp(0.06, delta);
 
     // Curtains gather to the mullions when open and meet in the middle when
-    // closed; the glass dims a little behind them.
+    // closed.
     curtainsCur.current = lerp(
       curtainsCur.current,
       room.curtainsOpen ? 1 : 0,
@@ -327,14 +210,6 @@ export function RoomLife({
       c.scale.x = spread;
       c.position.x = side * (2.4 - spread / 2);
       c.rotation.y = side * 0.06 * open;
-    }
-    // Outside: dark and blue at night with rain on the glass, warm at dusk.
-    const ev = 1 - lampLevel.current;
-    for (const p of [pane, paneR]) {
-      p.uniforms.time.value = reducedMotion ? 0 : t;
-      p.uniforms.rain.value = high ? 1 - ev : 0.4 * (1 - ev);
-      p.uniforms.bright.value = (0.85 + 0.15 * open) * (0.14 + 0.86 * ev);
-      (p.uniforms.tint.value as Color).copy(nightTint).lerp(duskTint, ev);
     }
 
     // String lights: laid out each frame (24 is nothing), twinkling by
@@ -353,29 +228,6 @@ export function RoomLife({
       if (bulbs.current.instanceColor)
         bulbs.current.instanceColor.needsUpdate = true;
     }
-
-    // Dust drifts down through the lamp cone; hidden when the lamp is off.
-    const lit = lampLevel.current;
-    if (dust.current) {
-      dust.current.visible = lit > 0.05 && !reducedMotion;
-      const pos = dustGeom.getAttribute("position") as Float32BufferAttribute;
-      const seed = dustGeom.getAttribute("seed") as Float32BufferAttribute;
-      for (let i = 0; i < pos.count; i++) {
-        const s = seed.getX(i);
-        const life = (t * (0.04 + 0.04 * s) + s * 7) % 1;
-        const r = 0.05 + 0.42 * life;
-        const a = s * 6.283 + t * 0.15;
-        pos.setXYZ(
-          i,
-          -0.5 + Math.cos(a) * r * 0.9,
-          1.22 - life * 0.48,
-          -0.35 + Math.sin(a) * r * 0.9,
-        );
-      }
-      pos.needsUpdate = true;
-      dustMat.opacity = 0.55 * lit;
-    }
-    if (cone.current) coneMat.opacity = 0.06 * lit;
 
     // Keys press while he types.
     if (keys.current) {
@@ -405,14 +257,14 @@ export function RoomLife({
 
   return (
     <group>
-      {/* The glass walls: the garden well behind each for parallax, sheets of
+      {/* The glass walls: the city well behind each for parallax, sheets of
           glass with a faint reflection, linen curtains on a rail along the
           back one. */}
-      {stage >= 1 ? (
+      {pane && paneR ? (
         <>
-          <mesh geometry={g.garden} material={pane} position={[0, 1.9, -3.8]} />
+          <mesh geometry={g.city} material={pane} position={[0, 1.9, -3.8]} />
           <mesh
-            geometry={g.garden}
+            geometry={g.city}
             material={paneR}
             position={[5.0, 1.9, 1.8]}
             rotation={[0, -Math.PI / 2, 0]}
@@ -447,23 +299,6 @@ export function RoomLife({
           args={[bulbGeom, bulbMat, BULBS]}
           frustumCulled={false}
         />
-      ) : null}
-      {stage >= 2 ? (
-        <>
-          <points
-            ref={dust}
-            geometry={dustGeom}
-            material={dustMat}
-            frustumCulled={false}
-          />
-          <mesh
-            ref={cone}
-            geometry={g.cone}
-            material={coneMat}
-            position={[-0.5, 0.95, -0.33]}
-            rotation={[0.08, 0, 0.1]}
-          />
-        </>
       ) : null}
       {stage >= 1 ? (
         <>

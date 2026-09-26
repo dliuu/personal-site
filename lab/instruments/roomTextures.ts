@@ -1,23 +1,18 @@
 "use client";
 
-import {
-  CanvasTexture,
-  RepeatWrapping,
-  SRGBColorSpace,
-  Texture,
-  TextureLoader,
-} from "three";
+import { CanvasTexture, RepeatWrapping, SRGBColorSpace } from "three";
 import {
   paintCity,
   paintGobo,
-  paintNature,
   paintNeon,
   paintNote,
   paintPhoto,
   paintRug,
+  paintSkyline,
   paintSpine,
   paintSprite,
   paintWood,
+  type SkylineSide,
 } from "@/lib/roomTextures";
 
 /** The fonts the page already loaded, read from the codex element's variables. */
@@ -57,7 +52,9 @@ export const wood = () =>
   make(256, 256, (c) => paintWood(c), { repeat: [2, 1] });
 export const rug = () => make(512, 512, (c) => paintRug(c));
 export const city = () => make(512, 256, (c) => paintCity(c));
-export const nature = () => make(1024, 512, (c) => paintNature(c));
+/** The view beyond the glass: Manhattan at sunset, one painting per wall. */
+export const skyline = (side: SkylineSide) =>
+  make(1536, 768, (c) => paintSkyline(c, side));
 export const gobo = () => make(128, 128, paintGobo, { srgb: false });
 export const sprite = (softness = 0.4) =>
   make(64, 64, (c) => paintSprite(c, softness), { srgb: false });
@@ -68,20 +65,3 @@ export const note = (text: string, color: string, font: string) =>
   make(128, 128, (c) => paintNote(c, text, color, font));
 export const neon = (text: string, color: string, font: string) =>
   make(512, 128, (c) => paintNeon(c, text, color, font));
-
-const gardenPromises: Partial<Record<string, Promise<Texture>>> = {};
-/**
- * The view beyond the glass: a tone-mapped slice of the bake's own meadow HDRI,
- * one centred on the glass wall and one a quarter turn on for the right wall.
- */
-export function loadGarden(
-  side: "front" | "right" = "front",
-): Promise<Texture> {
-  const file = side === "right" ? "/models/garden_r.jpg" : "/models/garden.jpg";
-  gardenPromises[file] ??= new TextureLoader().loadAsync(file).then((t) => {
-    t.colorSpace = SRGBColorSpace;
-    t.anisotropy = 8;
-    return t;
-  });
-  return gardenPromises[file];
-}

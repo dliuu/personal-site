@@ -2,7 +2,7 @@
 // Pack the baked room for the web: Draco geometry, WebP textures, material
 // maps at 1k, the lightmap kept at 2k. Usage: node scripts/room/pack.mjs
 import { execSync } from "node:child_process";
-import { copyFileSync, statSync } from "node:fs";
+import { statSync } from "node:fs";
 
 const run = (cmd) =>
   execSync(`npx --yes @gltf-transform/cli ${cmd}`, { stdio: "inherit" });
@@ -25,8 +25,4 @@ run(
 );
 run(`webp ${c} ${b}`);
 run(`draco ${b} ${out}`);
-copyFileSync("assets/room/out/garden.jpg", "public/models/garden.jpg");
-copyFileSync("assets/room/out/garden_r.jpg", "public/models/garden_r.jpg");
-console.log(
-  `${out}: ${(statSync(out).size / 1048576).toFixed(2)} MB; garden.jpg ${(statSync("public/models/garden.jpg").size / 1024).toFixed(0)} KB`,
-);
+console.log(`${out}: ${(statSync(out).size / 1048576).toFixed(2)} MB`);
