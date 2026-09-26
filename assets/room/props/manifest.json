@@ -1,6 +1,6 @@
 [
   {
-    "file": "potted_plant_3d_model/potted_plant_3d_model.gltf",
+    "file": "plotted_plant_dog/plotted_plant_dog.gltf",
     "position": [-1.35, 0, -0.5],
     "rotationY": 0.4,
     "scale": 1.15
@@ -28,5 +28,11 @@
     "position": [2.264, 1.05, 0.15],
     "rotationY": -1.5708,
     "scale": 1
+  },
+  {
+    "file": "multi_functional_chess_table_3d_model/multi_functional_chess_table_3d_model.gltf",
+    "position": [1.95, 0, 1.15],
+    "rotationY": 0.5,
+    "scale": 0.85
   }
 ]

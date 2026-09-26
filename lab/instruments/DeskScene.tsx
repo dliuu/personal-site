@@ -112,7 +112,6 @@ export function DeskScene() {
   const g = useMemo(
     () => ({
       screen: new PlaneGeometry(SCREEN_W, SCREEN_H),
-      mug: new CylinderGeometry(0.045, 0.04, 0.1, 16),
       seat: new BoxGeometry(0.46, 0.06, 0.46),
       back: new BoxGeometry(0.44, 0.5, 0.05),
       column: new CylinderGeometry(0.025, 0.025, 0.36, 10),
@@ -129,7 +128,6 @@ export function DeskScene() {
       dark: mat("#2a2724", 0.5, 0.2),
       metal: mat("#8c8c94", 0.35, 0.8),
       fabric: mat("#2a2b30", 0.95),
-      mug: mat("#d9cdb8", 0.5),
       brass: mat("#b08d4f", 0.3, 0.9),
       bulb: new MeshStandardMaterial({
         color: "#ffd9a3",
@@ -198,8 +196,6 @@ export function DeskScene() {
 
   const toggleDusk = useRoomStore((s) => s.toggleDusk);
   const lampThing = useThing("the lamp", "click for dusk", toggleDusk);
-  const puff = useRoomStore((s) => s.puff);
-  const mugThing = useThing("the mug", "click for steam", puff);
 
   /* eslint-disable react-hooks/immutability -- r3f pattern: drive lights, materials, the scene fog and plateState in useFrame */
   useFrame(({ clock, pointer }, delta) => {
@@ -368,13 +364,6 @@ export function DeskScene() {
         material={m.screen}
         position={[SCREEN_C.x, SCREEN_C.y, SCREEN_C.z]}
       />
-      <mesh
-        geometry={g.mug}
-        material={m.mug}
-        position={[0.55, 0.8, -0.32]}
-        castShadow
-        {...mugThing}
-      />
       <group position={[-0.6, 0.755, -0.5]} {...lampThing}>
         <mesh geometry={g.lampBase} visible={!baked} material={m.brass} />
         <mesh
@@ -397,14 +386,6 @@ export function DeskScene() {
           position={[0.11, 0.47, 0.16]}
         />
       </group>
-      <Plant
-        position={[0.66, 0.755, -0.58]}
-        leaves={6}
-        size={0.14}
-        color="#5a9a55"
-        potR={0.06}
-        potH={0.08}
-      />
       <group visible={!baked}>
         <Plant
           position={[-1.35, 0, -0.5]}

@@ -269,9 +269,6 @@ for x in (-2.4, -0.8, 0.8, 2.4):
 box("header", (4.9, 0.06, 0.08), (0, 2.57, -1.2), M["steel"])
 box("threshold", (4.9, 0.02, 0.1), (0, 0.01, -1.2), M["steel"])
 box("rug", (2.8, 0.012, 2.0), (0.2, 0.006, 0.55), M["linen"], uv_scale=0.5)
-box("bench", (1.2, 0.05, 0.35), (1.4, 0.42, -0.95), M["oak"])
-box("benchLegL", (0.04, 0.4, 0.3), (0.85, 0.2, -0.95), M["oak"])
-box("benchLegR", (0.04, 0.4, 0.3), (1.95, 0.2, -0.95), M["oak"])
 # The desk is the triple-monitor workstation from the manifest: a slab with
 # its monitors, keyboard, mouse and headphones on it, but no legs of its own.
 # Its slab is not a rectangle: ray-cast from below at this placement, its
@@ -286,9 +283,6 @@ for name, x, z in (("BL", -0.39, -0.74), ("BR", 0.74, -0.68), ("FR", 0.55, 0.1),
 # The seated figure arrives with its own chair (assets/room/props/dev_figure).
 # The lamp comes from assets/room/props (see the manifest).
 cyl("cushion", 0.28, 0.3, 0.12, (1.75, 0.06, 0.25), M["terracotta"], segments=24, uv_scale=0.5)
-cyl("standTop", 0.16, 0.16, 0.02, (-1.9, 0.5, 0.6), M["oak"], segments=20)
-for i in range(3):
-    cyl(f"standLeg{i}", 0.01, 0.01, 0.5, (-1.9 + math.cos(i * 2.1) * 0.12, 0.25, 0.6 + math.sin(i * 2.1) * 0.12), M["steel"], segments=6)
 
 # Extra props dropped into assets/room/props/<name>/ with a manifest are merged
 # here: placed, flattened to world-space meshes, given the lightmap channel and

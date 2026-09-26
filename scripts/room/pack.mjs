@@ -17,7 +17,7 @@ run(
   `resize ${src} ${a} --width 1024 --height 1024 --pattern "{plastered,oak,rough_linen}*"`,
 );
 run(
-  `resize ${a} ${c} --width 512 --height 512 --pattern "{potted,dining,desk_lamp}*"`,
+  `resize ${a} ${c} --width 512 --height 512 --pattern "{potted,plotted,dining,desk_lamp,multi_functional_chess}*"`,
 );
 // The workstation is the one prop you look straight at; keep it at 1k.
 run(

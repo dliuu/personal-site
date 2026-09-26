@@ -131,10 +131,6 @@ export function RoomSet({
       card: new PlaneGeometry(0.11, 0.08),
       floorCushion: new CylinderGeometry(0.28, 0.3, 0.12, 24),
       stackBook: new BoxGeometry(0.2, 0.03, 0.14),
-      standTop: new CylinderGeometry(0.16, 0.16, 0.02, 20),
-      standLeg: new CylinderGeometry(0.01, 0.01, 0.5, 6),
-      bench: new BoxGeometry(1.2, 0.05, 0.35),
-      benchLeg: new BoxGeometry(0.04, 0.4, 0.3),
       monitor2: new BoxGeometry(0.5, 0.3, 0.025),
       stem2: new BoxGeometry(0.04, 0.12, 0.04),
       penCup: new CylinderGeometry(0.035, 0.03, 0.09, 12),
@@ -143,7 +139,6 @@ export function RoomSet({
       cup: new CylinderGeometry(0.035, 0.03, 0.03, 12),
       wrist: new BoxGeometry(0.44, 0.02, 0.06),
       cable: new CylinderGeometry(0.004, 0.004, 0.6, 6),
-      hangerCord: new CylinderGeometry(0.003, 0.003, 0.7, 5),
     }),
     [],
   );
@@ -196,7 +191,6 @@ export function RoomSet({
             color: "#e0c9a6",
           })
         : mat("#b89b74", 0.6),
-      oak: mat("#b89b74", 0.6),
       door: mat("#d2c4b0", 0.8),
       brass: mat("#b08d4f", 0.3, 0.9),
       cushion: mat("#c4795a", 1),
@@ -355,26 +349,7 @@ export function RoomSet({
           ))}
         </group>
       ) : null}
-      {stage >= 2 ? (
-        <group position={[-1.6, 2.58, 0.4]}>
-          <mesh
-            geometry={g.hangerCord}
-            material={m.dark}
-            position={[0, -0.35, 0]}
-          />
-          <Plant
-            position={[0, -0.78, 0]}
-            leaves={12}
-            size={0.2}
-            color="#5f8a55"
-            potColor="#e6dccb"
-            potR={0.09}
-            potH={0.1}
-            droop={1.2}
-          />
-        </group>
-      ) : null}
-      {/* Floor: cushion, a stack of books, a plant stand, a bench under the glass with pots */}
+      {/* Floor: cushion, a stack of books */}
       {stage >= 2 ? (
         <>
           <mesh
@@ -394,86 +369,6 @@ export function RoomSet({
               castShadow
             />
           ))}
-          <group position={[-1.9, 0, 0.6]}>
-            {[0, 1, 2].map((i) => (
-              <mesh
-                key={i}
-                geometry={g.standLeg}
-                visible={!baked}
-                material={m.black}
-                position={[
-                  Math.cos(i * 2.1) * 0.12,
-                  0.25,
-                  Math.sin(i * 2.1) * 0.12,
-                ]}
-              />
-            ))}
-            <mesh
-              geometry={g.standTop}
-              visible={!baked}
-              material={m.oak}
-              position={[0, 0.5, 0]}
-            />
-            <Plant
-              position={[0, 0.51, 0]}
-              leaves={10}
-              size={0.2}
-              color="#6a9a60"
-              potColor="#e6dccb"
-              potR={0.09}
-              potH={0.12}
-            />
-          </group>
-          <group position={[1.4, 0, -0.95]}>
-            <mesh
-              geometry={g.bench}
-              visible={!baked}
-              material={m.oak}
-              position={[0, 0.42, 0]}
-              castShadow
-              receiveShadow
-            />
-            <mesh
-              geometry={g.benchLeg}
-              visible={!baked}
-              material={m.oak}
-              position={[-0.55, 0.2, 0]}
-            />
-            <mesh
-              geometry={g.benchLeg}
-              visible={!baked}
-              material={m.oak}
-              position={[0.55, 0.2, 0]}
-            />
-            <Plant
-              position={[-0.4, 0.445, 0]}
-              leaves={8}
-              size={0.18}
-              color="#7aa065"
-              potColor="#c4795a"
-              potR={0.08}
-              potH={0.12}
-            />
-            <Plant
-              position={[0.05, 0.445, 0.02]}
-              leaves={11}
-              size={0.13}
-              color="#5a8a5a"
-              potColor="#e6dccb"
-              potR={0.07}
-              potH={0.1}
-              droop={0.6}
-            />
-            <Plant
-              position={[0.45, 0.445, -0.02]}
-              leaves={6}
-              size={0.22}
-              color="#4f7a4a"
-              potColor="#3a3128"
-              potR={0.08}
-              potH={0.12}
-            />
-          </group>
           <group visible={!baked}>
             <Plant
               position={[-1.95, 0, -0.7]}
