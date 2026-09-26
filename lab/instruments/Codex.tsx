@@ -1,9 +1,11 @@
 "use client";
 
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useSectionProgress } from "@/hooks/useSectionProgress";
 import { useSectionsStore } from "@/store/useSectionsStore";
+import { useRoomStore } from "./useRoomStore";
 import { beatAt } from "@/lib/beats";
+import { greetOpacity, overlayOpacity } from "@/lib/introTimeline";
 import { chapters, sections, type Chapter } from "./chapters";
 import { links, profile, roles, type Role } from "./content";
 import { fell, script, ui } from "./fonts";
@@ -108,17 +110,118 @@ function PlateCaptions({
       {beats.map((b, i) => (
         <div
           key={i}
-          className={`instruments-caption${i === beat ? " is-active" : ""}`}
+          className={`instruments-caption${i === beat ? " is-active" : ""}${b.at ? " is-anchored" : ""}`}
           aria-hidden={i !== beat}
         >
           <span className="instruments-caption-num">
-            {["i", "ii", "iii", "iv"][i]}
+            {["i", "ii", "iii", "iv", "v", "vi", "vii", "viii"][i]}
           </span>
           <span className="instruments-caption-sub">{b.sub}</span>
           <p>{b.caption}</p>
         </div>
       ))}
     </div>
+  );
+}
+
+function RoomControls() {
+  const duskMode = useRoomStore((s) => s.duskMode);
+  const soundOn = useRoomStore((s) => s.soundOn);
+  const curtainsOpen = useRoomStore((s) => s.curtainsOpen);
+  const toggleDusk = useRoomStore((s) => s.toggleDusk);
+  const toggleSound = useRoomStore((s) => s.toggleSound);
+  const toggleCurtains = useRoomStore((s) => s.toggleCurtains);
+  return (
+    <div className="instruments-room-controls" role="group" aria-label="Room">
+      <button type="button" aria-pressed={duskMode} onClick={toggleDusk}>
+        Dusk
+      </button>
+      <button type="button" aria-pressed={soundOn} onClick={toggleSound}>
+        {soundOn ? "♪ Sound" : "Sound"}
+      </button>
+      <button
+        type="button"
+        aria-pressed={curtainsOpen}
+        onClick={toggleCurtains}
+      >
+        Curtains
+      </button>
+    </div>
+  );
+}
+
+/** Names whatever the pointer is over in the room, following the pointer. */
+function RoomTooltip() {
+  const hover = useRoomStore((s) => s.hover);
+  const pinned = useRoomStore((s) => s.pinned);
+  const el = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const move = (e: PointerEvent) => {
+      if (el.current)
+        el.current.style.transform = `translate(${e.clientX + 14}px, ${e.clientY + 14}px)`;
+    };
+    window.addEventListener("pointermove", move, { passive: true });
+    return () => window.removeEventListener("pointermove", move);
+  }, []);
+  const show = hover ?? (pinned ? { label: "a note", note: pinned } : null);
+  return (
+    <>
+      <div
+        ref={el}
+        className={`instruments-tooltip${show ? " is-shown" : ""}`}
+        aria-hidden
+      >
+        {show ? (
+          <>
+            <span className="instruments-tooltip-label">{show.label}</span>
+            {show.note ? (
+              <span className="instruments-tooltip-note">{show.note}</span>
+            ) : null}
+          </>
+        ) : null}
+      </div>
+      <div className="instruments-sr" aria-live="polite">
+        {show ? `${show.label}${show.note ? `: ${show.note}` : ""}` : ""}
+      </div>
+    </>
+  );
+}
+
+function IntroOverlay({ sectionIndex }: { sectionIndex: number }) {
+  // Quantised so the overlay re-renders a handful of times across its fade.
+  const opacity = useSectionsStore((s) =>
+    s.active === sectionIndex
+      ? Math.round(overlayOpacity(s.progress) * 20) / 20
+      : s.active < sectionIndex
+        ? 1
+        : 0,
+  );
+  return (
+    <div className="instruments-intro" style={{ opacity }} aria-hidden>
+      <h1 className="instruments-title">{profile.name}</h1>
+      <p className="instruments-lede">{profile.line}</p>
+      <p className="instruments-hint">Scroll</p>
+      <RoomControls />
+      <RoomTooltip />
+    </div>
+  );
+}
+
+/** What he says once he has turned round to face you. */
+function IntroGreeting({ sectionIndex }: { sectionIndex: number }) {
+  const opacity = useSectionsStore((s) =>
+    s.active === sectionIndex
+      ? Math.round(greetOpacity(s.progress) * 20) / 20
+      : 0,
+  );
+  return (
+    <p
+      className="instruments-greeting"
+      style={{ opacity }}
+      aria-hidden={opacity === 0}
+    >
+      Hi, I&rsquo;m Danny. Welcome to my portfolio.
+    </p>
   );
 }
 
@@ -158,6 +261,26 @@ export function Codex() {
       </nav>
       <main>
         {sections.map((s, i) => {
+          if (s.kind === "plate" && chapters[s.chapter].scene) {
+            const c = chapters[s.chapter];
+            return (
+              <section
+                key={s.id}
+                id={s.id}
+                data-kind="plate"
+                data-scene={c.scene}
+                className="instruments-plate instruments-scene"
+                style={{ minHeight: "400vh" }}
+                aria-label={`${profile.name}. ${profile.line}`}
+                ref={(el) => {
+                  els.current[i] = el;
+                }}
+              >
+                <IntroOverlay sectionIndex={i} />
+                <IntroGreeting sectionIndex={i} />
+              </section>
+            );
+          }
           if (s.kind === "plate") {
             const c = chapters[s.chapter];
             return (
@@ -165,7 +288,9 @@ export function Codex() {
                 key={s.id}
                 id={s.id}
                 data-kind="plate"
+                data-beats={c.plate?.beats.length ?? 0}
                 className="instruments-plate"
+                style={{ minHeight: `${(c.plate?.beats.length ?? 0) * 90}vh` }}
                 ref={(el) => {
                   els.current[i] = el;
                 }}

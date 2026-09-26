@@ -3,21 +3,31 @@
 import { createRef, useEffect, useMemo, useRef, type RefObject } from "react";
 import type { JSX } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
+import { Environment, Lightformer } from "@react-three/drei";
 import { DirectionalLight, Group, LineBasicMaterial, Vector3 } from "three";
-import type { PerspectiveCamera } from "three";
 import { heroPlacement } from "@/lib/heroRegion";
 import { heroContinuous } from "@/lib/heroContinuous";
 import { heroWeight } from "@/lib/sectionProgress";
 import { lerp } from "@/lib/progress";
-import { beatAt, expandAmount, smooth } from "@/lib/beats";
+import { beatAt, expandAmount, revealAmount, smooth } from "@/lib/beats";
+import { plateCamera, ZOOM_K, type CameraKey } from "@/lib/plateCamera";
 import { frameLerp, lineOpacity, lineScale, solidScale } from "@/lib/drawIn";
 import { useLabStore } from "@/store/useLabStore";
 import { useSectionsStore } from "@/store/useSectionsStore";
-import { chapters, sections, type InstrumentKind } from "./chapters";
+import {
+  chapters,
+  sections,
+  type InstrumentKind,
+  type PlateBeat,
+} from "./chapters";
+import { locales, NYC } from "./locales";
+import { DeskScene } from "./DeskScene";
+import { Network } from "./Network";
 import { Hotspots, useHotspotDismiss } from "./Hotspots";
 import { INK, PARCHMENT } from "./palette";
 import { plateState } from "./plateState";
 import { useExploreStore } from "./useExploreStore";
+import { useRoomStore } from "./useRoomStore";
 import {
   Armillary,
   Balance,
@@ -33,19 +43,36 @@ const INTRO_LERP = 0.05;
 const LERP = 0.12;
 const EXPAND_LERP = 0.1;
 const CAM_LERP = 0.08;
-// How far in front of the focus point the camera sits during a beat-1 push-in.
-const FOCUS_DISTANCE = 3.4;
-// Fractions of the visible half-frame the focus is pushed off centre, so the
-// detail clears the sticky caption: sideways on wide, upward on narrow.
-const FOCUS_SHIFT_X = 0.55;
-const FOCUS_SHIFT_Y = 0.4;
+// Where the plate opens: the Americas at full distance, so beat 0 turns east
+// onto New York. Narrow screens stop a little further out on close-ups.
+const ENTRY: CameraKey = { lon: -105, lat: 10, k: ZOOM_K.full };
+const CLOSE_K_NARROW = 2.1;
+// The globe's sphere sits 0.3 below its root; lift the hero so the sphere is
+// centred on screen while the plate is open.
+const PLATE_LIFT = 0.3;
+/** Camera keys for a plate's beats: an anchor's lat/lon, or a longitude to face. */
+function beatKeys(beats: PlateBeat[], closeK: number): CameraKey[] {
+  return beats.map((b) => {
+    const k = b.zoom === "close" ? closeK : ZOOM_K[b.zoom];
+    if (b.at === "nyc") return { lon: NYC.lon, lat: NYC.lat, k };
+    const l = b.at ? locales.find((x) => x.id === b.at) : undefined;
+    return l
+      ? { lon: l.lon, lat: l.lat, k }
+      : { lon: b.lon ?? 0, lat: b.lat ?? 0, k };
+  });
+}
+// Key light at rest, and raking low from camera-left during the beat-1 push-in.
+const KEY_POS = new Vector3(3, 4, 5);
+const KEY_RAKE = new Vector3(-4, 1.5, 4);
 
 const KIND: Record<
   InstrumentKind,
   (p: { mech: RefObject<Group | null> }) => JSX.Element
 > = {
+  desk: () => <></>,
   armillary: Armillary,
   balance: Balance,
+  network: Network,
   globe: Globe,
   bridge: Bridge,
   quadrant: Quadrant,
@@ -54,8 +81,10 @@ const KIND: Record<
 // Per-instrument half-width (world units at scale 1), used to shrink wide
 // instruments to fit inside HERO_RADIUS; compact ones keep scale 1.
 const FIT: Record<InstrumentKind, number> = {
+  desk: 1,
   armillary: 1.75 / 1.9,
   balance: 1.75 / 1.5,
+  network: 1.75 / 1.3,
   globe: 1.75 / 1.5,
   bridge: 1.75 / 2.1,
   quadrant: 1.75 / 1.45,
@@ -87,7 +116,9 @@ export function HeroObjects() {
   const primed = useRef(false);
   const introDone = useRef(false);
   const yaw = useRef<number[]>(chapters.map(() => 0));
+  const idleAngle = useRef<number[]>(chapters.map(() => 0));
   const settleOff = useRef<number[]>(chapters.map(() => 0));
+  const keyGoal = useRef(new Vector3().copy(KEY_POS));
   const fadeCur = useRef(1);
   const expandCur = useRef(0);
   const dragging = useRef(false);
@@ -100,11 +131,12 @@ export function HeroObjects() {
   const goalPos = useRef(new Vector3(0, 0, CAMERA_Z));
   const goalTgt = useRef(new Vector3(0, 0, 0));
   const tmp = useRef(new Vector3());
-  const dir = useRef(new Vector3());
-  const off = useRef(new Vector3());
+  const plateGoal = useRef(new Vector3());
+  const sceneWas = useRef(false);
   const size = useThree((s) => s.size);
   const vp = useThree((s) => s.viewport);
   const gl = useThree((s) => s.gl);
+  const scene = useThree((s) => s.scene);
   const active = useSectionsStore((s) => s.active);
   const tall = useSectionsStore((s) => s.tall);
   const place = heroPlacement({
@@ -116,6 +148,15 @@ export function HeroObjects() {
   // Scale at which the hero fills the viewport height when a plate expands it.
   const full = (0.38 * vp.height) / 1.75;
   const narrow = size.width <= 720;
+  const keys = useMemo(
+    () =>
+      chapters.map((c) =>
+        c.plate
+          ? beatKeys(c.plate.beats, narrow ? CLOSE_K_NARROW : ZOOM_K.close)
+          : null,
+      ),
+    [narrow],
+  );
 
   // Drag the canvas left/right to turn the chapter in view; it eases back.
   /* eslint-disable react-hooks/immutability -- the canvas element is the drag surface; its listeners and touch/select behaviour are ours to set */
@@ -190,12 +231,31 @@ export function HeroObjects() {
     plateState.beat = b.index;
     plateState.t = b.t;
     plateState.expand = expand;
+    const k = keys[sec.chapter];
+    if (sec.kind === "plate" && k) {
+      const cam = plateCamera(ENTRY, k, b.index, b.t);
+      plateState.cam.yaw = cam.yaw;
+      plateState.cam.el = cam.el;
+      plateState.cam.k = cam.k;
+    }
+    // A scene chapter is drawn real from its first frame; plates reveal.
+    const isScene = Boolean(chapter.scene);
+    plateState.reveal = isScene || chapter.screen ? 1 : revealAmount(expand);
+    // The studio environment lights the revealed globe, and the room only at
+    // dusk: at night the lamp and the monitor are meant to be the sources.
+    // eslint-disable-next-line react-hooks/immutability -- r3f pattern: scene setting driven in useFrame
+    scene.environmentIntensity = isScene
+      ? useRoomStore.getState().duskMode
+        ? 0.3
+        : 0.07
+      : plateState.reveal;
 
     const parent = parentRef.current;
     if (parent) {
+      // The plate centres the hero; the camera then orbits its sphere.
       parent.position.set(
-        lerp(place.x, narrow ? 0 : 0.9, expand),
-        lerp(place.y, narrow ? 0.9 : 0.2, expand),
+        lerp(place.x, 0, expand),
+        lerp(place.y, PLATE_LIFT * full, expand),
         0,
       );
       parent.scale.setScalar(lerp(place.scale, full, expand));
@@ -214,6 +274,7 @@ export function HeroObjects() {
       const { root, solid, lines } = refs.current[i];
       if (!root || !solid || !lines) continue;
 
+      const inPlate = plateState.instrument === chapters[i].instrument;
       const target = heroWeight(i, heroCont);
       const k = i === 0 && !introDone.current ? INTRO_LERP : LERP;
       let w = reducedMotion
@@ -230,6 +291,8 @@ export function HeroObjects() {
       let op = lineOpacity(w);
       solid.visible = ss > 0.001 && fade > 0.6;
       op *= Math.max(0.12, fade);
+      // The construction lines dissolve with the engraving in the plate.
+      if (inPlate) op *= 1 - plateState.reveal;
       solid.scale.setScalar(Math.max(ss, 0.0001));
       lines.scale.setScalar(Math.max(lineScale(w), 0.0001));
       // eslint-disable-next-line react-hooks/immutability -- r3f pattern: mutate the memoized line material in useFrame
@@ -237,13 +300,19 @@ export function HeroObjects() {
 
       const t = heroCont - i;
       const base = t * Math.PI * 0.8;
-      const idle = reducedMotion ? 0 : clock.elapsedTime * chapters[i].spin;
-      // Beat 1 pushes in on a detail, so the mechanism eases to face front:
-      // an offset that cancels the spin, so the turn never snaps back.
-      const settle =
-        plateState.instrument === chapters[i].instrument &&
-        plateState.beat === 1;
-      const goal = settle ? -(base + idle) : 0;
+      // Idle spin is an accumulated angle (not clock time) so its plate can
+      // pause it and fold an offset into it.
+      if (!inPlate && settleOff.current[i] !== 0) {
+        // Leaving the plate: absorb the scripted offset so nothing unwinds.
+        idleAngle.current[i] += settleOff.current[i];
+        settleOff.current[i] = 0;
+      }
+      if (!reducedMotion && !inPlate)
+        idleAngle.current[i] += delta * chapters[i].spin;
+      const idle = idleAngle.current[i];
+      // In its plate the yaw is scripted per beat (plateYaw); the offset
+      // cancels the running spin, so the turn never snaps.
+      const goal = inPlate ? plateState.cam.yaw - (base + idle) : 0;
       settleOff.current[i] = reducedMotion
         ? goal
         : lerp(settleOff.current[i], goal, frameLerp(CAM_LERP, delta));
@@ -279,47 +348,47 @@ export function HeroObjects() {
 
     if (keyLight.current) keyLight.current.intensity = 2.5 + 0.7 * expand;
     if (rimLight.current) rimLight.current.intensity = 1.2 * expand;
+    // Beat 1: the key light swings low across the surface so coasts catch
+    // hatching under the push-in.
+    const rake = plateState.instrument
+      ? Math.min(1, Math.max(0, (2.2 - plateState.cam.k) / 0.5))
+      : 0;
+    keyGoal.current.copy(KEY_POS).lerp(KEY_RAKE, rake);
+    if (keyLight.current)
+      keyLight.current.position.lerp(
+        keyGoal.current,
+        reducedMotion ? 1 : frameLerp(CAM_LERP, delta),
+      );
 
     goalPos.current.set(0, 0, CAMERA_Z - DOLLY * (heroCont / chapters.length));
     goalTgt.current.set(0, 0, 0);
-    if (
-      parent &&
-      plateState.instrument &&
-      plateState.beat === 1 &&
-      plateState.hasFocus
-    ) {
-      goalTgt.current.copy(plateState.focus);
-      // Sit FOCUS_DISTANCE out along the line from the hero's centre through
-      // the focus point, so the detail faces the camera.
-      parent.getWorldPosition(tmp.current);
-      dir.current.subVectors(plateState.focus, tmp.current);
-      if (dir.current.lengthSq() < 1e-6) dir.current.set(0, 0, 1);
-      dir.current.normalize();
-      goalPos.current
-        .copy(dir.current)
-        .multiplyScalar(FOCUS_DISTANCE)
-        .add(plateState.focus);
-      // Slide camera and target together, which moves the detail off centre
-      // without turning the camera: clear of the caption column on wide,
-      // above the caption on narrow. `half` is the visible half-height at the
-      // focus plane.
-      const half =
-        FOCUS_DISTANCE *
-        Math.tan(((camera as PerspectiveCamera).fov * Math.PI) / 360);
-      if (narrow) {
-        off.current.set(0, FOCUS_SHIFT_Y * half, 0);
-      } else {
-        // Camera-right is cross(forward, up) = (dir.z, 0, -dir.x); shifting
-        // left by it puts the detail in the right half of the frame.
-        off.current
-          .set(dir.current.z, 0, -dir.current.x)
-          .normalize()
-          .multiplyScalar(FOCUS_SHIFT_X * half * vp.aspect);
-      }
-      goalPos.current.sub(off.current);
-      goalTgt.current.sub(off.current);
+    if (chapter.scene === "desk" && sec.kind === "plate") {
+      // The room owns its camera path; DeskScene writes it each frame.
+      goalPos.current.copy(plateState.introCam.pos);
+      goalTgt.current.copy(plateState.introCam.tgt);
+    } else if (parent && plateState.instrument) {
+      // Orbit the sphere's centre: rise to the anchor's latitude, sit k radii
+      // out, and look at the centre; blended in by expand so entry is smooth.
+      // From the chapter's own root: odd chapters sit 0.6 behind the parent.
+      tmp.current.set(0, -PLATE_LIFT, 0);
+      (refs.current[sec.chapter].root ?? parent).localToWorld(tmp.current);
+      const R = 1.05 * parent.scale.x;
+      const { el, k } = plateState.cam;
+      plateGoal.current
+        .set(0, Math.sin(el), Math.cos(el))
+        .multiplyScalar(k * R)
+        .add(tmp.current);
+      goalPos.current.lerp(plateGoal.current, expand);
+      goalTgt.current.lerp(tmp.current, expand);
     }
-    const ck = reducedMotion ? 1 : frameLerp(CAM_LERP, delta);
+    // Leaving the room lands inside the monitor with the screen covering the
+    // viewport, so the camera snaps to the next chapter's rig unseen.
+    const wasScene = sceneWas.current;
+    sceneWas.current = chapter.scene === "desk";
+    const ck =
+      reducedMotion || wasScene !== sceneWas.current
+        ? 1
+        : frameLerp(CAM_LERP, delta);
     camPos.current.lerp(goalPos.current, ck);
     camTgt.current.lerp(goalTgt.current, ck);
     camera.position.copy(camPos.current);
@@ -329,6 +398,35 @@ export function HeroObjects() {
   return (
     <>
       <hemisphereLight args={[PARCHMENT, INK, 0.6]} />
+      {/* A studio for the revealed globe: warm key, cool fill, thin rim. Its
+          intensity is driven per frame from plateState.reveal. */}
+      <Environment frames={1} resolution={256} environmentIntensity={0}>
+        <Lightformer
+          form="rect"
+          color="#fff1dc"
+          intensity={2.2}
+          scale={[4, 4]}
+          position={[4, 5, 4]}
+          target={[0, 0, 0]}
+        />
+        <Lightformer
+          form="rect"
+          color="#cfe0f5"
+          intensity={1.2}
+          scale={[6, 6]}
+          position={[-6, 2, 2]}
+          target={[0, 0, 0]}
+        />
+        <Lightformer
+          form="rect"
+          color="#ffffff"
+          intensity={2}
+          scale={[8, 0.6]}
+          position={[0, 3, -6]}
+          target={[0, 0, 0]}
+        />
+      </Environment>
+      <DeskScene />
       <directionalLight
         ref={keyLight}
         color="#fff1dc"

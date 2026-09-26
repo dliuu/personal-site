@@ -7,6 +7,7 @@ export type Hotspot = {
 };
 
 export const hotspots: Record<InstrumentKind, Hotspot[]> = {
+  desk: [],
   armillary: [
     {
       position: [1.5, 0, 0],
@@ -29,6 +30,18 @@ export const hotspots: Record<InstrumentKind, Hotspot[]> = {
       position: [0, 1.4, 0],
       label: "2",
       note: "The beam swings, then settles level.",
+    },
+  ],
+  network: [
+    {
+      position: [0, 0.05, 0],
+      label: "1",
+      note: "The orchestrator: a container agent for every developer task, test run and client feature.",
+    },
+    {
+      position: [-1.22, -0.3, 0],
+      label: "2",
+      note: "The compliance ring: work is stamped before it ships.",
     },
   ],
   globe: [

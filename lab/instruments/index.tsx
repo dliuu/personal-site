@@ -10,6 +10,7 @@ export default function Instruments() {
   return (
     <>
       <Stage
+        shadows
         frameloop="always"
         background={PARCHMENT}
         cameraPosition={[0, 0, 6]}

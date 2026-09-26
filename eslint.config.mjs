@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Vendored decoders served as-is.
+    "public/**",
+    // Editor worktrees checked out inside the repo.
+    ".claude/**",
   ]),
 ]);
 

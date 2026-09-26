@@ -1,5 +1,6 @@
-import { Vector3 } from "three";
 import type { InstrumentKind } from "./chapters";
+
+import { Vector3 } from "three";
 
 /**
  * Imperative, per-frame plate state. Written once by HeroObjects in its
@@ -17,11 +18,13 @@ export const plateState = {
   t: 0,
   /** Smoothed hero expansion, 0..1. */
   expand: 0,
-  /**
-   * World point the camera looks at in beat 1; written by the instrument.
-   * Written by the solid Globe's useFrame, which runs before HeroObjects' —
-   * one frame behind the parent transform; CAM_LERP smooths it. Do not reorder.
-   */
-  focus: new Vector3(),
-  hasFocus: false,
+  /** How far the engraving has dissolved into the real render, 0..1. */
+  reveal: 0,
+  /** Camera for this frame of the plate: mech yaw, elevation (rad), distance as a multiple of the sphere radius. */
+  cam: { yaw: 0, el: 0, k: 3.1 },
+  /** Camera for the intro scene, written by DeskScene each frame it is active. */
+  introCam: {
+    pos: new Vector3(-1.6, 1.5, 2.6),
+    tgt: new Vector3(0.1, 0.9, 0.2),
+  },
 };

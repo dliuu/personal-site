@@ -27,6 +27,17 @@ const VIEWPORTS = [
   { width: 390, height: 844, isMobile: true, hasTouch: true },
 ];
 
+// Software WebGL can run at a frame a second; a fixed wait may capture the
+// previous scroll position. Wait for two real frames after each move.
+async function settle(page) {
+  await page.evaluate(
+    () =>
+      new Promise((r) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => r())),
+      ),
+  );
+}
+
 async function ensureServer() {
   try {
     const res = await fetch(url, { redirect: "manual" });
@@ -71,6 +82,10 @@ async function main() {
       await page.goto(url, { waitUntil: "networkidle" });
       await page.evaluate(() => document.fonts?.ready);
       await page.waitForSelector("canvas", { timeout: 15000 }).catch(() => {});
+      // The intro's baked room arrives after first paint; give it a moment.
+      await page
+        .waitForSelector("html[data-baked-room]", { timeout: 25000 })
+        .catch(() => {});
       await page.waitForTimeout(1200);
 
       const dir = path.join("shots", slug, `${vp.width}x${vp.height}`);
@@ -89,7 +104,34 @@ async function main() {
       } else {
         for (let i = 0; i < ids.length; i++) {
           if (kinds[i] === "plate") {
-            for (const f of [0.1, 0.4, 0.7, 0.95]) {
+            // One frame per beat (60 % through it), plus the entry and exit.
+            const beats = await page.$eval(`section[id="${ids[i]}"]`, (e) =>
+              Number(e.dataset.beats ?? 0),
+            );
+            const scene = await page.$eval(`section[id="${ids[i]}"]`, (e) =>
+              Boolean(e.dataset.scene),
+            );
+            const fracs = scene
+              ? [0.02, 0.2, 0.45, 0.75, 0.97]
+              : beats > 0
+                ? [
+                    0.02,
+                    ...Array.from(
+                      { length: beats },
+                      (_, b) => (b + 0.6) / beats,
+                    ),
+                    0.98,
+                  ]
+                : [0.1, 0.4, 0.7, 0.82, 0.95];
+            const label = (f, j) =>
+              beats > 0 && !scene
+                ? j === 0
+                  ? "in"
+                  : j === fracs.length - 1
+                    ? "out"
+                    : `b${j - 1}`
+                : `p${Math.round(f * 100)}`;
+            for (const [j, f] of fracs.entries()) {
               await page.evaluate(
                 ([id, frac]) => {
                   const el = document.getElementById(id);
@@ -104,9 +146,10 @@ async function main() {
                 [ids[i], f],
               );
               await page.waitForTimeout(700);
+              await settle(page);
               const file = path.join(
                 dir,
-                `${String(i).padStart(2, "0")}-${ids[i]}-p${Math.round(f * 100)}.png`,
+                `${String(i).padStart(2, "0")}-${ids[i]}-${label(f, j)}.png`,
               );
               await page.screenshot({ path: file });
               written.push(file);
@@ -124,6 +167,7 @@ async function main() {
               });
             }, ids[i]);
             await page.waitForTimeout(600);
+            await settle(page);
             const file = path.join(
               dir,
               `${String(i).padStart(2, "0")}-${ids[i]}.png`,

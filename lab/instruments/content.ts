@@ -25,7 +25,12 @@ export const roles: Role[] = [
     location: "",
     summary:
       "Building infrastructure for banks, exchanges and financing institutions.",
-    bullets: [],
+    // PLACEHOLDER wording (owner input): the three points the Eisen plate anchors.
+    bullets: [
+      "Building an AI agent orchestration flow: a software factory that spins up a container agent for every developer task, test run and client product feature.",
+      "Financial compliance automation.",
+      "Backend work.",
+    ],
     skills: [],
   },
   {
