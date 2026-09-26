@@ -102,7 +102,7 @@ export function DeskScene() {
   const stage = useStagedMount(2);
   const fonts = useMemo(() => roomFonts(), []);
   const typing = useRef(0);
-  const lampLevel = useRef(1);
+  const lampLevel = useRef(useRoomStore.getState().duskMode ? 0 : 1);
   const establish = useRef(-1);
   const audio = useRef<RoomAudio | null>(null);
   const ptr = useRef(new Vector3());
@@ -195,7 +195,11 @@ export function DeskScene() {
   useEffect(() => () => audio.current?.dispose(), []);
 
   const toggleDusk = useRoomStore((s) => s.toggleDusk);
-  const lampThing = useThing("the lamp", "click for dusk", toggleDusk);
+  const lampThing = useThing(
+    "the lamp",
+    duskMode ? "click for night" : "click for dusk",
+    toggleDusk,
+  );
 
   /* eslint-disable react-hooks/immutability -- r3f pattern: drive lights, materials, the scene fog and plateState in useFrame */
   useFrame(({ clock, pointer }, delta) => {
@@ -248,7 +252,7 @@ export function DeskScene() {
     // With the baked room in, sun and sky are already in the lightmap; the
     // real-time copies drop so dynamic things still get lit and shadowed
     // without doubling the room.
-    // Night by default, dusk on the toggle. The lamp and monitor carry the
+    // Dusk by default, night on the toggle. The lamp and monitor carry the
     // room in both; the sky and the sun outside are what change.
     const ev = 1 - lampLevel.current;
     const bakedK = room.baked ? 0.5 : 1;

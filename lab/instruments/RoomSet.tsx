@@ -11,27 +11,13 @@ import {
   TorusGeometry,
 } from "three";
 import { Plant } from "./Plant";
-import { loadGarden, note, photo, rug, spine, wood } from "./roomTextures";
+import { loadGarden, note, photo, rug, wood } from "./roomTextures";
 import { useRoomStore } from "./useRoomStore";
 
 const mat = (color: string, roughness = 0.85, metalness = 0) =>
   new MeshStandardMaterial({ color, roughness, metalness });
 
 /** PLACEHOLDER titles and notes until the owner supplies theirs. */
-const BOOKS = [
-  ["Data-Intensive Apps", "#8a6a55"],
-  ["Gödel, Escher, Bach", "#6b7a5a"],
-  ["Pragmatic Programmer", "#b58a5a"],
-  ["SICP", "#5a6b5a"],
-  ["Dune", "#c4795a"],
-  ["Sapiens", "#a3906a"],
-  ["Norwegian Wood", "#7a8b6a"],
-  ["Zero to One", "#8c8c84"],
-  ["Deep Learning", "#5a6a7a"],
-  ["Snow Crash", "#9a5a4a"],
-  ["Thinking, Fast and Slow", "#7a8a5a"],
-  ["Designing Design", "#3a3128"],
-] as const;
 const NOTES = [
   // Stuck low on the workstation's two side monitors.
   ["ship the globe by friday", "#c9b04a", [0.63, 1.13, -0.45]],
@@ -129,8 +115,6 @@ export function RoomSet({
       posterFrame: new BoxGeometry(0.48, 0.61, 0.025),
       cork: new BoxGeometry(0.6, 0.45, 0.02),
       card: new PlaneGeometry(0.11, 0.08),
-      floorCushion: new CylinderGeometry(0.28, 0.3, 0.12, 24),
-      stackBook: new BoxGeometry(0.2, 0.03, 0.14),
       monitor2: new BoxGeometry(0.5, 0.3, 0.025),
       stem2: new BoxGeometry(0.04, 0.12, 0.04),
       penCup: new CylinderGeometry(0.035, 0.03, 0.09, 12),
@@ -165,10 +149,6 @@ export function RoomSet({
     };
   }, []);
   const photoTex = gardenPhoto ?? paintedPhoto;
-  const spines = useMemo(
-    () => (stage >= 1 ? BOOKS.map(([t, c]) => spine(t, c, fonts.fell)) : null),
-    [stage, fonts.fell],
-  );
   const m = useMemo(
     () => ({
       floor: mat("#c9b08a", 0.7),
@@ -193,7 +173,6 @@ export function RoomSet({
         : mat("#b89b74", 0.6),
       door: mat("#d2c4b0", 0.8),
       brass: mat("#b08d4f", 0.3, 0.9),
-      cushion: mat("#c4795a", 1),
       linen: mat("#e6dccb", 1),
       sage: mat("#7a8b6a", 0.95),
       dark: mat("#3a3128", 0.6),
@@ -206,18 +185,13 @@ export function RoomSet({
       photo: photoTex
         ? new MeshStandardMaterial({ map: photoTex, roughness: 0.6 })
         : mat("#8899aa"),
-      spines: spines
-        ? spines.map(
-            (t) => new MeshStandardMaterial({ map: t, roughness: 0.9 }),
-          )
-        : null,
       deckGlass: new MeshStandardMaterial({
         color: "#111",
         emissive: "#ffb36b",
         emissiveIntensity: 0.4,
       }),
     }),
-    [woodTex, rugTex, spines, photoTex],
+    [woodTex, rugTex, photoTex],
   );
   const baked = useRoomStore((s) => s.baked);
   const posterThing = useThing(
@@ -246,14 +220,6 @@ export function RoomSet({
         receiveShadow
       />
       <mesh
-        geometry={g.wallSide}
-        visible={!baked}
-        material={m.wall}
-        position={[2.4, 1.3, 1.8]}
-        rotation={[0, -Math.PI / 2, 0]}
-        receiveShadow
-      />
-      <mesh
         geometry={g.ceiling}
         visible={!baked}
         material={m.ceiling}
@@ -276,13 +242,6 @@ export function RoomSet({
         visible={!baked}
         material={m.trim}
         position={[-2.39, 0.03, 1.8]}
-        rotation={[0, Math.PI / 2, 0]}
-      />
-      <mesh
-        geometry={g.baseboard}
-        visible={!baked}
-        material={m.trim}
-        position={[2.39, 0.03, 1.8]}
         rotation={[0, Math.PI / 2, 0]}
       />
       {/* Glass wall frame: mullions, header and threshold in black steel. */}
@@ -349,26 +308,9 @@ export function RoomSet({
           ))}
         </group>
       ) : null}
-      {/* Floor: cushion, a stack of books */}
+      {/* Floor: the procedural stand-in for the baked monstera */}
       {stage >= 2 ? (
         <>
-          <mesh
-            geometry={g.floorCushion}
-            visible={!baked}
-            material={m.cushion}
-            position={[1.75, 0.06, 0.25]}
-            castShadow
-          />
-          {[0, 1, 2].map((i) => (
-            <mesh
-              key={i}
-              geometry={g.stackBook}
-              material={m.spines?.[(i * 5) % 12] ?? m.sleeve}
-              position={[1.8, 0.015 + i * 0.03, 0.7]}
-              rotation={[0, i * 0.25, 0]}
-              castShadow
-            />
-          ))}
           <group visible={!baked}>
             <Plant
               position={[-1.95, 0, -0.7]}
@@ -379,18 +321,6 @@ export function RoomSet({
               potR={0.15}
               potH={0.3}
               trunk={0.9}
-            />
-          </group>
-          <group visible={!baked}>
-            <Plant
-              position={[2.0, 0, -0.55]}
-              leaves={9}
-              size={0.3}
-              color="#5a8a50"
-              potColor="#c4795a"
-              potR={0.14}
-              potH={0.28}
-              trunk={0.6}
             />
           </group>
         </>

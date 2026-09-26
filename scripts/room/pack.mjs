@@ -26,6 +26,7 @@ run(
 run(`webp ${c} ${b}`);
 run(`draco ${b} ${out}`);
 copyFileSync("assets/room/out/garden.jpg", "public/models/garden.jpg");
+copyFileSync("assets/room/out/garden_r.jpg", "public/models/garden_r.jpg");
 console.log(
   `${out}: ${(statSync(out).size / 1048576).toFixed(2)} MB; garden.jpg ${(statSync("public/models/garden.jpg").size / 1024).toFixed(0)} KB`,
 );
