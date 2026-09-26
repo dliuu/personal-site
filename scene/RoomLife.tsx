@@ -29,6 +29,7 @@ import { lerp } from "@/lib/progress";
 import { frameLerp } from "@/lib/drawIn";
 import { useLabStore } from "@/store/useLabStore";
 import { Cat } from "./Cat";
+import { CONE, CONE_TILT, SHADE } from "@/lib/lamp";
 import { useThing } from "./RoomSet";
 import { rng } from "@/lib/roomTextures";
 import { nature, sprite } from "./roomTextures";
@@ -389,9 +390,9 @@ export function RoomLife({
         const a = s * 6.283 + t * 0.15;
         pos.setXYZ(
           i,
-          -0.5 + Math.cos(a) * r * 0.9,
-          1.22 - life * 0.48,
-          -0.35 + Math.sin(a) * r * 0.9,
+          SHADE.x + Math.cos(a) * r * 0.9,
+          SHADE.y - life * 0.48,
+          SHADE.z + Math.sin(a) * r * 0.9,
         );
       }
       pos.needsUpdate = true;
@@ -509,8 +510,8 @@ export function RoomLife({
             ref={cone}
             geometry={g.cone}
             material={coneMat}
-            position={[-0.5, 0.95, -0.33]}
-            rotation={[0.08, 0, 0.1]}
+            position={[CONE.x, CONE.y, CONE.z]}
+            rotation={CONE_TILT}
           />
           <Cat position={[0.55, 0, 0.95]} />
         </>

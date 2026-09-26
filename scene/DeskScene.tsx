@@ -39,6 +39,13 @@ import { plateState } from "./plateState";
 import { createRoomAudio, type RoomAudio } from "./roomAudio";
 import { RoomLife } from "./RoomLife";
 import { RoomSet, useThing } from "./RoomSet";
+import {
+  LAMP_BASE,
+  LAMP_LIGHT,
+  LAMP_TARGET,
+  LAMP_YAW,
+  SHADE_LOCAL,
+} from "@/lib/lamp";
 import { gobo, roomFonts, wood } from "./roomTextures";
 import { makeScreen } from "./screenTexture";
 import { useRoomStore } from "./useRoomStore";
@@ -349,13 +356,16 @@ export function DeskScene() {
         angle={0.8}
         penumbra={0.6}
         decay={2}
-        position={[-0.5, 1.25, -0.35]}
+        position={[LAMP_LIGHT.x, LAMP_LIGHT.y, LAMP_LIGHT.z]}
         castShadow={high}
         shadow-mapSize={[1024, 1024]}
         shadow-radius={4}
         shadow-bias={-0.0005}
       />
-      <group ref={lampTarget} position={[0, 0.75, -0.2]} />
+      <group
+        ref={lampTarget}
+        position={[LAMP_TARGET.x, LAMP_TARGET.y, LAMP_TARGET.z]}
+      />
       <pointLight
         ref={glow}
         color="#9fc3ff"
@@ -437,7 +447,15 @@ export function DeskScene() {
         castShadow
         {...mugThing}
       />
-      <group position={[-0.6, 0.755, -0.5]} {...lampThing}>
+      {/* The lamp stands in the back-left corner, clear of the second monitor;
+        the baked prop is placed to match in assets/room/props/manifest.json.
+        The bulb is the one part that outlives the bake, so it is pinned to the
+        prop's own light surface rather than to this stand-in's head. */}
+      <group
+        position={[LAMP_BASE.x, LAMP_BASE.y, LAMP_BASE.z]}
+        rotation={[0, LAMP_YAW, 0]}
+        {...lampThing}
+      >
         <mesh geometry={g.lampBase} visible={!baked} material={m.brass} />
         <mesh
           geometry={g.lampArm}
@@ -456,7 +474,14 @@ export function DeskScene() {
         <mesh
           geometry={g.bulb}
           material={m.bulb}
-          position={[0.11, 0.47, 0.16]}
+          // The bulb outlives the bake, so it sits in whichever shade is on
+          // screen: the stand-in's head until the room arrives, the prop's own
+          // light surface after.
+          position={
+            baked
+              ? [SHADE_LOCAL.x, SHADE_LOCAL.y, SHADE_LOCAL.z]
+              : [0.11, 0.47, 0.16]
+          }
         />
       </group>
       <Plant
