@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
+import { profile } from "@/instruments/content";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "personal-site lab",
-  description: "A lab for trying 3D ideas.",
+  title: profile.name,
+  description: profile.line,
 };
 
 export default function RootLayout({
