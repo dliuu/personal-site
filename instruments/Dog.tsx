@@ -8,7 +8,7 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { pant } from "@/lib/ambient";
 import { frameLerp } from "@/lib/drawIn";
 import { lerp } from "@/lib/progress";
-import { useLabStore } from "@/store/useLabStore";
+import { useDeviceStore } from "@/store/useDeviceStore";
 import { useRoomStore } from "./useRoomStore";
 
 /**
@@ -68,7 +68,7 @@ export function Dog({
     const r = root.current;
     if (!r) return;
     const t = clock.elapsedTime;
-    const { reducedMotion } = useLabStore.getState();
+    const { reducedMotion } = useDeviceStore.getState();
     const until = useRoomStore.getState().petAwakeUntil;
     const target = until > performance.now() / 1000 ? 1 : 0;
     awake.current = lerp(awake.current, target, frameLerp(0.06, delta));

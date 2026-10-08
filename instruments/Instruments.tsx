@@ -37,7 +37,7 @@ import { smooth, stagger, tickAlive } from "@/lib/beats";
 import { frameLerp } from "@/lib/drawIn";
 import { latLonToVec3, rankByLongitude } from "@/lib/geo";
 import { lerp } from "@/lib/progress";
-import { useLabStore } from "@/store/useLabStore";
+import { useDeviceStore } from "@/store/useDeviceStore";
 import {
   buildCoastGeometry,
   buildLandTexture,
@@ -524,7 +524,7 @@ export function Globe({ mech }: { mech: RefObject<Group | null> }) {
     mats.gold.roughness = lerp(0.6, 0.25, reveal);
     if (earthMat) earthMat.opacity = reveal;
     if (cloudMat) cloudMat.opacity = 0.55 * reveal;
-    if (cloudsRef.current && !useLabStore.getState().reducedMotion)
+    if (cloudsRef.current && !useDeviceStore.getState().reducedMotion)
       cloudsRef.current.rotation.y += 0.008 * delta;
     atmoMat.uniforms.reveal.value = reveal;
     shadowMat.opacity = 0.35 * reveal;

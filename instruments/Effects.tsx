@@ -19,7 +19,7 @@ import { Color, SRGBColorSpace, Uniform } from "three";
 import { washAmount } from "@/lib/beats";
 import { frameLerp } from "@/lib/drawIn";
 import { lerp } from "@/lib/progress";
-import { useLabStore } from "@/store/useLabStore";
+import { useDeviceStore } from "@/store/useDeviceStore";
 import { useSectionsStore } from "@/store/useSectionsStore";
 import { chapters, sections } from "./chapters";
 import { INK, PARCHMENT } from "./palette";
@@ -85,7 +85,7 @@ const Engraving = wrapEffect(EngravingImpl);
 const ToonGrade = wrapEffect(ToonGradeImpl);
 
 export function Effects() {
-  const tier = useLabStore((s) => s.tier);
+  const tier = useDeviceStore((s) => s.tier);
   const dpr = useThree((s) => s.viewport.dpr);
   const scene = useThree((s) => s.scene);
   const high = tier === "high";
@@ -109,7 +109,7 @@ export function Effects() {
 
   useFrame((_, delta) => {
     const { active } = useSectionsStore.getState();
-    const { reducedMotion } = useLabStore.getState();
+    const { reducedMotion } = useDeviceStore.getState();
     const tgt = targets[sections[active]?.chapter ?? 0];
     const k = reducedMotion ? 1 : frameLerp(0.08, delta);
     cur.ink.lerp(tgt.ink, k);

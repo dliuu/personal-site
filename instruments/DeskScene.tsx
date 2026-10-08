@@ -26,7 +26,7 @@ import {
   screenDistance,
   screenFade,
 } from "@/lib/introTimeline";
-import { useLabStore } from "@/store/useLabStore";
+import { useDeviceStore } from "@/store/useDeviceStore";
 import { useSectionsStore } from "@/store/useSectionsStore";
 import { BakedRoom } from "./BakedRoom";
 import { DevFigure } from "./DevFigure";
@@ -87,7 +87,7 @@ export function DeskScene() {
   const scene = useThree((s) => s.scene);
   const camera = useThree((s) => s.camera) as PerspectiveCamera;
   const size = useThree((s) => s.size);
-  const tier = useLabStore((s) => s.tier);
+  const tier = useDeviceStore((s) => s.tier);
   const high = tier === "high";
   const narrow = size.width <= 720;
   const aspect = size.width / size.height;
@@ -196,7 +196,7 @@ export function DeskScene() {
     }
 
     const p = plateState.p;
-    const { reducedMotion } = useLabStore.getState();
+    const { reducedMotion } = useDeviceStore.getState();
     const room = useRoomStore.getState();
     const t = clock.elapsedTime;
 

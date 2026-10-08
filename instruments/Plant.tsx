@@ -9,7 +9,7 @@ import {
   Shape,
   ShapeGeometry,
 } from "three";
-import { useLabStore } from "@/store/useLabStore";
+import { useDeviceStore } from "@/store/useDeviceStore";
 
 const mat = (color: string, roughness = 0.8) =>
   new MeshStandardMaterial({ color, roughness });
@@ -68,7 +68,7 @@ export function Plant({
   const sway = useRef<Group>(null);
   useFrame(({ clock }) => {
     if (!sway.current) return;
-    const { reducedMotion } = useLabStore.getState();
+    const { reducedMotion } = useDeviceStore.getState();
     sway.current.rotation.z = reducedMotion
       ? 0
       : 0.02 * Math.sin(clock.elapsedTime * 0.9 + position[0]);

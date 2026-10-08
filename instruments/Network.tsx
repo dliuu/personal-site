@@ -36,7 +36,7 @@ import {
   type Emphasis,
 } from "@/lib/network";
 import { lerp } from "@/lib/progress";
-import { useLabStore } from "@/store/useLabStore";
+import { useDeviceStore } from "@/store/useDeviceStore";
 import { Callouts } from "./Callouts";
 import { chapters, eisenBeats, sections } from "./chapters";
 import { EdgedModeContext } from "./Instruments";
@@ -249,7 +249,7 @@ export function Network({ mech }: { mech: RefObject<Group | null> }) {
 
   /* eslint-disable react-hooks/immutability -- r3f pattern: mutate memoized materials, buffers and ref object3Ds in useFrame */
   useFrame(({ clock }, delta) => {
-    const { reducedMotion } = useLabStore.getState();
+    const { reducedMotion } = useDeviceStore.getState();
     const active = plateState.instrument === "network";
     const { beat, t, expand } = plateState;
     const time = reducedMotion ? STILL_TIME : clock.elapsedTime;
