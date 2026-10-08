@@ -1,12 +1,11 @@
 # Decisions
 
-One line per decision, newest last. Experiments record their own verdicts in
-their README; this file records what changed the project's direction.
+One line per decision, newest last. This file records what changed the
+project's direction.
 
 ## Budgets
 
-- Initial JS (home and /lab): under 600 KB gzipped.
-- Any experiment route: under 1 MB gzipped first load.
+- Initial JS (home): under 600 KB gzipped.
 - No single static asset over 1 MB.
 - Check by reading `next build` output until it matters enough to automate.
 - 2026-09-18 measured: `next build` on Next 16 prints no size table; measure first-load JS in browser devtools (Network, JS, gzipped) when it matters.
@@ -52,3 +51,4 @@ their README; this file records what changed the project's direction.
 - 2026-09-26: intro room declutter. The ceiling fan and the hanging pothos (upper left when the camera stands back) leave RoomLife and RoomSet. The oak bench under the glass with its three pots, the tripod plant stand, the procedural desk succulent and the mug (with its steam and the store's `puff`) are gone: the workstation brings its own desk clutter and the bench abutted the slab. A Tripo multi-functional chess table (prepped to 40k triangles, textures at 1k) stands in the front right corner by the cushion, baked with the room. The leftmost floor plant is re-prepared from the same monstera GLB as `plotted_plant_dog` without cutting out the sleeping dog beside the pot, so the dog is now part of the baked plant.
 - 2026-09-26: the right wall is glass too, and dusk is the default. The chess table, the scandi shelf unit, the corner plant (potted_plant_02), the floor cushion, the stack of books and the real-time record player all leave the right side of the room (the overlay's Sound button still runs the music). The bake replaces the right wall and its baseboard with steel mullions every 1.5 m, a header and a threshold, and cuts a second 120°×60° slice of the meadow HDRI centred a quarter turn on (u = 0.75, `garden_r.jpg`) for the view through it. At run time a second garden plane and four glass sheets stand behind that wall, sharing the pane shader's rain and tint through their own material; the curtains stay on the back wall only. The store defaults to dusk (persist key bumped to 7) and the baked light mix and lamp level start on dusk so nothing fades in from night.
 - 2026-09-26: the view is New York at sunset, and sunset is the only mood. The night/dusk toggle is gone from the store (persist key bumped to 8), the overlay and the lamp's hover note; the bake runs one pass (warm-tinted sky at 0.5, a low orange sun, the practicals on) and no longer carries a second atlas or slices the HDRI for the view, so BakedRoom reads the lightmap straight from the occlusion slot with no shader patch. (The old runtime looked for a `lightmap_evening_carrier` while the bake named it `lightmap_dusk_carrier`, so the dusk atlas was never found and the room always showed the night bake.) The view through both glass walls is `paintSkyline` in lib/roomTextures.ts, a 1536x768 canvas per wall on an unlit, untonemapped plane: a sky gradient with the sun behind the Chrysler Building, Midtown (Bank of America, Empire State, One Vanderbilt, Chrysler, the pencil towers) beyond the back wall and Downtown (Woolworth, One World Trade and its neighbours, 70 Pine) beyond the right wall, lit windows, and the river mirroring it all. No image files: garden.jpg and garden_r.jpg are deleted. The pane shader with its rain, the dust in the lamp cone and the lamp cone itself are removed (rain was night-only; the dust was hidden whenever the lamp level was at dusk, which is now always). The framed photo falls back to its painted placeholder.
+- 2026-10-08: The lab is removed. `/` is the instruments experience; the other experiments (hello-cube, scroll-path, lighting-bench, chapters, studio-room) and the lab routes are deleted; instruments moves to `instruments/`; `useLabStore` becomes `useDeviceStore` (tier and reduced motion only). `docs/skeleton.md`, which specified the lab, is deleted.
