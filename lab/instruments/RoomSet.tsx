@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import type { Texture } from "three";
+import { useMemo } from "react";
 import {
   BoxGeometry,
   CylinderGeometry,
@@ -11,7 +10,7 @@ import {
   TorusGeometry,
 } from "three";
 import { Plant } from "./Plant";
-import { loadGarden, note, photo, rug, wood } from "./roomTextures";
+import { note, photo, rug, wood } from "./roomTextures";
 import { useRoomStore } from "./useRoomStore";
 
 const mat = (color: string, roughness = 0.85, metalness = 0) =>
@@ -128,27 +127,8 @@ export function RoomSet({
   );
   const woodTex = useMemo(() => (stage >= 1 ? wood() : null), [stage]);
   const rugTex = useMemo(() => (stage >= 1 ? rug() : null), [stage]);
-  const paintedPhoto = useMemo(() => (stage >= 1 ? photo() : null), [stage]);
-  // The framed photo is a corner of the garden outside, until a real one lands.
-  const [gardenPhoto, setGardenPhoto] = useState<Texture | null>(null);
-  useEffect(() => {
-    let on = true;
-    loadGarden().then(
-      (t) => {
-        if (!on) return;
-        const c = t.clone();
-        c.repeat.set(0.28, 0.42);
-        c.offset.set(0.36, 0.3);
-        c.needsUpdate = true;
-        setGardenPhoto(c);
-      },
-      () => {},
-    );
-    return () => {
-      on = false;
-    };
-  }, []);
-  const photoTex = gardenPhoto ?? paintedPhoto;
+  // The framed photo is a painted placeholder until a real one lands.
+  const photoTex = useMemo(() => (stage >= 1 ? photo() : null), [stage]);
   const m = useMemo(
     () => ({
       floor: mat("#c9b08a", 0.7),

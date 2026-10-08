@@ -2,10 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   paintCity,
   paintGobo,
-  paintNature,
   paintNeon,
   paintNote,
   paintRug,
+  paintSkyline,
   paintSpine,
   paintSprite,
   paintWood,
@@ -52,7 +52,8 @@ describe("room texture painters", () => {
       (c) => paintSpine(c, "Title", "#7a3b3b", "serif"),
       (c) => paintNote(c, "ship the globe by friday", "#f6e27a", "cursive"),
       (c) => paintGobo(c),
-      (c) => paintNature(c),
+      (c) => paintSkyline(c, "front"),
+      (c) => paintSkyline(c, "right"),
       (c) => paintSprite(c),
       (c) => paintNeon(c, "stay curious", "#ff8fb1", "cursive"),
     ];

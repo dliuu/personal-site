@@ -2,14 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
-import {
-  Group,
-  Mesh,
-  MeshStandardMaterial,
-  ShaderChunk,
-  SRGBColorSpace,
-  type Texture,
-} from "three";
+import { Group, Mesh, MeshStandardMaterial, SRGBColorSpace } from "three";
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { frameLerp } from "@/lib/drawIn";
@@ -18,31 +11,16 @@ import { useRoomStore } from "./useRoomStore";
 
 /**
  * The baked room: static shell and furniture modelled and lit in Blender
- * (scripts/room/build.py), delivered as one Draco GLB with the lightmap
- * carried as the glTF occlusion texture. Loaded after first paint and faded
- * in over the procedural room, which then hides its duplicates.
+ * (scripts/room/build.py), delivered as one Draco GLB with the sunset
+ * lightmap carried as the glTF occlusion texture. Loaded after first paint
+ * and faded in over the procedural room, which then hides its duplicates.
  */
-/** Shared by every baked material: 0 = day atlas, 1 = evening atlas. */
-// Starts on whichever atlas the store wakes up in, so dusk does not fade in from night.
-const lightMix = { value: useRoomStore.getState().duskMode ? 1 : 0 };
-const LM_LINE = "vec4 lightMapTexel = texture2D( lightMap, vLightMapUv );";
-
 let promise: Promise<Group> | null = null;
 function loadRoom(): Promise<Group> {
   promise ??= (async () => {
     const draco = new DRACOLoader().setDecoderPath("/draco/");
     const loader = new GLTFLoader().setDRACOLoader(draco);
     const gltf = await loader.loadAsync("/models/room.glb");
-    // The evening atlas rides in as the emissive map of a hidden carrier quad.
-    let evening: Texture | null = null;
-    gltf.scene.traverse((o) => {
-      const m = o as Mesh;
-      if (m.isMesh && m.name.startsWith("lightmap_evening_carrier")) {
-        evening = (m.material as MeshStandardMaterial).emissiveMap;
-      }
-    });
-    const carrier = gltf.scene.getObjectByName("lightmap_evening_carrier");
-    carrier?.removeFromParent();
     gltf.scene.traverse((o) => {
       const m = o as Mesh;
       if (!m.isMesh) return;
@@ -55,24 +33,6 @@ function loadRoom(): Promise<Group> {
         mat.lightMap.colorSpace = SRGBColorSpace;
         mat.lightMapIntensity = 1 / 0.35;
         mat.aoMap = null;
-      }
-      if (evening && mat.lightMap) {
-        // Blend toward the evening atlas in the shader; one uniform for all.
-        const ev = evening;
-        mat.onBeforeCompile = (shader) => {
-          shader.uniforms.lightMap2 = { value: ev };
-          shader.uniforms.lightMix = lightMix;
-          shader.fragmentShader =
-            "uniform sampler2D lightMap2;\nuniform float lightMix;\n" +
-            shader.fragmentShader.replace(
-              "#include <lights_fragment_maps>",
-              ShaderChunk.lights_fragment_maps.replace(
-                LM_LINE,
-                "vec4 lightMapTexel = mix( texture2D( lightMap, vLightMapUv ), texture2D( lightMap2, vLightMapUv ), lightMix );",
-              ),
-            );
-        };
-        mat.customProgramCacheKey = () => "baked-room-lm2";
       }
       mat.envMapIntensity = 0.35;
       mat.transparent = true;
@@ -111,14 +71,7 @@ export function BakedRoom() {
       window.clearTimeout(id);
     };
   }, []);
-  const duskMode = useRoomStore((s) => s.duskMode);
   useFrame((_, delta) => {
-    // Dusk is the default atlas; the toggle crossfades to night.
-    lightMix.value = lerp(
-      lightMix.value,
-      duskMode ? 1 : 0,
-      frameLerp(0.06, delta),
-    );
     if (!room || fade.current >= 1) return;
     fade.current = Math.min(
       1,

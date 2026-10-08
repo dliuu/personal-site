@@ -4,7 +4,6 @@ import { persist } from "zustand/middleware";
 export type Hover = { label: string; note?: string } | null;
 
 type RoomState = {
-  duskMode: boolean;
   soundOn: boolean;
   curtainsOpen: boolean;
   /** Seconds (performance.now based) until which the dog stays awake; 0 = asleep. */
@@ -13,7 +12,6 @@ type RoomState = {
   pinned: string | null;
   /** The baked room has faded in; the procedural shell can hide. */
   baked: boolean;
-  toggleDusk: () => void;
   toggleSound: () => void;
   toggleCurtains: () => void;
   wakePet: () => void;
@@ -25,14 +23,12 @@ type RoomState = {
 export const useRoomStore = create<RoomState>()(
   persist(
     (set) => ({
-      duskMode: true,
       soundOn: false,
       curtainsOpen: true,
       petAwakeUntil: 0,
       hover: null,
       pinned: null,
       baked: false,
-      toggleDusk: () => set((s) => ({ duskMode: !s.duskMode })),
       toggleSound: () => set((s) => ({ soundOn: !s.soundOn })),
       toggleCurtains: () => set((s) => ({ curtainsOpen: !s.curtainsOpen })),
       wakePet: () => set({ petAwakeUntil: performance.now() / 1000 + 8 }),
@@ -41,9 +37,8 @@ export const useRoomStore = create<RoomState>()(
       setBaked: (baked) => set({ baked }),
     }),
     {
-      name: "instruments-room-7",
+      name: "instruments-room-8",
       partialize: (s) => ({
-        duskMode: s.duskMode,
         soundOn: s.soundOn,
         curtainsOpen: s.curtainsOpen,
       }),
