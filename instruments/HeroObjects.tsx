@@ -12,7 +12,7 @@ import { lerp } from "@/lib/progress";
 import { beatAt, expandAmount, revealAmount, smooth } from "@/lib/beats";
 import { plateCamera, ZOOM_K, type CameraKey } from "@/lib/plateCamera";
 import { frameLerp, lineOpacity, lineScale, solidScale } from "@/lib/drawIn";
-import { useLabStore } from "@/store/useLabStore";
+import { useDeviceStore } from "@/store/useDeviceStore";
 import { useSectionsStore } from "@/store/useSectionsStore";
 import {
   chapters,
@@ -201,7 +201,7 @@ export function HeroObjects() {
   // eslint-disable-next-line react-hooks/immutability -- r3f pattern: mutate ref object3Ds in useFrame
   useFrame(({ camera, clock }, delta) => {
     const { active, progress, depth, tall } = useSectionsStore.getState();
-    const { reducedMotion } = useLabStore.getState();
+    const { reducedMotion } = useDeviceStore.getState();
     const sec = sections[active] ?? sections[0];
     const chapter = chapters[sec.chapter];
     // Heroes follow chapters, not sections: a plate holds its chapter centred

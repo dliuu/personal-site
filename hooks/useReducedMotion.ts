@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect } from "react";
-import { useLabStore } from "@/store/useLabStore";
+import { useDeviceStore } from "@/store/useDeviceStore";
 
 export function useReducedMotion(): void {
-  const setReducedMotion = useLabStore((s) => s.setReducedMotion);
+  const setReducedMotion = useDeviceStore((s) => s.setReducedMotion);
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
     const apply = () => setReducedMotion(mq.matches);

@@ -8,7 +8,7 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { frameLerp } from "@/lib/drawIn";
 import { greetBob, idleSway, swivelAmount } from "@/lib/introTimeline";
 import { lerp } from "@/lib/progress";
-import { useLabStore } from "@/store/useLabStore";
+import { useDeviceStore } from "@/store/useDeviceStore";
 import { plateState } from "./plateState";
 
 /**
@@ -74,7 +74,7 @@ export function DevFigure() {
   useFrame(({ clock, camera }, delta) => {
     const r = root.current;
     if (!r) return;
-    const { reducedMotion } = useLabStore.getState();
+    const { reducedMotion } = useDeviceStore.getState();
     const active = plateState.instrument === "desk";
     const p = active ? plateState.p : 0;
     const t = clock.elapsedTime;

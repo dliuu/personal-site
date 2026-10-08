@@ -19,7 +19,7 @@ import {
 import { keyPress, phonePulse, twinkle } from "@/lib/ambient";
 import { lerp } from "@/lib/progress";
 import { frameLerp } from "@/lib/drawIn";
-import { useLabStore } from "@/store/useLabStore";
+import { useDeviceStore } from "@/store/useDeviceStore";
 import { useThing } from "./RoomSet";
 import { skyline } from "./roomTextures";
 import { useRoomStore } from "./useRoomStore";
@@ -188,7 +188,7 @@ export function RoomLife({
   /* eslint-disable react-hooks/immutability -- r3f pattern: drive instances, materials and refs in useFrame */
   useFrame(({ clock }, delta) => {
     const t = clock.elapsedTime;
-    const { reducedMotion } = useLabStore.getState();
+    const { reducedMotion } = useDeviceStore.getState();
     const room = useRoomStore.getState();
     const k = frameLerp(0.06, delta);
 
