@@ -5,7 +5,7 @@ import { Stats } from "@react-three/drei";
 import { Leva } from "leva";
 import { Suspense, useEffect, useState, type ReactNode } from "react";
 import { pickInitialTier } from "@/lib/quality";
-import { useLabStore } from "@/store/useLabStore";
+import { useDeviceStore } from "@/store/useDeviceStore";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { WebGLFallback } from "./WebGLFallback";
 
@@ -40,8 +40,8 @@ export function Stage({
   frameloop = "always",
   cameraPosition = [0, 2, 6],
 }: StageProps) {
-  const tier = useLabStore((s) => s.tier);
-  const setTier = useLabStore((s) => s.setTier);
+  const tier = useDeviceStore((s) => s.tier);
+  const setTier = useDeviceStore((s) => s.setTier);
   const [webgl, setWebgl] = useState<boolean | null>(null);
   useReducedMotion();
 
