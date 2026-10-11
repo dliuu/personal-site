@@ -5,8 +5,10 @@ export type InstrumentKind =
   | "network"
   | "globe"
   | "bridge"
+  | "site"
   | "quadrant";
-export type MechKind = "spinY" | "spinZ" | "swing" | "tilt" | "drop";
+/** `face`: like spinY in the plate, but never turns with the scroll in the band (the scene has a front). */
+export type MechKind = "spinY" | "spinZ" | "swing" | "tilt" | "drop" | "face";
 export type Chapter = {
   id: "intro" | "eisen" | "meta" | "wcp" | "contact";
   numeral: string;
@@ -121,6 +123,62 @@ export const eisenBeats: PlateBeat[] = [
   },
 ];
 
+/**
+ * WCP's plate, the draw engine: one beat per bullet. The scene faces the
+ * camera at lon −90 (faceYaw(−90) = 0), so beats sit around it.
+ */
+export const wcpBeats: PlateBeat[] = [
+  {
+    caption:
+      "Led an 8-engineer team to build and deploy a stateless backend for FISH, a white-label lending platform; institutional onboarding contributed $1.3M ARR.",
+    sub: "The site",
+    at: "plot",
+    lon: -90,
+    lat: 18,
+    zoom: "full",
+    side: "right",
+  },
+  {
+    caption:
+      "A multi-client backend for DSCR, hard-money, refinance and bridge loans, with live admin customization for 12+ lending institutions.",
+    sub: "The lenders",
+    at: "tower",
+    lon: -72,
+    lat: 12,
+    zoom: "mid",
+    side: "right",
+  },
+  {
+    caption:
+      "A project-management system for configurable loan calculations and guidelines across regions; the fleet scaled on traffic data, response times 56% faster year over year.",
+    sub: "The crane",
+    at: "crane",
+    lon: -104,
+    lat: 22,
+    zoom: "full",
+    side: "left",
+  },
+  {
+    caption:
+      "Live pipelines ingesting payment, disbursement and lending data into production Postgres.",
+    sub: "The ledger",
+    at: "silo",
+    lon: -80,
+    lat: 20,
+    zoom: "close",
+    side: "right",
+  },
+  {
+    caption:
+      "AI categorization: every loan document and payment line read and filed to its place in the loan record.",
+    sub: "The cap",
+    lon: -96,
+    lat: 14,
+    zoom: "full",
+    side: "left",
+  },
+];
+
 export const chapters: Chapter[] = [
   {
     id: "intro",
@@ -162,11 +220,12 @@ export const chapters: Chapter[] = [
     id: "wcp",
     numeral: "IV",
     title: "Washington Capital",
-    instrument: "bridge",
-    mech: "drop",
-    note: "the keystone last",
+    instrument: "site",
+    mech: "face",
+    note: "floors up, the cap last",
     spin: 0,
     palette: { paper: "#efe0cc", ink: "#3d2418", accent: "#c49a3c" },
+    plate: { beats: wcpBeats },
   },
   {
     id: "contact",

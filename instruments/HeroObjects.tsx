@@ -23,6 +23,7 @@ import {
 import { locales, NYC } from "./locales";
 import { DeskScene } from "./DeskScene";
 import { Network } from "./Network";
+import { Site } from "./Site";
 import { Hotspots, useHotspotDismiss } from "./Hotspots";
 import { INK, PARCHMENT } from "./palette";
 import { plateState } from "./plateState";
@@ -74,6 +75,7 @@ const KIND: Record<
   network: Network,
   globe: Globe,
   bridge: Bridge,
+  site: Site,
   quadrant: Quadrant,
 };
 
@@ -86,6 +88,7 @@ const FIT: Record<InstrumentKind, number> = {
   network: 1.75 / 1.3,
   globe: 1.75 / 1.5,
   bridge: 1.75 / 2.1,
+  site: 1.75 / 1.75,
   quadrant: 1.75 / 1.45,
 };
 
@@ -306,7 +309,10 @@ export function HeroObjects() {
       const idle = idleAngle.current[i];
       // In its plate the yaw is scripted per beat (plateYaw); the offset
       // cancels the running spin, so the turn never snaps.
-      const goal = inPlate ? plateState.cam.yaw - (base + idle) : 0;
+      const faces = chapters[i].mech === "face";
+      const goal = inPlate
+        ? plateState.cam.yaw - ((faces ? 0 : base) + idle)
+        : 0;
       settleOff.current[i] = reducedMotion
         ? goal
         : lerp(settleOff.current[i], goal, frameLerp(CAM_LERP, delta));
@@ -329,6 +335,9 @@ export function HeroObjects() {
             m.position.y = 0.5 * (1 - p);
             break;
           }
+          case "face":
+            m.rotation.y = idle + settleOff.current[i];
+            break;
           default:
             m.rotation.y = base + idle + settleOff.current[i];
         }

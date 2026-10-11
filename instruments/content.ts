@@ -71,6 +71,8 @@ export const roles: Role[] = [
       "Designed a multi-client backend for DSCR, hard-money, refinance and bridge loans with live admin customization for 12+ lending institutions.",
       "Shipped a project-management system for configurable loan calculations and guidelines across regions; scaled the fleet on traffic data, response times 56% faster year over year.",
       "Built live pipelines ingesting payment, disbursement and lending data into production Postgres.",
+      // PLACEHOLDER wording (owner input): the categorization work the WCP plate's last beat anchors.
+      "Built AI categorization for loan documents and payment transactions, filing each to its place in the loan record.",
     ],
     skills: [
       "Python/Flask",

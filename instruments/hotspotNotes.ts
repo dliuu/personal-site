@@ -68,6 +68,18 @@ export const hotspots: Record<InstrumentKind, Hotspot[]> = {
       note: "$1.3M ARR from institutional onboarding.",
     },
   ],
+  site: [
+    {
+      position: [0.18, 0.44, -0.03],
+      label: "1",
+      note: "The crane sets the cap last: the classifier that files every page and payment.",
+    },
+    {
+      position: [0.58, -0.03, -0.14],
+      label: "2",
+      note: "Five towers, one block: each draw raises a floor.",
+    },
+  ],
   quadrant: [
     {
       position: [0.5, -0.4, 0],
