@@ -57,3 +57,22 @@ describe("the house", () => {
     expect(weekAngle(1)).toBeLessThan(weekAngle(0));
   });
 });
+
+describe("polish", () => {
+  it("spreads the outer shares first and all the way", async () => {
+    const { sliceSpread, roofLift, tileRise, puff, monthAngles } =
+      await import("./stuga");
+    expect(sliceSpread(0, 0, 8)).toBe(0);
+    expect(sliceSpread(0.4, 0, 8)).toBeGreaterThan(sliceSpread(0.4, 3, 8));
+    expect(sliceSpread(1, 3, 8)).toBe(1);
+    expect(roofLift(0)).toBe(0);
+    expect(roofLift(1)).toBeCloseTo(0.22);
+    expect(tileRise(0)).toBe(1);
+    expect(tileRise(1)).toBeCloseTo(2.2);
+    const p = puff(1.3, 2, 6);
+    expect(p.y).toBeGreaterThanOrEqual(0);
+    expect(p.y).toBeLessThanOrEqual(0.5);
+    expect(p.alpha).toBeGreaterThanOrEqual(0);
+    expect(monthAngles().length).toBe(12);
+  });
+});

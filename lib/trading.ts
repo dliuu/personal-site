@@ -90,3 +90,37 @@ export function lineDrawn(active: boolean, beat: number, t: number): number {
   if (beat < 2) return 0;
   return smooth(0.1, 0.85, t);
 }
+
+/** Volume under each candle: a deterministic bar, larger on big moves. */
+export function volumeSeries(series: Candle[]): number[] {
+  return series.map(
+    (c, i) => 0.25 + 0.6 * hash01(4000 + i) + 2.5 * Math.abs(c.close - c.open),
+  );
+}
+
+/** Where tape dash i (of n) is along the feed, 0..1, streaming in at `time`. */
+export function tapeU(time: number, i: number, n: number): number {
+  const u = (time / 4 + i / n) % 1;
+  return u < 0 ? u + 1 : u;
+}
+
+/** Station k sits at this fraction of a slip's circuit (research first, execution last). */
+export function stationU(k: number): number {
+  return k / STATIONS.length;
+}
+
+/** A slip is stamped once it has passed the risk gate on this circuit. */
+export function stamped(u: number): boolean {
+  return u > stationU(2) + 0.02;
+}
+
+/** 0..1 strike of a station's mechanism (the gate's bar, the hammer) when a slip is at it: the nearest slip within the window. */
+export function strike(slips: number[], k: number, window = 0.035): number {
+  const at = stationU(k);
+  let best = 0;
+  for (const u of slips) {
+    const d = Math.abs(u - at);
+    if (d < window) best = Math.max(best, 1 - d / window);
+  }
+  return Math.sin(best * Math.PI);
+}

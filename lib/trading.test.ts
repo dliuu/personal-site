@@ -73,3 +73,27 @@ describe("timing", () => {
     expect(lineDrawn(false, 0, 0)).toBe(1);
   });
 });
+
+describe("polish", () => {
+  it("volumes are positive and larger on big moves", async () => {
+    const { volumeSeries, candleSeries } = await import("./trading");
+    const s = candleSeries();
+    const v = volumeSeries(s);
+    expect(v.length).toBe(s.length);
+    v.forEach((x) => expect(x).toBeGreaterThan(0));
+  });
+  it("tape dashes stream and wrap", async () => {
+    const { tapeU } = await import("./trading");
+    expect(tapeU(0, 0, 4)).toBeCloseTo(0);
+    expect(tapeU(4, 0, 4)).toBeCloseTo(0);
+    expect(tapeU(1, 1, 4)).toBeCloseTo(0.5);
+  });
+  it("stamps after the risk gate and strikes when a slip is at a station", async () => {
+    const { stamped, strike, stationU } = await import("./trading");
+    expect(stamped(stationU(1))).toBe(false);
+    expect(stamped(stationU(2) + 0.05)).toBe(true);
+    expect(strike([stationU(2)], 2)).toBeCloseTo(0);
+    expect(strike([stationU(2) + 0.0175], 2)).toBeCloseTo(1);
+    expect(strike([stationU(0)], 2)).toBe(0);
+  });
+});

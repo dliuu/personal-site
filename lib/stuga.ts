@@ -52,3 +52,40 @@ export function neighboursUp(active: boolean, beat: number, t: number): number {
 export function weekAngle(k: number): number {
   return Math.PI / 2 - (k / WEEKS) * Math.PI * 2;
 }
+
+/** How far slice i (of n) has spread for a gap 0..1: the outer shares lead, the middle follow. */
+export function sliceSpread(gap: number, i: number, n: number): number {
+  const rank = Math.abs(i - (n - 1) / 2) / ((n - 1) / 2);
+  return smooth(0, 1, Math.min(1, Math.max(0, gap * 1.6 - (1 - rank) * 0.6)));
+}
+
+/** The roof lifts clear while the shares stand apart: up with the gap, with a little overshoot. */
+export function roofLift(gap: number): number {
+  return 0.22 * smooth(0, 0.7, gap) + 0.04 * Math.sin(Math.PI * gap);
+}
+
+/** A lit tile rises with a bounce as it lights: height 1..2 over lit 0..1. */
+export function tileRise(lit: number): number {
+  return 1 + 1.2 * lit + 0.35 * Math.sin(Math.PI * lit);
+}
+
+export type Puff = { y: number; r: number; alpha: number; drift: number };
+
+/** Chimney smoke: puff i of n at time, rising, growing and fading on its own phase. */
+export function puff(time: number, i: number, n: number): Puff {
+  const u = (((time / 5 + i / n) % 1) + 1) % 1;
+  return {
+    y: u * 0.5,
+    r: 0.025 + 0.06 * u,
+    alpha: 0.45 * (1 - u) * smooth(0, 0.12, u),
+    drift: 0.08 * Math.sin(u * 4 + i),
+  };
+}
+
+/** Angles of the twelve month posts between the tiles. */
+export function monthAngles(): number[] {
+  return Array.from(
+    { length: 12 },
+    (_, m) => weekAngle((m * WEEKS) / 12) + Math.PI / WEEKS,
+  );
+}
