@@ -49,6 +49,8 @@ const CAM_LERP = 0.08;
 // Where the plate opens: the Americas at full distance, so beat 0 turns east
 // onto New York. Narrow screens stop a little further out on close-ups.
 const ENTRY: CameraKey = { lon: -105, lat: 10, k: ZOOM_K.full };
+/** A project opens facing the reader: no entry turn. */
+const PROJECT_ENTRY: CameraKey = { lon: -90, lat: 10, k: ZOOM_K.full };
 const CLOSE_K_NARROW = 2.1;
 const MODAL_LERP = 0.1;
 /** How much an open project grows in the hero region at the full zoom; closer beats grow by the square root of the zoom ratio. */
@@ -284,7 +286,7 @@ export function HeroObjects() {
     plateState.expand = expand;
     const k = project ? projectKeys[project.id] : keys[sec.chapter];
     if (plateOpen && k) {
-      const cam = plateCamera(ENTRY, k, b.index, b.t);
+      const cam = plateCamera(project ? PROJECT_ENTRY : ENTRY, k, b.index, b.t);
       plateState.cam.yaw = cam.yaw;
       plateState.cam.el = cam.el;
       plateState.cam.k = cam.k;

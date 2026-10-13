@@ -93,7 +93,12 @@ export type Project = {
   id: string;
   title: string;
   line: string;
+  /** What the placeholder scene stands in as, until a project has its own. */
   kind: "product" | "ml";
+  /** The hairline emblem on its card. */
+  emblem: "cabin" | "candles" | "mill" | "screen";
+  /** Its own scene module (instruments/projects/*), loaded on first open. */
+  scene?: "stuga" | "trading";
   /** Three beats: the problem, the build, the result. */
   beats: {
     caption: string;
@@ -106,113 +111,118 @@ export type Project = {
   }[];
 };
 
-// PLACEHOLDER projects (owner input): titles, lines and beats are stand-ins
-// until the real list arrives; each project will get its own scene.
 export const projects: Project[] = [
   {
-    id: "classifier",
-    title: "Loan document classifier",
-    line: "Reads every page of a loan file and files it where it belongs.",
-    kind: "ml",
+    id: "stuga",
+    title: "Stuga",
+    line: "Co-own a vacation home: shares of a house, and a year with no double bookings.",
+    kind: "product",
+    emblem: "cabin",
+    scene: "stuga",
+    // PLACEHOLDER wording (owner input): the facts are from the Stuga page.
     beats: [
       {
-        caption: "The problem: thousands of pages a week, sorted by hand.",
+        caption:
+          "The problem: a vacation home costs one owner everything and sits empty fifty weeks a year.",
         sub: "The problem",
-        at: "hopper",
+        at: "house",
         lon: -90,
-        lat: 12,
+        lat: 14,
         zoom: "full",
         side: "left",
       },
       {
         caption:
-          "The build: a classifier over page text and layout, trained on the back office's own filing.",
+          "The build: shares of a home for eight co-owners, and a booking engine that gives each their weeks with no two overlapping. Full stack, launched August 2023.",
         sub: "The build",
-        at: "wheel",
-        lon: -60,
-        lat: 8,
-        zoom: "mid",
+        at: "ring",
+        lon: -70,
+        lat: 22,
+        zoom: "full",
         side: "left",
       },
       {
         caption:
-          "The result: pages land in the right slot before anyone opens the file.",
+          "The result: beach, mountain and countryside homes, each owned by a group and booked through the year.",
         sub: "The result",
-        at: "out",
-        lon: -110,
-        lat: 20,
-        zoom: "close",
+        at: "neighbours",
+        lon: -100,
+        lat: 16,
+        zoom: "far",
         side: "left",
       },
     ],
   },
   {
-    id: "lender-portal",
-    title: "Lender portal",
-    line: "A white-label front door for twelve lending institutions.",
-    kind: "product",
+    id: "trading",
+    title: "Trading agents",
+    line: "An agent loop that researches, decides, checks risk and places the order.",
+    kind: "ml",
+    emblem: "candles",
+    scene: "trading",
+    // PLACEHOLDER wording (owner input): no returns are claimed until the owner says what the run was.
     beats: [
       {
         caption:
-          "The problem: every lender wanted its own product, on one platform.",
+          "The problem: markets move faster than a person can read them, and a bad trade is one click away.",
         sub: "The problem",
-        at: "screen",
         lon: -90,
-        lat: 10,
+        lat: 16,
         zoom: "full",
         side: "left",
       },
       {
         caption:
-          "The build: one backend, live admin customization per institution.",
+          "The build: four agents in a loop, research, strategy, risk and execution, and every order through the risk gate.",
         sub: "The build",
-        at: "edge",
-        lon: -65,
-        lat: 6,
-        zoom: "mid",
+        at: "carousel",
+        lon: -75,
+        lat: 20,
+        zoom: "full",
         side: "left",
       },
       {
-        caption: "The result: twelve brands, one codebase.",
+        caption:
+          "The result: orders placed and logged across the run, each one flagged where it happened.",
         sub: "The result",
-        at: "base",
+        at: "flags",
         lon: -105,
-        lat: 18,
-        zoom: "close",
+        lat: 12,
+        zoom: "mid",
         side: "left",
       },
     ],
   },
+  // PLACEHOLDER projects (owner input): two more to come.
   {
-    id: "benchmarks",
-    title: "Translation benchmarks",
-    line: "Llama against Gemini, Claude and GPT across 48 languages.",
+    id: "project-three",
+    title: "Project three",
+    line: "A third build, to be named.",
     kind: "ml",
+    emblem: "mill",
     beats: [
       {
-        caption: "The problem: which model, for which language, at what cost.",
+        caption: "The problem.",
         sub: "The problem",
-        at: "hopper",
+        at: "a",
         lon: -90,
         lat: 12,
         zoom: "full",
         side: "left",
       },
       {
-        caption:
-          "The build: offline and online benchmarks with human post-editing.",
+        caption: "The build.",
         sub: "The build",
-        at: "wheel",
+        at: "b",
         lon: -60,
         lat: 8,
         zoom: "mid",
         side: "left",
       },
       {
-        caption:
-          "The result: the data that green-lit AI translation in new locales.",
+        caption: "The result.",
         sub: "The result",
-        at: "out",
+        at: "c",
         lon: -110,
         lat: 20,
         zoom: "close",
@@ -221,34 +231,34 @@ export const projects: Project[] = [
     ],
   },
   {
-    id: "factory",
-    title: "Agent software factory",
-    line: "A container agent for every task, stamped by a compliance ring.",
+    id: "project-four",
+    title: "Project four",
+    line: "A fourth build, to be named.",
     kind: "product",
+    emblem: "screen",
     beats: [
       {
-        caption: "The problem: a backlog that outgrew the team.",
+        caption: "The problem.",
         sub: "The problem",
-        at: "screen",
+        at: "a",
         lon: -90,
         lat: 10,
         zoom: "full",
         side: "left",
       },
       {
-        caption:
-          "The build: an orchestrator that spins up an agent per task and a ring that stamps the work.",
+        caption: "The build.",
         sub: "The build",
-        at: "edge",
+        at: "b",
         lon: -65,
         lat: 6,
         zoom: "mid",
         side: "left",
       },
       {
-        caption: "The result: work ships with its compliance trail attached.",
+        caption: "The result.",
         sub: "The result",
-        at: "base",
+        at: "c",
         lon: -105,
         lat: 18,
         zoom: "close",

@@ -1,6 +1,15 @@
 "use client";
 
-import { useMemo, useRef, useState, type RefObject } from "react";
+import {
+  lazy,
+  Suspense,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentType,
+  type LazyExoticComponent,
+  type RefObject,
+} from "react";
 import { useFrame } from "@react-three/fiber";
 import {
   BoxGeometry,
@@ -29,6 +38,19 @@ import { useProjectStore } from "./useProjectStore";
  * place; the wheel then reads the scene's beats. The scenes here are
  * placeholders, one shape per project kind, until each project gets its own.
  */
+
+/** A project's own scene, loaded the first time it opens; the rest use the placeholder. */
+const SCENES: Record<
+  NonNullable<Project["scene"]>,
+  LazyExoticComponent<ComponentType<{ project: Project }>>
+> = {
+  stuga: lazy(() =>
+    import("./projects/Stuga").then((m) => ({ default: m.Stuga })),
+  ),
+  trading: lazy(() =>
+    import("./projects/Trading").then((m) => ({ default: m.Trading })),
+  ),
+};
 
 const FAN = 0.6;
 const FAN_LERP = 0.08;
@@ -90,7 +112,18 @@ export function Folio({ mech }: { mech: RefObject<Group | null> }) {
           ))}
         </group>
         <group ref={scene}>
-          {project ? <PlaceholderScene project={project} /> : null}
+          {project ? (
+            project.scene ? (
+              <Suspense fallback={null}>
+                {(() => {
+                  const Scene = SCENES[project.scene];
+                  return <Scene project={project} />;
+                })()}
+              </Suspense>
+            ) : (
+              <PlaceholderScene project={project} />
+            )
+          ) : null}
         </group>
       </group>
     </group>

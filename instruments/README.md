@@ -6,6 +6,8 @@ Eisen (chapter II) is a SKELETON of the software factory: an orchestrator core s
 
 Washington Capital Partners (chapter IV) is a construction site: five steel-frame towers rise floor by floor through a five-beat plate as the loans fund them, under a lattice tower crane that sets the gold cap (the classifier) on the tallest tower on the last beat (`instruments/Site.tsx`, yard in `SiteDressing.tsx`, pure layout and timing in `lib/site.ts`). The fifth bullet, the AI categorization work, is placeholder wording (owner input).
 
+Projects (chapter V) is a folio: cards in the column, a stack of plates in the band, and a project that opens by click into the hero region on the right (`instruments/Folio.tsx`, `useProjectStore.ts`). Scenes with their own module live in `instruments/projects/` and load on first open: Stuga (`lib/stuga.ts`) and the trading agents (`lib/trading.ts`). Two projects are placeholders (owner input).
+
 Spec: `superpowers/specs/2026-09-20-instruments-design.md` (local).
 Spec: `superpowers/specs/2026-09-20-profile-design.md` (local).
 

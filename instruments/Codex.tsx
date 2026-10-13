@@ -7,7 +7,14 @@ import { useRoomStore } from "./useRoomStore";
 import { beatAt } from "@/lib/beats";
 import { greetOpacity, overlayOpacity } from "@/lib/introTimeline";
 import { chapters, sections, type Chapter } from "./chapters";
-import { links, profile, projects, roles, type Role } from "./content";
+import {
+  links,
+  profile,
+  projects,
+  roles,
+  type Project,
+  type Role,
+} from "./content";
 import { scrub } from "@/lib/folio";
 import { useProjectStore } from "./useProjectStore";
 import { fell, script, ui } from "./fonts";
@@ -67,11 +74,28 @@ function RoleBody({ role }: { role: Role }) {
 
 const NUMERALS = ["i", "ii", "iii", "iv", "v", "vi", "vii", "viii", "ix", "x"];
 
-/** A hairline emblem per project kind: a mill wheel for a model, a framed screen for a product. */
-function Emblem({ kind }: { kind: "product" | "ml" }) {
+/** A hairline emblem per card: a cabin in its year, candles with the run's line, a mill wheel, a framed screen. */
+function Emblem({ kind }: { kind: Project["emblem"] }) {
   return (
     <svg className="instruments-folio-emblem" viewBox="0 0 44 44" aria-hidden>
-      {kind === "ml" ? (
+      {kind === "cabin" ? (
+        <>
+          <circle cx="22" cy="24" r="17" strokeDasharray="2 2" />
+          <path d="M12 23 L22 13 L32 23 V33 H12 Z" />
+          <rect x="19" y="26" width="6" height="7" />
+          <line x1="27" y1="14" x2="27" y2="19" />
+        </>
+      ) : kind === "candles" ? (
+        <>
+          {[10, 18, 26, 34].map((x, i) => (
+            <g key={x}>
+              <line x1={x} y1={8 + i * 2} x2={x} y2={36 - i * 2} />
+              <rect x={x - 2.5} y={14 + i * 3} width="5" height={10 - i} />
+            </g>
+          ))}
+          <polyline points="6,30 14,26 22,27 30,20 38,16" />
+        </>
+      ) : kind === "mill" ? (
         <>
           <circle cx="22" cy="22" r="14" />
           <circle cx="22" cy="22" r="4" />
@@ -135,7 +159,7 @@ function ProjectsBody() {
               <span className="instruments-caption-num">{NUMERALS[i]}</span>
               <span className="instruments-folio-title">{p.title}</span>
               <span className="instruments-folio-line">{p.line}</span>
-              <Emblem kind={p.kind} />
+              <Emblem kind={p.emblem} />
             </button>
           </li>
         ))}
