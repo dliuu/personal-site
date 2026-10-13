@@ -74,7 +74,7 @@ const equityY = (e: number) => -0.25 + (e - 1) * 1.0;
 /** Callout anchors: the problem beat is docked (its card would cover the ridge), then the carousel, then a traded candle. */
 const ANCHORS: (Vector3 | null)[] = [
   null,
-  new Vector3(CAROUSEL.x, CAROUSEL.y + 0.3, CAROUSEL.z),
+  new Vector3(CAROUSEL.x - 0.4, CAROUSEL.y - 0.08, CAROUSEL.z + 0.4),
   new Vector3(candleX(TRADES[Math.min(2, TRADES.length - 1)]), 0.15, 0.1),
 ];
 
