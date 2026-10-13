@@ -44,16 +44,11 @@ export const hotspots: Record<InstrumentKind, Hotspot[]> = {
       note: "The compliance ring: work is stamped before it ships.",
     },
   ],
-  globe: [
+  earth: [
     {
-      position: [0.9, 0.55, 0.5],
+      position: [0, 0.8, 0.6],
       label: "1",
-      note: "48 pins: one per language-locale launched with AI Translation.",
-    },
-    {
-      position: [0, -1.0, 0],
-      label: "2",
-      note: "$4.31M in annualized translation OPEX savings.",
+      note: "AI Translation launched across 48 language-locales, from New York.",
     },
   ],
   bridge: [
@@ -78,6 +73,13 @@ export const hotspots: Record<InstrumentKind, Hotspot[]> = {
       position: [0.58, -0.03, -0.14],
       label: "2",
       note: "Five towers, one block: each draw raises a floor.",
+    },
+  ],
+  folio: [
+    {
+      position: [0, -0.1, 0.4],
+      label: "1",
+      note: "One plate per project. Open one from the list to read it.",
     },
   ],
   quadrant: [

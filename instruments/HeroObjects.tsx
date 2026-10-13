@@ -22,18 +22,21 @@ import {
 } from "./chapters";
 import { locales, NYC } from "./locales";
 import { DeskScene } from "./DeskScene";
+import { Earth } from "./Earth";
+import { Folio } from "./Folio";
 import { Network } from "./Network";
 import { Site } from "./Site";
 import { Hotspots, useHotspotDismiss } from "./Hotspots";
 import { INK, PARCHMENT } from "./palette";
 import { plateState } from "./plateState";
 import { useExploreStore } from "./useExploreStore";
+import { useProjectStore } from "./useProjectStore";
+import { projects } from "./content";
 import {
   Armillary,
   Balance,
   Bridge,
   EdgedModeContext,
-  Globe,
   Quadrant,
 } from "./Instruments";
 
@@ -47,6 +50,10 @@ const CAM_LERP = 0.08;
 // onto New York. Narrow screens stop a little further out on close-ups.
 const ENTRY: CameraKey = { lon: -105, lat: 10, k: ZOOM_K.full };
 const CLOSE_K_NARROW = 2.1;
+const MODAL_LERP = 0.1;
+/** How much an open project grows in the hero region at the full zoom; closer beats grow by the square root of the zoom ratio. */
+const STAGE_K = 1.1;
+const STAGE_LIFT = 0.08;
 // The globe's sphere sits 0.3 below its root; lift the hero so the sphere is
 // centred on screen while the plate is open.
 const PLATE_LIFT = 0.3;
@@ -73,9 +80,10 @@ const KIND: Record<
   armillary: Armillary,
   balance: Balance,
   network: Network,
-  globe: Globe,
+  earth: Earth,
   bridge: Bridge,
   site: Site,
+  folio: Folio,
   quadrant: Quadrant,
 };
 
@@ -86,9 +94,11 @@ const FIT: Record<InstrumentKind, number> = {
   armillary: 1.75 / 1.9,
   balance: 1.75 / 1.5,
   network: 1.75 / 1.3,
-  globe: 1.75 / 1.5,
+  // The Earth sits well back from the reader in the band.
+  earth: 1.75 / 2.4,
   bridge: 1.75 / 2.1,
   site: 1.75 / 1.75,
+  folio: 1.75 / 1.4,
   quadrant: 1.75 / 1.45,
 };
 
@@ -141,6 +151,11 @@ export function HeroObjects() {
   const scene = useThree((s) => s.scene);
   const active = useSectionsStore((s) => s.active);
   const tall = useSectionsStore((s) => s.tall);
+  const openProject = useProjectStore((s) => s.open);
+  const modalP = useRef(0);
+  // True from an open until the hero has shrunk back, so the close does not
+  // jump through the scroll plate's centred framing.
+  const staged = useRef(false);
   const place = heroPlacement({
     width: size.width,
     height: size.height,
@@ -156,6 +171,16 @@ export function HeroObjects() {
         c.plate
           ? beatKeys(c.plate.beats, narrow ? CLOSE_K_NARROW : ZOOM_K.close)
           : null,
+      ),
+    [narrow],
+  );
+  const projectKeys = useMemo(
+    () =>
+      Object.fromEntries(
+        projects.map((p) => [
+          p.id,
+          beatKeys(p.beats, narrow ? CLOSE_K_NARROW : ZOOM_K.close),
+        ]),
       ),
     [narrow],
   );
@@ -210,8 +235,20 @@ export function HeroObjects() {
     // Heroes follow chapters, not sections: a plate holds its chapter centred
     // and hands off to the next hero as it shrinks back.
     const heroCont = heroContinuous(sections, active, progress);
+    // A modal chapter's plate is open by click: it expands on the open id and
+    // the wheel scrubs its beats (useProjectStore), not the scroll.
+    const modal = useProjectStore.getState();
+    const project =
+      chapter.modal && modal.open
+        ? projects.find((p) => p.id === modal.open)
+        : undefined;
+    modalP.current = project
+      ? reducedMotion
+        ? modal.progress
+        : lerp(modalP.current, modal.progress, frameLerp(MODAL_LERP, delta))
+      : 0;
     const fadeTarget =
-      narrow && tall && sec.kind !== "plate"
+      narrow && tall && sec.kind !== "plate" && !project
         ? 1 - smooth(0.28, 0.55, depth)
         : 1;
     fadeCur.current = reducedMotion
@@ -219,7 +256,11 @@ export function HeroObjects() {
       : lerp(fadeCur.current, fadeTarget, frameLerp(LERP, delta));
     const fade = fadeCur.current;
 
-    const expandTarget = sec.kind === "plate" ? expandAmount(progress) : 0;
+    const expandTarget = project
+      ? 1
+      : sec.kind === "plate"
+        ? expandAmount(progress)
+        : 0;
     expandCur.current = reducedMotion
       ? expandTarget
       : lerp(expandCur.current, expandTarget, frameLerp(EXPAND_LERP, delta));
@@ -227,14 +268,22 @@ export function HeroObjects() {
 
     // Publish before anything reads it, so instruments drawing in their own
     // useFrame (which may run before or after this one) see a coherent frame.
-    plateState.instrument = sec.kind === "plate" ? chapter.instrument : null;
-    plateState.p = sec.kind === "plate" ? progress : 0;
-    const b = beatAt(plateState.p, chapter.plate?.beats.length ?? 1);
+    const plateOpen = sec.kind === "plate" || Boolean(project);
+    plateState.instrument = plateOpen ? chapter.instrument : null;
+    plateState.p = project
+      ? modalP.current
+      : sec.kind === "plate"
+        ? progress
+        : 0;
+    const b = beatAt(
+      plateState.p,
+      project ? project.beats.length : (chapter.plate?.beats.length ?? 1),
+    );
     plateState.beat = b.index;
     plateState.t = b.t;
     plateState.expand = expand;
-    const k = keys[sec.chapter];
-    if (sec.kind === "plate" && k) {
+    const k = project ? projectKeys[project.id] : keys[sec.chapter];
+    if (plateOpen && k) {
       const cam = plateCamera(ENTRY, k, b.index, b.t);
       plateState.cam.yaw = cam.yaw;
       plateState.cam.el = cam.el;
@@ -242,13 +291,26 @@ export function HeroObjects() {
     }
     // A scene chapter is drawn real from its first frame; plates reveal.
     const isScene = Boolean(chapter.scene);
-    plateState.reveal = isScene || chapter.screen ? 1 : revealAmount(expand);
+    plateState.reveal =
+      isScene || chapter.screen || chapter.raw ? 1 : revealAmount(expand);
     // The studio environment lights the revealed globe, and the sunset room a little.
     // eslint-disable-next-line react-hooks/immutability -- r3f pattern: scene setting driven in useFrame
     scene.environmentIntensity = isScene ? 0.3 : plateState.reveal;
 
+    staged.current = project ? true : expand < 0.01 ? false : staged.current;
     const parent = parentRef.current;
-    if (parent) {
+    if (parent && staged.current) {
+      // An open project stays on the right, in the hero region, and grows a
+      // little with each beat's zoom instead of the camera closing in.
+      const stage = STAGE_K * Math.sqrt(ZOOM_K.full / plateState.cam.k);
+      // Lifted a little so the docked caption under it keeps clear.
+      parent.position.set(
+        place.x,
+        place.y + STAGE_LIFT * vp.height * expand,
+        0,
+      );
+      parent.scale.setScalar(place.scale * lerp(1, stage, expand));
+    } else if (parent) {
       // The plate centres the hero; the camera then orbits its sphere.
       parent.position.set(
         lerp(place.x, 0, expand),
@@ -349,8 +411,10 @@ export function HeroObjects() {
         yaw.current[i];
     }
 
-    if (keyLight.current) keyLight.current.intensity = 2.5 + 0.7 * expand;
-    if (rimLight.current) rimLight.current.intensity = 1.2 * expand;
+    // A raw chapter (the Earth) is lit like an open plate even in the band.
+    const lit = chapter.raw ? 1 : expand;
+    if (keyLight.current) keyLight.current.intensity = 2.5 + 0.7 * lit;
+    if (rimLight.current) rimLight.current.intensity = 1.2 * lit;
     // Beat 1: the key light swings low across the surface so coasts catch
     // hatching under the push-in.
     const rake = plateState.instrument
@@ -369,7 +433,7 @@ export function HeroObjects() {
       // The room owns its camera path; DeskScene writes it each frame.
       goalPos.current.copy(plateState.introCam.pos);
       goalTgt.current.copy(plateState.introCam.tgt);
-    } else if (parent && plateState.instrument) {
+    } else if (parent && plateState.instrument && !staged.current) {
       // Orbit the sphere's centre: rise to the anchor's latitude, sit k radii
       // out, and look at the centre; blended in by expand so entry is smooth.
       // From the chapter's own root: odd chapters sit 0.6 behind the parent.
@@ -487,6 +551,7 @@ export function HeroObjects() {
                 visible={
                   sections[active]?.chapter === i &&
                   sections[active]?.kind !== "plate" &&
+                  !openProject &&
                   !(narrow && tall)
                 }
               />

@@ -584,3 +584,203 @@ body:has(.instruments) {
   bottom: 12px !important;
   right: 12px !important;
 }
+
+/* The folio: one card per project in the codex column. */
+.instruments-folio {
+  list-style: none;
+  margin: 18px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.instruments-folio-card {
+  pointer-events: auto;
+  width: 100%;
+  font: inherit;
+  text-align: left;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--paper, #efe4cc) 72%, transparent);
+  border: 1px solid var(--gold);
+  border-radius: 2px;
+  padding: 14px 16px 16px;
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 12px;
+  transition:
+    transform 200ms ease,
+    box-shadow 200ms ease;
+}
+.instruments-folio-card:hover,
+.instruments-folio-card:focus-visible {
+  transform: translateY(-2px);
+  box-shadow:
+    0 0 0 1px var(--gold),
+    0 10px 24px -14px var(--ink);
+  outline: none;
+}
+.instruments-folio-card .instruments-caption-num {
+  grid-column: 1;
+}
+.instruments-folio-title {
+  grid-column: 1;
+  font-size: 20px;
+  line-height: 1.15;
+}
+.instruments-folio-line {
+  grid-column: 1;
+  font-size: 14px;
+  line-height: 1.35;
+  opacity: 0.8;
+}
+.instruments-folio-emblem {
+  grid-column: 2;
+  grid-row: 1 / span 3;
+  align-self: start;
+  width: 44px;
+  height: 44px;
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1;
+  opacity: 0.75;
+}
+@media (max-width: 720px) {
+  .instruments-folio {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* An open project reads on the right, in the hero region; the column keeps the list. */
+.instruments-back {
+  pointer-events: auto;
+  font: inherit;
+  font-size: 15px;
+  letter-spacing: 0.06em;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--paper, #efe4cc) 92%, transparent);
+  border: 1px solid var(--gold);
+  border-radius: 2px;
+  padding: 10px 16px;
+  margin-bottom: 18px;
+  cursor: pointer;
+  display: inline-flex;
+  gap: 10px;
+  align-items: center;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--gold) 35%, transparent);
+}
+.instruments-back:hover,
+.instruments-back:focus-visible {
+  background: var(--paper);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--gold) 55%, transparent);
+  outline: none;
+}
+.instruments-title.instruments-title-open {
+  font-size: clamp(28px, 3.2vw, 40px);
+  line-height: 1.1;
+}
+.instruments-folio-card.is-open {
+  background: var(--paper);
+  box-shadow: 0 0 0 2px var(--gold);
+}
+.instruments.is-project-open .instruments-folio-card:not(.is-open) {
+  opacity: 0.55;
+}
+.instruments.is-project-open .instruments-note {
+  opacity: 0;
+}
+.instruments-project {
+  position: fixed;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 300ms ease;
+}
+.instruments-project.is-open {
+  opacity: 1;
+}
+.instruments-project-captions {
+  position: absolute;
+  right: 24px;
+  bottom: 14vh;
+  width: min(380px, 38vw);
+  height: 22vh;
+}
+.instruments-project-captions .instruments-caption {
+  opacity: 0;
+}
+.instruments-project-captions .instruments-caption.is-active {
+  opacity: 1;
+  transform: none;
+}
+/* An anchored beat reads from its callout on wide screens; the docked copy stays for phones. */
+@media (min-width: 721px) {
+  .instruments-project-captions .instruments-caption.is-anchored {
+    opacity: 0;
+  }
+}
+.instruments-project-steps {
+  position: absolute;
+  right: 24px;
+  bottom: 6vh;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-size: 13px;
+  color: var(--ink);
+}
+.instruments-project-steps button {
+  pointer-events: auto;
+  font: inherit;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--paper, #efe4cc) 85%, transparent);
+  border: 1px dotted var(--gold);
+  border-radius: 2px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+.instruments-project-steps button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+@media (max-width: 720px) {
+  .instruments-project-captions,
+  .instruments-project-steps {
+    right: 16px;
+    left: 16px;
+    width: auto;
+  }
+}
+
+/* The way on, at the foot of each beat card of an open project. */
+.instruments-continue {
+  display: block;
+  margin-top: 10px;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+.instruments-continue span {
+  display: inline-block;
+  margin-left: 4px;
+  animation: instruments-nudge 1.6s ease-in-out infinite;
+}
+@keyframes instruments-nudge {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(3px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .instruments-continue span {
+    animation: none;
+  }
+}

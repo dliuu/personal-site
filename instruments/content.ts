@@ -89,6 +89,175 @@ export const roles: Role[] = [
   },
 ];
 
+export type Project = {
+  id: string;
+  title: string;
+  line: string;
+  kind: "product" | "ml";
+  /** Three beats: the problem, the build, the result. */
+  beats: {
+    caption: string;
+    sub?: string;
+    lon?: number;
+    lat?: number;
+    zoom: "far" | "full" | "mid" | "close";
+    side?: "left" | "right";
+    at?: string;
+  }[];
+};
+
+// PLACEHOLDER projects (owner input): titles, lines and beats are stand-ins
+// until the real list arrives; each project will get its own scene.
+export const projects: Project[] = [
+  {
+    id: "classifier",
+    title: "Loan document classifier",
+    line: "Reads every page of a loan file and files it where it belongs.",
+    kind: "ml",
+    beats: [
+      {
+        caption: "The problem: thousands of pages a week, sorted by hand.",
+        sub: "The problem",
+        at: "hopper",
+        lon: -90,
+        lat: 12,
+        zoom: "full",
+        side: "left",
+      },
+      {
+        caption:
+          "The build: a classifier over page text and layout, trained on the back office's own filing.",
+        sub: "The build",
+        at: "wheel",
+        lon: -60,
+        lat: 8,
+        zoom: "mid",
+        side: "left",
+      },
+      {
+        caption:
+          "The result: pages land in the right slot before anyone opens the file.",
+        sub: "The result",
+        at: "out",
+        lon: -110,
+        lat: 20,
+        zoom: "close",
+        side: "left",
+      },
+    ],
+  },
+  {
+    id: "lender-portal",
+    title: "Lender portal",
+    line: "A white-label front door for twelve lending institutions.",
+    kind: "product",
+    beats: [
+      {
+        caption:
+          "The problem: every lender wanted its own product, on one platform.",
+        sub: "The problem",
+        at: "screen",
+        lon: -90,
+        lat: 10,
+        zoom: "full",
+        side: "left",
+      },
+      {
+        caption:
+          "The build: one backend, live admin customization per institution.",
+        sub: "The build",
+        at: "edge",
+        lon: -65,
+        lat: 6,
+        zoom: "mid",
+        side: "left",
+      },
+      {
+        caption: "The result: twelve brands, one codebase.",
+        sub: "The result",
+        at: "base",
+        lon: -105,
+        lat: 18,
+        zoom: "close",
+        side: "left",
+      },
+    ],
+  },
+  {
+    id: "benchmarks",
+    title: "Translation benchmarks",
+    line: "Llama against Gemini, Claude and GPT across 48 languages.",
+    kind: "ml",
+    beats: [
+      {
+        caption: "The problem: which model, for which language, at what cost.",
+        sub: "The problem",
+        at: "hopper",
+        lon: -90,
+        lat: 12,
+        zoom: "full",
+        side: "left",
+      },
+      {
+        caption:
+          "The build: offline and online benchmarks with human post-editing.",
+        sub: "The build",
+        at: "wheel",
+        lon: -60,
+        lat: 8,
+        zoom: "mid",
+        side: "left",
+      },
+      {
+        caption:
+          "The result: the data that green-lit AI translation in new locales.",
+        sub: "The result",
+        at: "out",
+        lon: -110,
+        lat: 20,
+        zoom: "close",
+        side: "left",
+      },
+    ],
+  },
+  {
+    id: "factory",
+    title: "Agent software factory",
+    line: "A container agent for every task, stamped by a compliance ring.",
+    kind: "product",
+    beats: [
+      {
+        caption: "The problem: a backlog that outgrew the team.",
+        sub: "The problem",
+        at: "screen",
+        lon: -90,
+        lat: 10,
+        zoom: "full",
+        side: "left",
+      },
+      {
+        caption:
+          "The build: an orchestrator that spins up an agent per task and a ring that stamps the work.",
+        sub: "The build",
+        at: "edge",
+        lon: -65,
+        lat: 6,
+        zoom: "mid",
+        side: "left",
+      },
+      {
+        caption: "The result: work ships with its compliance trail attached.",
+        sub: "The result",
+        at: "base",
+        lon: -105,
+        lat: 18,
+        zoom: "close",
+        side: "left",
+      },
+    ],
+  },
+];
+
 export const links = [
   { label: "Email", href: "mailto:you@example.com" },
   { label: "GitHub", href: "https://github.com/dliuu" },

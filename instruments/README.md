@@ -1,6 +1,6 @@
 # instruments
 
-The professional profile as a codex: five chapters (intro, Eisen, Meta, Washington Capital Partners, contact), each job with an instrument of its trade: a live agent network on the screen, a globe with 48 locale pins, a construction site whose towers rise and whose crane sets the cap last.
+The professional profile as a codex: five chapters (intro, Eisen, Meta, Washington Capital Partners, contact), each job with an instrument of its trade: a live agent network on the screen, the Earth turning with a card per locale, a construction site whose towers rise and whose crane sets the cap last.
 
 Eisen (chapter II) is a SKELETON of the software factory: an orchestrator core spins up container agents on three tier rings (developer tasks, test runs, client features), packets travel the edges, a compliance ring stamps in turn, and pillars carry it all on a substrate grid. Its plate has three beats, one per bullet, each anchored on a layer (`instruments/Network.tsx`, pure logic in `lib/network.ts`). Placeholders: the Eisen bullet wording, tier counts and colours, and the beat captions are owner input; the balance instrument stays in the file, unused.
 
