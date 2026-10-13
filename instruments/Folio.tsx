@@ -29,6 +29,7 @@ import { projects, type Project } from "./content";
 import { Edged } from "./Instruments";
 import { GOLD } from "./palette";
 import { plateState } from "./plateState";
+import { useProjectStore } from "./useProjectStore";
 
 /**
  * MOCK of the projects hero, the folio: a stack of engraved plates, one per
@@ -57,9 +58,10 @@ const STILL_TIME = 2;
 const FOLIO_PALETTE = chapters.find((c) => c.instrument === "folio")!.palette;
 
 export function Folio({ mech }: { mech: RefObject<Group | null> }) {
-  // The project on the plate, a scroll plate's or a clicked one; the scene
-  // stays mounted while the plate shrinks back after it leaves.
+  const open = useProjectStore((s) => s.open);
+  // The scene stays mounted while the plate shrinks back after a close.
   const [shown, setShown] = useState<string | null>(null);
+  if (open && open !== shown) setShown(open);
   const project = useMemo(
     () => projects.find((p) => p.id === shown) ?? null,
     [shown],
@@ -91,9 +93,7 @@ export function Folio({ mech }: { mech: RefObject<Group | null> }) {
       scene.current.scale.setScalar(Math.max(1e-4, expand));
       scene.current.visible = expand > 0.001;
     }
-    const on = plateState.project;
-    if (on && on !== shown) setShown(on);
-    if (!on && shown && expand < 0.01) setShown(null);
+    if (!open && shown && expand < 0.01) setShown(null);
   });
 
   return (

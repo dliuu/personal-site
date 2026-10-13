@@ -6,7 +6,7 @@ import { useSectionsStore } from "@/store/useSectionsStore";
 import { useRoomStore } from "./useRoomStore";
 import { beatAt } from "@/lib/beats";
 import { greetOpacity, overlayOpacity } from "@/lib/introTimeline";
-import { chapters, sections, type Chapter, type PlateBeat } from "./chapters";
+import { chapters, sections, type Chapter } from "./chapters";
 import {
   links,
   profile,
@@ -154,18 +154,7 @@ function ProjectsBody() {
               type="button"
               className={`instruments-folio-card${p.id === open ? " is-open" : ""}`}
               aria-pressed={p.id === open}
-              onClick={() => {
-                // A featured project reads on its own plate below: go there.
-                const plate = sections.find((x) => x.project === p.id);
-                if (plate) {
-                  setOpen(null);
-                  document
-                    .getElementById(plate.id)
-                    ?.scrollIntoView({ behavior: "smooth", block: "start" });
-                  return;
-                }
-                setOpen(p.id === open ? null : p.id);
-              }}
+              onClick={() => setOpen(p.id === open ? null : p.id)}
             >
               <span className="instruments-caption-num">{NUMERALS[i]}</span>
               <span className="instruments-folio-title">{p.title}</span>
@@ -322,12 +311,13 @@ function Body({ id, role }: { id: Chapter["id"]; role?: Role }) {
 }
 
 function PlateCaptions({
-  beats,
+  chapter,
   sectionIndex,
 }: {
-  beats: PlateBeat[];
+  chapter: Chapter;
   sectionIndex: number;
 }) {
+  const beats = chapter.plate?.beats ?? [];
   const beat = useSectionsStore((s) =>
     s.active === sectionIndex && s.kind === "plate"
       ? beatAt(s.progress, beats.length).index
@@ -508,23 +498,19 @@ export function Codex() {
           }
           if (s.kind === "plate") {
             const c = chapters[s.chapter];
-            // A featured project's plate reads that project's beats.
-            const beats = s.project
-              ? (projects.find((p) => p.id === s.project)?.beats ?? [])
-              : (c.plate?.beats ?? []);
             return (
               <section
                 key={s.id}
                 id={s.id}
                 data-kind="plate"
-                data-beats={beats.length}
+                data-beats={c.plate?.beats.length ?? 0}
                 className="instruments-plate"
-                style={{ minHeight: `${beats.length * 90}vh` }}
+                style={{ minHeight: `${(c.plate?.beats.length ?? 0) * 90}vh` }}
                 ref={(el) => {
                   els.current[i] = el;
                 }}
               >
-                <PlateCaptions beats={beats} sectionIndex={i} />
+                <PlateCaptions chapter={c} sectionIndex={i} />
               </section>
             );
           }

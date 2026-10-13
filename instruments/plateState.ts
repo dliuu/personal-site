@@ -10,8 +10,6 @@ import { Vector3 } from "three";
 export const plateState = {
   /** Whose plate is active, or null when no plate section is. */
   instrument: null as InstrumentKind | null,
-  /** The project on the plate (a featured project's scroll plate, or one open by click), or null. */
-  project: null as string | null,
   /** Plate progress 0..1. */
   p: 0,
   /** Beat index within the plate. */

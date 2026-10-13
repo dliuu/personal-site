@@ -35,6 +35,7 @@ import { chapters } from "../chapters";
 import type { Project } from "../content";
 import { plateState } from "../plateState";
 import { siteMaterial } from "../siteParts";
+import { useProjectStore } from "../useProjectStore";
 
 /**
  * The trading agents, the candle ridge and the four stations: the market as
@@ -184,7 +185,9 @@ export function Trading({ project }: { project: Project }) {
   useFrame(({ clock }) => {
     const { reducedMotion } = useDeviceStore.getState();
     const time = reducedMotion ? STILL_TIME : clock.elapsedTime;
-    const active = plateState.project === project.id;
+    const active =
+      plateState.instrument === "folio" &&
+      useProjectStore.getState().open === project.id;
     const { beat, t } = plateState;
 
     // The carousel rises for the build and turns while it stands.
