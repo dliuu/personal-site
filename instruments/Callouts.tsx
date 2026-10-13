@@ -6,6 +6,7 @@ import { beatAt } from "@/lib/beats";
 import { TRAVEL } from "@/lib/plateCamera";
 import { useSectionsStore } from "@/store/useSectionsStore";
 import type { PlateBeat } from "./chapters";
+import { useProjectStore } from "./useProjectStore";
 import { fell } from "./fonts";
 
 const NUMERALS = ["i", "ii", "iii", "iv", "v", "vi", "vii", "viii"];
@@ -19,18 +20,30 @@ export function Callouts({
   beats,
   anchors,
   sectionIndex,
+  projectId,
   palette,
 }: {
   beats: PlateBeat[];
   anchors: (Vector3 | null)[];
-  sectionIndex: number;
+  /** The plate section whose scroll reads these beats... */
+  sectionIndex?: number;
+  /** ...or the open project whose wheel does. */
+  projectId?: string;
   palette: { paper: string; ink: string; accent: string };
 }) {
-  const shown = useSectionsStore((s) => {
+  const fromSection = useSectionsStore((s) => {
+    if (sectionIndex === undefined) return -1;
     if (s.active !== sectionIndex || s.kind !== "plate") return -1;
     const b = beatAt(s.progress, beats.length);
     return b.t > TRAVEL ? b.index : -1;
   });
+  const fromProject = useProjectStore((s) => {
+    if (projectId === undefined || s.open !== projectId) return -1;
+    const b = beatAt(s.progress, beats.length);
+    // The first card is up from the moment the project opens.
+    return b.index === 0 || b.t > TRAVEL ? b.index : -1;
+  });
+  const shown = projectId !== undefined ? fromProject : fromSection;
   return (
     <>
       {beats.map((b, i) => {
@@ -61,6 +74,11 @@ export function Callouts({
                 <span className="instruments-caption-num">{NUMERALS[i]}</span>
                 <span className="instruments-caption-sub">{b.sub}</span>
                 <p>{b.caption}</p>
+                {projectId !== undefined && i < beats.length - 1 ? (
+                  <span className="instruments-continue">
+                    Scroll to continue <span aria-hidden>↓</span>
+                  </span>
+                ) : null}
               </div>
             </div>
           </Html>

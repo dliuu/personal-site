@@ -7,7 +7,9 @@ import { useRoomStore } from "./useRoomStore";
 import { beatAt } from "@/lib/beats";
 import { greetOpacity, overlayOpacity } from "@/lib/introTimeline";
 import { chapters, sections, type Chapter } from "./chapters";
-import { links, profile, roles, type Role } from "./content";
+import { links, profile, projects, roles, type Role } from "./content";
+import { scrub } from "@/lib/folio";
+import { useProjectStore } from "./useProjectStore";
 import { fell, script, ui } from "./fonts";
 
 const noJump = (e: React.MouseEvent<HTMLAnchorElement>) => {
@@ -63,6 +65,197 @@ function RoleBody({ role }: { role: Role }) {
   );
 }
 
+const NUMERALS = ["i", "ii", "iii", "iv", "v", "vi", "vii", "viii", "ix", "x"];
+
+/** A hairline emblem per project kind: a mill wheel for a model, a framed screen for a product. */
+function Emblem({ kind }: { kind: "product" | "ml" }) {
+  return (
+    <svg className="instruments-folio-emblem" viewBox="0 0 44 44" aria-hidden>
+      {kind === "ml" ? (
+        <>
+          <circle cx="22" cy="22" r="14" />
+          <circle cx="22" cy="22" r="4" />
+          <line x1="22" y1="8" x2="22" y2="36" />
+          <line x1="8" y1="22" x2="36" y2="22" />
+          <line x1="12" y1="12" x2="32" y2="32" />
+          <line x1="32" y1="12" x2="12" y2="32" />
+        </>
+      ) : (
+        <>
+          <rect x="6" y="9" width="32" height="22" rx="1" />
+          <line x1="6" y1="15" x2="38" y2="15" />
+          <line x1="22" y1="31" x2="22" y2="37" />
+          <line x1="14" y1="37" x2="30" y2="37" />
+        </>
+      )}
+    </svg>
+  );
+}
+
+/** The folio: one card per project; opening one is a click, not a scroll. The open project reads on the right; the column keeps the list and gains a back button. */
+function ProjectsBody() {
+  const open = useProjectStore((s) => s.open);
+  const setOpen = useProjectStore((s) => s.setOpen);
+  const project = projects.find((p) => p.id === open) ?? null;
+  return (
+    <>
+      {project ? (
+        <button
+          type="button"
+          className="instruments-back"
+          onClick={() => setOpen(null)}
+        >
+          <span aria-hidden>←</span> Back to projects
+        </button>
+      ) : null}
+      <h2
+        className={`instruments-title${project ? " instruments-title-open" : ""}`}
+      >
+        {project ? project.title : "Projects"}
+      </h2>
+      <p className="instruments-lede">
+        {project
+          ? project.line
+          : "A plate for every build. Open one to read it."}
+      </p>
+      <p className="instruments-hint">
+        {project
+          ? "Scroll to read the plate · Esc to go back"
+          : "Click a plate to open it"}
+      </p>
+      <ul className="instruments-folio">
+        {projects.map((p, i) => (
+          <li key={p.id}>
+            <button
+              type="button"
+              className={`instruments-folio-card${p.id === open ? " is-open" : ""}`}
+              aria-pressed={p.id === open}
+              onClick={() => setOpen(p.id === open ? null : p.id)}
+            >
+              <span className="instruments-caption-num">{NUMERALS[i]}</span>
+              <span className="instruments-folio-title">{p.title}</span>
+              <span className="instruments-folio-line">{p.line}</span>
+              <Emblem kind={p.kind} />
+            </button>
+          </li>
+        ))}
+      </ul>
+    </>
+  );
+}
+
+/**
+ * The open project's reading: its docked captions and step buttons beside
+ * the plate on the right. The page is locked while it is open; the wheel,
+ * arrows and touch scrub its beats, Escape goes back.
+ */
+function ProjectOverlay() {
+  const open = useProjectStore((s) => s.open);
+  const setOpen = useProjectStore((s) => s.setOpen);
+  const setProgress = useProjectStore((s) => s.setProgress);
+  const project = projects.find((p) => p.id === open) ?? null;
+  const beat = useProjectStore((s) =>
+    project ? beatAt(s.progress, project.beats.length).index : -1,
+  );
+  const step = (dir: 1 | -1) => {
+    if (!project) return;
+    const n = project.beats.length;
+    const next = Math.min(n - 1, Math.max(0, beat + dir));
+    // Land 60 % into the beat, past the travel, so its card is up.
+    setProgress((next + 0.6) / n);
+  };
+  useEffect(() => {
+    if (!open) return;
+    const html = document.documentElement;
+    const prev = html.style.overflow;
+    html.style.overflow = "hidden";
+    const move = (dy: number) =>
+      setProgress(scrub(useProjectStore.getState().progress, dy));
+    const wheel = (e: WheelEvent) => {
+      e.preventDefault();
+      move(e.deltaY);
+    };
+    const key = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(null);
+      if (e.key === "ArrowDown" || e.key === "ArrowRight") move(400);
+      if (e.key === "ArrowUp" || e.key === "ArrowLeft") move(-400);
+    };
+    let lastY: number | null = null;
+    const touchStart = (e: TouchEvent) => {
+      lastY = e.touches[0]?.clientY ?? null;
+    };
+    const touchMove = (e: TouchEvent) => {
+      const y = e.touches[0]?.clientY;
+      if (y === undefined || lastY === null) return;
+      e.preventDefault();
+      move((lastY - y) * 2);
+      lastY = y;
+    };
+    window.addEventListener("wheel", wheel, { passive: false });
+    window.addEventListener("keydown", key);
+    window.addEventListener("touchstart", touchStart, { passive: true });
+    window.addEventListener("touchmove", touchMove, { passive: false });
+    return () => {
+      html.style.overflow = prev;
+      window.removeEventListener("wheel", wheel);
+      window.removeEventListener("keydown", key);
+      window.removeEventListener("touchstart", touchStart);
+      window.removeEventListener("touchmove", touchMove);
+    };
+  }, [open, setOpen, setProgress]);
+  return (
+    <div
+      className={`instruments-project${project ? " is-open" : ""}`}
+      aria-hidden={!project}
+    >
+      {project ? (
+        <>
+          <div className="instruments-project-captions" aria-live="polite">
+            {project.beats.map((b, i) => (
+              <div
+                key={i}
+                className={`instruments-caption${i === beat ? " is-active" : ""}${b.at ? " is-anchored" : ""}`}
+                aria-hidden={i !== beat}
+              >
+                <span className="instruments-caption-num">{NUMERALS[i]}</span>
+                <span className="instruments-caption-sub">{b.sub}</span>
+                <p>{b.caption}</p>
+                {i < project.beats.length - 1 ? (
+                  <span className="instruments-continue">
+                    Scroll to continue <span aria-hidden>↓</span>
+                  </span>
+                ) : null}
+              </div>
+            ))}
+          </div>
+          <div
+            className="instruments-project-steps"
+            role="group"
+            aria-label="Beats"
+          >
+            <button type="button" onClick={() => step(-1)} disabled={beat <= 0}>
+              ← Previous
+            </button>
+            <span>
+              {beat + 1} / {project.beats.length}
+            </span>
+            <button
+              type="button"
+              onClick={() => step(1)}
+              disabled={beat >= project.beats.length - 1}
+            >
+              Next →
+            </button>
+            <button type="button" onClick={() => setOpen(null)}>
+              Back
+            </button>
+          </div>
+        </>
+      ) : null}
+    </div>
+  );
+}
+
 function Body({ id, role }: { id: Chapter["id"]; role?: Role }) {
   if (id === "intro") {
     return (
@@ -73,6 +266,7 @@ function Body({ id, role }: { id: Chapter["id"]; role?: Role }) {
       </>
     );
   }
+  if (id === "projects") return <ProjectsBody />;
   if (id === "contact") {
     return (
       <>
@@ -230,10 +424,11 @@ export function Codex() {
   const active = useSectionsStore((s) => s.active);
   const activeChapter = sections[active]?.chapter ?? 0;
   const pal = chapters[activeChapter].palette;
+  const openProject = useProjectStore((s) => s.open);
 
   return (
     <div
-      className={`instruments ${fell.variable} ${script.variable} ${ui.variable}`}
+      className={`instruments ${fell.variable} ${script.variable} ${ui.variable}${openProject ? " is-project-open" : ""}`}
       style={
         {
           "--paper": pal.paper,
@@ -243,6 +438,7 @@ export function Codex() {
       }
     >
       <ConstructionLines />
+      <ProjectOverlay />
       <nav className="instruments-nav" aria-label="Chapters">
         {chapters.map((c, i) => (
           <a

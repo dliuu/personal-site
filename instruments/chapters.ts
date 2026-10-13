@@ -3,14 +3,15 @@ export type InstrumentKind =
   | "armillary"
   | "balance"
   | "network"
-  | "globe"
+  | "earth"
   | "bridge"
   | "site"
+  | "folio"
   | "quadrant";
 /** `face`: like spinY in the plate, but never turns with the scroll in the band (the scene has a front). */
 export type MechKind = "spinY" | "spinZ" | "swing" | "tilt" | "drop" | "face";
 export type Chapter = {
-  id: "intro" | "eisen" | "meta" | "wcp" | "contact";
+  id: "intro" | "eisen" | "meta" | "wcp" | "projects" | "contact";
   numeral: string;
   title: string;
   instrument: InstrumentKind;
@@ -23,6 +24,10 @@ export type Chapter = {
   scene?: "desk";
   /** Presented as a screen (the desktop inside the intro's monitor): drawn raw, never engraved. */
   screen?: boolean;
+  /** Drawn real in the band as well as the plate (the Earth), never engraved. */
+  raw?: boolean;
+  /** Its plate opens by click (a project from the codex), not by scroll: no plate section, the hero expands on the open id. */
+  modal?: boolean;
 };
 export type PlateBeat = {
   caption: string;
@@ -73,7 +78,7 @@ export const metaBeats: PlateBeat[] = [
   },
   {
     caption: "AI inference throttles down 84% in H2 2025.",
-    sub: "The gauge",
+    sub: "Throttling",
     lon: -100,
     zoom: "full",
   },
@@ -209,11 +214,12 @@ export const chapters: Chapter[] = [
     id: "meta",
     numeral: "III",
     title: "Meta",
-    instrument: "globe",
+    instrument: "earth",
     mech: "spinY",
-    note: "forty-eight pins, one per tongue",
-    spin: 0.08,
+    note: "the whole world, turning",
+    spin: 0.12,
     palette: { paper: "#e9e7e0", ink: "#1c2b4b", accent: "#b8432e" },
+    raw: true,
     plate: { beats: metaBeats },
   },
   {
@@ -228,8 +234,19 @@ export const chapters: Chapter[] = [
     plate: { beats: wcpBeats },
   },
   {
-    id: "contact",
+    id: "projects",
     numeral: "V",
+    title: "Projects",
+    instrument: "folio",
+    mech: "face",
+    note: "a plate for every build",
+    spin: 0,
+    palette: { paper: "#e6e3d8", ink: "#26292f", accent: "#7a6a9e" },
+    modal: true,
+  },
+  {
+    id: "contact",
+    numeral: "VI",
     title: "Contact",
     instrument: "quadrant",
     mech: "swing",
