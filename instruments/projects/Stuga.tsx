@@ -32,7 +32,6 @@ import { chapters } from "../chapters";
 import type { Project } from "../content";
 import { plateState } from "../plateState";
 import { siteMaterial } from "../siteParts";
-import { useProjectStore } from "../useProjectStore";
 
 /**
  * Stuga, the house and the year: a cabin in the middle of a ring of 52
@@ -158,9 +157,7 @@ export function Stuga({ project }: { project: Project }) {
   );
 
   useFrame(() => {
-    const active =
-      plateState.instrument === "folio" &&
-      useProjectStore.getState().open === project.id;
+    const active = plateState.project === project.id;
     const { beat, t } = plateState;
 
     // The house: eight shares that stand apart through the build.

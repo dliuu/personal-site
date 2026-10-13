@@ -28,6 +28,8 @@ export type Chapter = {
   raw?: boolean;
   /** Its plate opens by click (a project from the codex), not by scroll: no plate section, the hero expands on the open id. */
   modal?: boolean;
+  /** Projects that get a scroll plate of their own after the chapter, in order: every reader passes through them. */
+  featured?: string[];
 };
 export type PlateBeat = {
   caption: string;
@@ -243,6 +245,7 @@ export const chapters: Chapter[] = [
     spin: 0,
     palette: { paper: "#e6e3d8", ink: "#26292f", accent: "#7a6a9e" },
     modal: true,
+    featured: ["stuga", "trading"],
   },
   {
     id: "contact",
@@ -260,6 +263,8 @@ export type Section = {
   id: string;
   chapter: number;
   kind: "chapter" | "plate";
+  /** A featured project's plate: its beats come from the project, not the chapter. */
+  project?: string;
 };
 export const sections: Section[] = chapters.flatMap((c, i) =>
   c.scene
@@ -269,5 +274,15 @@ export const sections: Section[] = chapters.flatMap((c, i) =>
           { id: c.id, chapter: i, kind: "chapter" as const },
           { id: `${c.id}-plate`, chapter: i, kind: "plate" as const },
         ]
-      : [{ id: c.id, chapter: i, kind: "chapter" as const }],
+      : c.featured
+        ? [
+            { id: c.id, chapter: i, kind: "chapter" as const },
+            ...c.featured.map((project) => ({
+              id: `${c.id}-${project}-plate`,
+              chapter: i,
+              kind: "plate" as const,
+              project,
+            })),
+          ]
+        : [{ id: c.id, chapter: i, kind: "chapter" as const }],
 );

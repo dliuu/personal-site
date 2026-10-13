@@ -5,7 +5,7 @@ import type { Vector3 } from "three";
 import { beatAt } from "@/lib/beats";
 import { TRAVEL } from "@/lib/plateCamera";
 import { useSectionsStore } from "@/store/useSectionsStore";
-import type { PlateBeat } from "./chapters";
+import { sections, type PlateBeat } from "./chapters";
 import { useProjectStore } from "./useProjectStore";
 import { fell } from "./fonts";
 
@@ -43,7 +43,20 @@ export function Callouts({
     // The first card is up from the moment the project opens.
     return b.index === 0 || b.t > TRAVEL ? b.index : -1;
   });
-  const shown = projectId !== undefined ? fromProject : fromSection;
+  // A featured project's scroll plate reads the section like any plate.
+  const plateIndex = sections.findIndex(
+    (x) => x.kind === "plate" && x.project === projectId,
+  );
+  const fromProjectPlate = useSectionsStore((s) => {
+    if (plateIndex < 0 || s.active !== plateIndex || s.kind !== "plate")
+      return -1;
+    const b = beatAt(s.progress, beats.length);
+    return b.t > TRAVEL ? b.index : -1;
+  });
+  const shown =
+    projectId !== undefined
+      ? Math.max(fromProject, fromProjectPlate)
+      : fromSection;
   return (
     <>
       {beats.map((b, i) => {

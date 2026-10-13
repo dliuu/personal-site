@@ -239,9 +239,15 @@ export function HeroObjects() {
     const heroCont = heroContinuous(sections, active, progress);
     // A modal chapter's plate is open by click: it expands on the open id and
     // the wheel scrubs its beats (useProjectStore), not the scroll.
+    // A featured project's plate is a scroll plate like any other, with the
+    // project's beats; its scene is picked by plateState.project.
+    const plateProject =
+      sec.kind === "plate" && sec.project
+        ? projects.find((p) => p.id === sec.project)
+        : undefined;
     const modal = useProjectStore.getState();
     const project =
-      chapter.modal && modal.open
+      !plateProject && chapter.modal && modal.open
         ? projects.find((p) => p.id === modal.open)
         : undefined;
     modalP.current = project
@@ -277,16 +283,18 @@ export function HeroObjects() {
       : sec.kind === "plate"
         ? progress
         : 0;
+    const onPlate = plateProject ?? project;
+    plateState.project = plateOpen && onPlate ? onPlate.id : null;
     const b = beatAt(
       plateState.p,
-      project ? project.beats.length : (chapter.plate?.beats.length ?? 1),
+      onPlate ? onPlate.beats.length : (chapter.plate?.beats.length ?? 1),
     );
     plateState.beat = b.index;
     plateState.t = b.t;
     plateState.expand = expand;
-    const k = project ? projectKeys[project.id] : keys[sec.chapter];
+    const k = onPlate ? projectKeys[onPlate.id] : keys[sec.chapter];
     if (plateOpen && k) {
-      const cam = plateCamera(project ? PROJECT_ENTRY : ENTRY, k, b.index, b.t);
+      const cam = plateCamera(onPlate ? PROJECT_ENTRY : ENTRY, k, b.index, b.t);
       plateState.cam.yaw = cam.yaw;
       plateState.cam.el = cam.el;
       plateState.cam.k = cam.k;
