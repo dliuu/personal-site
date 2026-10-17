@@ -86,40 +86,28 @@ export const metaBeats: PlateBeat[] = [
 ];
 
 /**
- * Eisen's plate: one beat per bullet, each anchored on a layer of the
- * factory. Longitudes are chosen so the anchor faces the camera (Network.tsx
- * places the gate at −30° and the pillar at 210°).
+ * Eisen's plate: one beat per bullet, each framing a station of the Clearing
+ * Works (the DOM figure in instruments/ClearingWorks.tsx, camera keys in
+ * lib/clearingWorks's WORKS_FRAMES). No beat anchors: the captions dock.
  */
 export const eisenBeats: PlateBeat[] = [
   {
     caption:
-      "An AI agent orchestration flow: a software factory that spins up a container agent for every developer task, test run and client product feature.",
-    sub: "The orchestrator",
-    at: "core",
-    lon: -90,
-    lat: 22,
-    zoom: "full",
-    side: "right",
+      "An AI agent orchestration flow: the dispatch turret spins up a container agent for every developer task, test run and client product feature — what the floor cannot seat yet waits in the queue.",
+    sub: "The dispatch floor",
+    zoom: "mid",
   },
   {
     caption:
-      "Financial compliance automation: every piece of work crosses the ring and is stamped before it ships.",
-    sub: "The compliance ring",
-    at: "gate",
-    lon: 30,
-    lat: 8,
-    zoom: "full",
-    side: "left",
+      "Financial compliance automation: every job crosses the assay gate under two keys and takes a stamp; the ledger counts each strike, and a reject reworks on the siding and re-enters the line.",
+    sub: "The assay gate",
+    zoom: "close",
   },
   {
     caption:
-      "Backend work: the substrate the factory stands on, for banks, exchanges and financing institutions.",
-    sub: "The substrate",
-    at: "pillar",
-    lon: 150,
-    lat: 38,
+      "Backend work: the substrate the works stand on — every stamped job settles into a client vault, for banks, exchanges and financing institutions. The books balance each cycle.",
+    sub: "The client vaults",
     zoom: "far",
-    side: "right",
   },
 ];
 
