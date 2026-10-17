@@ -22,7 +22,6 @@ import {
 } from "./chapters";
 import { locales, NYC } from "./locales";
 import { DeskScene } from "./DeskScene";
-import { Network } from "./Network";
 import { Site } from "./Site";
 import { Hotspots, useHotspotDismiss } from "./Hotspots";
 import { INK, PARCHMENT } from "./palette";
@@ -72,7 +71,9 @@ const KIND: Record<
   desk: () => <></>,
   armillary: Armillary,
   balance: Balance,
-  network: Network,
+  // Eisen's hero is the Clearing Works, an SVG figure over the canvas
+  // (instruments/ClearingWorks.tsx); its screen chapter draws nothing in 3D.
+  network: () => <></>,
   globe: Globe,
   bridge: Bridge,
   site: Site,

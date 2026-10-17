@@ -228,6 +228,8 @@ body:has(.instruments) {
 }
 .instruments-captions {
   position: sticky;
+  /* Above the Clearing Works layer, so docked captions read over the figure. */
+  z-index: 2;
   top: 62vh;
   margin-left: max(16px, calc((100vw - 540px) / 3));
   width: min(420px, 80vw);
@@ -575,6 +577,100 @@ body:has(.instruments) {
 .instruments-hotspot-card.is-left {
   left: auto;
   right: 30px;
+}
+
+/* ---- the Clearing Works: Eisen's hero, an isometric figure on the screen ---- */
+.instruments-works {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 500ms ease;
+}
+.instruments-works[data-mode="band"],
+.instruments-works[data-mode="plate"] {
+  opacity: 1;
+}
+.instruments-works-card {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(50vw, 820px);
+  transform: translate(calc(-50% + 23vw), -50%);
+  transition:
+    width 700ms ease,
+    transform 700ms ease,
+    opacity 500ms ease;
+  pointer-events: auto;
+}
+.instruments-works[data-mode="plate"] .instruments-works-card {
+  width: min(94vw, 148vh);
+  transform: translate(-50%, -52%);
+}
+.instruments-works svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+@media (max-width: 720px) {
+  .instruments-works[data-mode="band"] .instruments-works-card {
+    width: 94vw;
+    top: 26%;
+    transform: translate(-50%, -50%);
+    opacity: 0.45;
+  }
+  .instruments-works .works-label {
+    display: none;
+  }
+}
+.instruments-works .works-fig {
+  font-family: var(--font-fell), Georgia, serif;
+  font-style: italic;
+  font-size: 19px;
+  fill: var(--gold, #7fb0ff);
+}
+.instruments-works .works-title {
+  font-family: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
+  font-size: 13.5px;
+  letter-spacing: 0.22em;
+  fill: #e6e9ef;
+  opacity: 0.85;
+}
+.instruments-works .works-readout,
+.instruments-works .works-counter {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  fill: #e6e9ef;
+  opacity: 0.75;
+}
+.instruments-works .works-counter {
+  font-size: 10px;
+  opacity: 0.9;
+}
+.instruments-works .works-hint {
+  font-family: var(--font-fell), Georgia, serif;
+  font-style: italic;
+  font-size: 14.5px;
+  fill: #e6e9ef;
+  opacity: 0.55;
+}
+.instruments-works .works-label text {
+  font-family: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
+  font-size: 11.5px;
+  letter-spacing: 0.08em;
+  fill: #e6e9ef;
+  opacity: 0.6;
+}
+.instruments-works .works-label path {
+  stroke: #e6e9ef;
+  stroke-width: 0.7;
+  fill: none;
+  opacity: 0.35;
+}
+.instruments-works .works-label circle {
+  fill: #e6e9ef;
+  opacity: 0.5;
 }
 
 /* dev overlays */
