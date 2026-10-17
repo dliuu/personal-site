@@ -3,10 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Group, Mesh, MeshStandardMaterial, SRGBColorSpace } from "three";
-import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { frameLerp } from "@/lib/drawIn";
 import { lerp } from "@/lib/progress";
+import { gltfLoader } from "./gltf";
 import { useRoomStore } from "./useRoomStore";
 
 /**
@@ -18,8 +17,7 @@ import { useRoomStore } from "./useRoomStore";
 let promise: Promise<Group> | null = null;
 function loadRoom(): Promise<Group> {
   promise ??= (async () => {
-    const draco = new DRACOLoader().setDecoderPath("/draco/");
-    const loader = new GLTFLoader().setDRACOLoader(draco);
+    const loader = await gltfLoader();
     const gltf = await loader.loadAsync("/models/room.glb");
     gltf.scene.traverse((o) => {
       const m = o as Mesh;

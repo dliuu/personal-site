@@ -2,7 +2,6 @@
 
 import { Canvas } from "@react-three/fiber";
 import { Stats } from "@react-three/drei";
-import { Leva } from "leva";
 import { Suspense, useEffect, useState, type ReactNode } from "react";
 import { pickInitialTier } from "@/lib/quality";
 import { useDeviceStore } from "@/store/useDeviceStore";
@@ -64,22 +63,17 @@ export function Stage({
   const high = tier === "high";
 
   return (
-    <>
-      <Leva hidden={isProd} collapsed />
-      <Canvas
-        shadows={shadows && high}
-        dpr={high ? [1, 2] : 1}
-        frameloop={frameloop}
-        camera={{ position: cameraPosition, fov: 45 }}
-        style={{ position: "fixed", inset: 0 }}
-      >
-        {background ? <color attach="background" args={[background]} /> : null}
-        {fog ? (
-          <fog attach="fog" args={[fog.color, fog.near, fog.far]} />
-        ) : null}
-        <Suspense fallback={null}>{children}</Suspense>
-        {isProd ? null : <Stats className="stats-corner" />}
-      </Canvas>
-    </>
+    <Canvas
+      shadows={shadows && high}
+      dpr={high ? [1, 2] : 1}
+      frameloop={frameloop}
+      camera={{ position: cameraPosition, fov: 45 }}
+      style={{ position: "fixed", inset: 0 }}
+    >
+      {background ? <color attach="background" args={[background]} /> : null}
+      {fog ? <fog attach="fog" args={[fog.color, fog.near, fog.far]} /> : null}
+      <Suspense fallback={null}>{children}</Suspense>
+      {isProd ? null : <Stats className="stats-corner" />}
+    </Canvas>
   );
 }
