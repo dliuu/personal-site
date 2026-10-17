@@ -1,6 +1,13 @@
 "use client";
 
-import { createRef, useEffect, useMemo, useRef, type RefObject } from "react";
+import {
+  createRef,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type RefObject,
+} from "react";
 import type { JSX } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Environment, Lightformer } from "@react-three/drei";
@@ -28,6 +35,7 @@ import { Hotspots, useHotspotDismiss } from "./Hotspots";
 import { INK, PARCHMENT } from "./palette";
 import { plateState } from "./plateState";
 import { useExploreStore } from "./useExploreStore";
+import { useRoomStore } from "./useRoomStore";
 import {
   Armillary,
   Balance,
@@ -141,6 +149,16 @@ export function HeroObjects() {
   const scene = useThree((s) => s.scene);
   const active = useSectionsStore((s) => s.active);
   const tall = useSectionsStore((s) => s.tall);
+  // Chapters mount in two stages: the intro and the first chapter at once,
+  // the rest once the baked room is in (the frontispiece's hidden warm-up is
+  // spent on the room) or as the reader comes within a chapter of them,
+  // whichever is first. Mounting only ever reaches further.
+  const baked = useRoomStore((s) => s.baked);
+  const [reach, setReach] = useState(1);
+  const want = baked
+    ? chapters.length - 1
+    : (sections[active]?.chapter ?? 0) + 1;
+  if (want > reach) setReach(want);
   const place = heroPlacement({
     width: size.width,
     height: size.height,
@@ -466,7 +484,7 @@ export function HeroObjects() {
                     refs.current[i].solid = el;
                   }}
                 >
-                  <Instrument mech={mechs[i].solid} />
+                  {i <= reach ? <Instrument mech={mechs[i].solid} /> : null}
                 </group>
               </EdgedModeContext.Provider>
               <EdgedModeContext.Provider
@@ -477,7 +495,7 @@ export function HeroObjects() {
                     refs.current[i].lines = el;
                   }}
                 >
-                  <Instrument mech={mechs[i].lines} />
+                  {i <= reach ? <Instrument mech={mechs[i].lines} /> : null}
                 </group>
               </EdgedModeContext.Provider>
               <Hotspots

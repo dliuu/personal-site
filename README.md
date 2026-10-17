@@ -1,6 +1,7 @@
 # personal-site
 
-Danny Liu's site: a 3D intro room, then the resume as a Renaissance codex, one
+Danny Liu's site: a static frontispiece (the only thing fetched until it has
+painted), then a 3D intro room, then the resume as a Renaissance codex, one
 instrument per chapter, drawn in by scroll. The code lives in `instruments/`;
 `docs/decisions.md` records what changed and why.
 
