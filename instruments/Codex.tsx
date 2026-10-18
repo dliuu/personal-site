@@ -9,7 +9,6 @@ import { greetOpacity, overlayOpacity } from "@/lib/introTimeline";
 import { chapters, sections, type Chapter } from "./chapters";
 import { ClearingWorks } from "./ClearingWorks";
 import { links, profile, roles, type Role } from "./content";
-import { fell, script, ui } from "./fonts";
 
 const noJump = (e: React.MouseEvent<HTMLAnchorElement>) => {
   if (e.currentTarget.getAttribute("href") === "#") e.preventDefault();
@@ -194,9 +193,6 @@ function IntroOverlay({ sectionIndex }: { sectionIndex: number }) {
   );
   return (
     <div className="instruments-intro" style={{ opacity }} aria-hidden>
-      <h1 className="instruments-title">{profile.name}</h1>
-      <p className="instruments-lede">{profile.line}</p>
-      <p className="instruments-hint">Scroll</p>
       <RoomControls />
       <RoomTooltip />
     </div>
@@ -216,7 +212,7 @@ function IntroGreeting({ sectionIndex }: { sectionIndex: number }) {
       style={{ opacity }}
       aria-hidden={opacity === 0}
     >
-      Hi, I&rsquo;m Danny. Welcome to my portfolio.
+      Let me show you around.
     </p>
   );
 }
@@ -234,7 +230,7 @@ export function Codex() {
 
   return (
     <div
-      className={`instruments ${fell.variable} ${script.variable} ${ui.variable}`}
+      className="instruments"
       style={
         {
           "--paper": pal.paper,

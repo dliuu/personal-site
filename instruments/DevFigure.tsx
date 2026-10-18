@@ -3,12 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Group, Mesh, MeshStandardMaterial, Vector3 } from "three";
-import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { frameLerp } from "@/lib/drawIn";
 import { greetBob, idleSway, swivelAmount } from "@/lib/introTimeline";
 import { lerp } from "@/lib/progress";
 import { useDeviceStore } from "@/store/useDeviceStore";
+import { gltfLoader } from "./gltf";
 import { plateState } from "./plateState";
 
 /**
@@ -24,8 +23,7 @@ const FACING = Math.PI;
 let promise: Promise<Group> | null = null;
 function loadFigure(): Promise<Group> {
   promise ??= (async () => {
-    const draco = new DRACOLoader().setDecoderPath("/draco/");
-    const loader = new GLTFLoader().setDRACOLoader(draco);
+    const loader = await gltfLoader();
     const gltf = await loader.loadAsync("/models/dev-figure.glb");
     gltf.scene.traverse((o) => {
       const m = o as Mesh;

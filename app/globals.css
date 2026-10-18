@@ -1,9 +1,13 @@
 :root {
-  --bg: #0e0e10;
-  --fg: #ececec;
-  --muted: #9a9a9f;
-  --panel: rgba(20, 20, 24, 0.72);
-  --accent: #ffb454;
+  /* Paper is the page's ground from the first byte: no dark first paint. */
+  --parchment: #efe4cc;
+  --ink: #2b2118;
+  --gold: #c49a3c;
+  --bg: var(--parchment);
+  --fg: var(--ink);
+  --muted: rgba(43, 33, 24, 0.65);
+  --panel: rgba(239, 228, 204, 0.72);
+  --accent: var(--gold);
 }
 
 * {
@@ -50,14 +54,89 @@ a {
   }
 }
 
-/* ---- instruments ---- */
-body:has(.instruments) {
-  --parchment: #efe4cc;
-  --ink: #2b2118;
-  --gold: #c49a3c;
-  background: var(--parchment);
-  color: var(--ink);
+/* ---- frontispiece: the first screen, an opaque sheet over the canvas ---- */
+.frontispiece {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  min-height: 100svh;
+  display: grid;
+  grid-template-columns: minmax(16px, 1fr) minmax(0, 640px) minmax(16px, 2fr);
+  align-items: center;
+  padding-block: 12vh;
+  color: #3a3128;
+  font-family: var(--font-fell), Georgia, serif;
+  /* The intro chapter's paper, laid, so the room's sheet continues it. */
+  background-color: #efe7da;
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      rgba(43, 33, 24, 0.035) 0 1px,
+      transparent 1px 7px
+    ),
+    radial-gradient(rgba(43, 33, 24, 0.05) 0.5px, transparent 0.6px);
+  background-size:
+    auto,
+    5px 5px;
 }
+.frontispiece-col {
+  grid-column: 2;
+}
+.frontispiece-head {
+  margin: 0 0 18px;
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+.frontispiece-lede {
+  max-width: 34ch;
+}
+.frontispiece-hint {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-top: 56px;
+  font-family: var(--font-script), cursive;
+  font-size: 20px;
+  color: inherit;
+  text-decoration: none;
+  opacity: 0.75;
+  transition: opacity 200ms ease;
+}
+.frontispiece-hint:hover,
+.frontispiece-hint:focus-visible {
+  opacity: 1;
+}
+.frontispiece-arrow {
+  width: 20px;
+  height: 30px;
+  color: var(--gold);
+  animation: frontispiece-bob 2.2s ease-in-out infinite;
+}
+@keyframes frontispiece-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(7px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .frontispiece-arrow {
+    animation: none;
+  }
+}
+@media (max-width: 720px) {
+  .frontispiece {
+    align-items: end;
+    padding-bottom: 14vh;
+  }
+}
+
+/* ---- instruments ---- */
 @media (prefers-reduced-motion: no-preference) {
   html:has(.instruments) {
     scroll-behavior: smooth;
@@ -104,7 +183,7 @@ body:has(.instruments) {
   background: color-mix(in srgb, var(--paper) 88%, transparent);
   transition: background-color 600ms ease;
   backdrop-filter: blur(6px);
-  font-family: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
+  font-family: ui-sans-serif, system-ui, sans-serif;
   font-size: 12px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -286,31 +365,17 @@ body:has(.instruments) {
   }
 }
 
-/* ---- intro scene overlay: name over the room, fades as he stands ---- */
+/* ---- intro scene overlay: the room's controls, fading as he stands.
+   The name and line are the frontispiece's now. ---- */
 .instruments-intro {
   position: sticky;
   top: 16vh;
   margin-left: max(16px, calc((100vw - 540px) / 3));
-  width: min(480px, 84vw);
-  transition: opacity 120ms linear;
-  /* A cartouche, as the plate captions have, so the name reads over the garden. */
-  padding: 20px 24px;
-  margin-top: -20px;
-  margin-left: calc(max(16px, (100vw - 540px) / 3) - 24px);
   width: min(520px, 84vw);
-  box-sizing: border-box;
-  border-radius: 2px;
-  background: color-mix(in srgb, var(--paper, #efe7da) 78%, transparent);
-  backdrop-filter: blur(6px);
+  transition: opacity 120ms linear;
 }
-.instruments-intro .instruments-title {
-  margin: 0;
-}
-.instruments-intro .instruments-lede {
-  margin-top: 8px;
-}
-.instruments-intro .instruments-hint {
-  margin-top: 24px;
+.instruments-intro .instruments-room-controls {
+  margin-top: 0;
 }
 @media (max-width: 720px) {
   .instruments-intro {
