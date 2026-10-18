@@ -32,18 +32,9 @@ export const hotspots: Record<InstrumentKind, Hotspot[]> = {
       note: "The beam swings, then settles level.",
     },
   ],
-  network: [
-    {
-      position: [0, 0.05, 0],
-      label: "1",
-      note: "The orchestrator: a container agent for every developer task, test run and client feature.",
-    },
-    {
-      position: [-1.22, -0.3, 0],
-      label: "2",
-      note: "The compliance ring: work is stamped before it ships.",
-    },
-  ],
+  // Eisen's hero is the Clearing Works figure, which carries its own labels;
+  // 3D markers would float over an empty canvas.
+  network: [],
   globe: [
     {
       position: [0.9, 0.55, 0.5],

@@ -7,6 +7,7 @@ import { useRoomStore } from "./useRoomStore";
 import { beatAt } from "@/lib/beats";
 import { greetOpacity, overlayOpacity } from "@/lib/introTimeline";
 import { chapters, sections, type Chapter } from "./chapters";
+import { ClearingWorks } from "./ClearingWorks";
 import { links, profile, roles, type Role } from "./content";
 
 const noJump = (e: React.MouseEvent<HTMLAnchorElement>) => {
@@ -239,6 +240,7 @@ export function Codex() {
       }
     >
       <ConstructionLines />
+      <ClearingWorks />
       <nav className="instruments-nav" aria-label="Chapters">
         {chapters.map((c, i) => (
           <a
