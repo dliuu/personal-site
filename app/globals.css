@@ -624,6 +624,20 @@ body:has(.instruments) {
     display: none;
   }
 }
+/* In the plate the docked captions do the explaining; labels would collide. */
+.instruments-works .works-label {
+  transition: opacity 400ms ease;
+}
+.instruments-works[data-mode="plate"] .works-label {
+  opacity: 0;
+}
+.instruments-works .works-subtitle {
+  font-family: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  fill: #e6e9ef;
+  opacity: 0.45;
+}
 .instruments-works .works-fig {
   font-family: var(--font-fell), Georgia, serif;
   font-style: italic;
