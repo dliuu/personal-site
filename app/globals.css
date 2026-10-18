@@ -697,7 +697,7 @@ a {
   opacity: 0;
 }
 .instruments-works .works-subtitle {
-  font-family: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
+  font-family: ui-sans-serif, system-ui, sans-serif;
   font-size: 11px;
   letter-spacing: 0.14em;
   fill: #e6e9ef;
@@ -710,7 +710,7 @@ a {
   fill: var(--gold, #7fb0ff);
 }
 .instruments-works .works-title {
-  font-family: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
+  font-family: ui-sans-serif, system-ui, sans-serif;
   font-size: 13.5px;
   letter-spacing: 0.22em;
   fill: #e6e9ef;
@@ -735,7 +735,7 @@ a {
   opacity: 0.55;
 }
 .instruments-works .works-label text {
-  font-family: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
+  font-family: ui-sans-serif, system-ui, sans-serif;
   font-size: 11.5px;
   letter-spacing: 0.08em;
   fill: #e6e9ef;
